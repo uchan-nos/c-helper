@@ -3,9 +3,12 @@ package com.github.uchan_nos.c_helper.handlers;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.jface.dialogs.MessageDialog;
+
+import com.github.uchan_nos.c_helper.analysis.Analyzer;
 
 /**
  * Our sample handler extends AbstractHandler, an IHandler base class.
@@ -29,6 +32,9 @@ public class AnalysisHandler extends AbstractHandler {
 				window.getShell(),
 				"c-helper",
 				"Analyzing source code...");
+		IEditorPart activeEditorPart = HandlerUtil.getActiveEditor(event);
+		Analyzer analyzer = new Analyzer();
+		analyzer.analyze(activeEditorPart);
 		return null;
 	}
 }
