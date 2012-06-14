@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.commands">
+      <category
+            name="c-helper"
+            id="com.github.uchan_nos.c_helper.commands.category">
+      </category>
+      <command
+            name="Analysis Command"
+            categoryId="com.github.uchan_nos.c_helper.commands.category"
+            id="com.github.uchan_nos.c_helper.commands.analysisCommand">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            commandId="com.github.uchan_nos.c_helper.commands.analysisCommand"
+            class="com.github.uchan_nos.c_helper.handlers.AnalysisHandler">
+      </handler>
+   </extension>
+   <extension
+         point="org.eclipse.ui.bindings">
+      <key
+            commandId="com.github.uchan_nos.c_helper.commands.analysisCommand"
+            contextId="org.eclipse.ui.contexts.window"
+            sequence="M1+6"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
+      </key>
+   </extension>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu
+               label="C-helper"
+               mnemonic="C"
+               id="com.github.uchan_nos.c_helper.menus.c_helperMenu">
+            <command
+                  commandId="com.github.uchan_nos.c_helper.commands.analysisCommand"
+                  id="com.github.uchan_nos.c_helper.menus.analysisCommand"
+                  label="Analyze"
+                  mnemonic="A">
+            </command>
+         </menu>
+      </menuContribution>
+      <menuContribution
+            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar
+               id="com.github.uchan_nos.c_helper.toolbars.analysisToolbar">
+            <command
+                  commandId="com.github.uchan_nos.c_helper.commands.analysisCommand"
+                  icon="icons/analysis.png"
+                  tooltip="Analyze"
+                  id="com.github.uchan_nos.c_helper.toolbars.analysisCommand">
+            </command>
+         </toolbar>
+      </menuContribution>
+   </extension>
+
+</plugin>
