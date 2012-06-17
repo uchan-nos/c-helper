@@ -12,29 +12,29 @@ import com.github.uchan_nos.c_helper.analysis.Analyzer;
 
 /**
  * Our sample handler extends AbstractHandler, an IHandler base class.
+ * 
  * @see org.eclipse.core.commands.IHandler
  * @see org.eclipse.core.commands.AbstractHandler
  */
 public class AnalysisHandler extends AbstractHandler {
-	/**
-	 * The constructor.
-	 */
-	public AnalysisHandler() {
-	}
+    /**
+     * The constructor.
+     */
+    public AnalysisHandler() {
+    }
 
-	/**
-	 * the command has been executed, so extract extract the needed information
-	 * from the application context.
-	 */
-	public Object execute(ExecutionEvent event) throws ExecutionException {
-		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
-		MessageDialog.openInformation(
-				window.getShell(),
-				"c-helper",
-				"Analyzing source code...");
-		IEditorPart activeEditorPart = HandlerUtil.getActiveEditor(event);
-		Analyzer analyzer = new Analyzer();
-		analyzer.analyze(activeEditorPart);
-		return null;
-	}
+    /**
+     * the command has been executed, so extract extract the needed information
+     * from the application context.
+     */
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        IWorkbenchWindow window = HandlerUtil
+                .getActiveWorkbenchWindowChecked(event);
+        MessageDialog.openInformation(window.getShell(), "c-helper",
+                "Analyzing source code...");
+        IEditorPart activeEditorPart = HandlerUtil.getActiveEditor(event);
+        Analyzer analyzer = new Analyzer();
+        analyzer.analyze(activeEditorPart);
+        return null;
+    }
 }
