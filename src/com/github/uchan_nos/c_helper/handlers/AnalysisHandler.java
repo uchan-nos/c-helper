@@ -9,10 +9,11 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.jface.dialogs.MessageDialog;
 
 import com.github.uchan_nos.c_helper.analysis.Analyzer;
+import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 
 /**
  * Our sample handler extends AbstractHandler, an IHandler base class.
- * 
+ *
  * @see org.eclipse.core.commands.IHandler
  * @see org.eclipse.core.commands.AbstractHandler
  */
@@ -34,7 +35,15 @@ public class AnalysisHandler extends AbstractHandler {
                 "Analyzing source code...");
         IEditorPart activeEditorPart = HandlerUtil.getActiveEditor(event);
         Analyzer analyzer = new Analyzer();
-        analyzer.analyze(activeEditorPart);
+        try {
+            analyzer.analyze(activeEditorPart);
+            MessageDialog.openInformation(window.getShell(), "c-helper",
+                    "Successfully analyzed source code.");
+        } catch (InvalidEditorPartException e) {
+            e.printStackTrace();
+            MessageDialog.openError(window.getShell(), "c-helper",
+                    "Failed to analyze source code.");
+        }
         return null;
     }
 }

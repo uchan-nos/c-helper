@@ -5,6 +5,10 @@ Bundle-SymbolicName: com.github.uchan_nos.c_helper; singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: com.github.uchan_nos.c_helper.Activator
 Require-Bundle: org.eclipse.ui,
- org.eclipse.core.runtime
+ org.eclipse.ui.editors,
+ org.eclipse.core.runtime,
+ org.eclipse.core.resources,
+ org.eclipse.jface.text,
+ org.eclipse.cdt.core
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
