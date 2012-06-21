@@ -24,6 +24,10 @@ public class CFG {
 		    this.label = label;
 		}
 		
+		public void setLabel(String label) {
+		    this.label = label;
+		}
+		
 		public void addASTNode(IASTNode node) {
 			this.astNodes.add(node);
 		}
@@ -66,6 +70,10 @@ public class CFG {
 		this.vertices.add(v);
 	}
 	
+	public boolean remove(Vertex v) {
+	    return this.vertices.remove(v);
+	}
+	
 	/**
 	 * 指定された辺をグラフに追加する.
 	 * @param e 追加する辺
@@ -74,13 +82,19 @@ public class CFG {
 		this.edges.add(e);
 	}
 	
+	public boolean remove(Edge e) {
+	    return this.edges.remove(e);
+	}
+	
 	/**
 	 * 指定されたグラフ全体をこのグラフに追加する.
 	 * @param cfg 追加するグラフ
 	 */
 	public void add(CFG cfg) {
-		this.vertices.addAll(cfg.vertices());
-		this.edges.addAll(cfg.edges());
+	    if (cfg != null) {
+    		this.vertices.addAll(cfg.vertices());
+    		this.edges.addAll(cfg.edges());
+	    }
 	}
 	
 	/**

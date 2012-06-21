@@ -1,6 +1,5 @@
 package com.github.uchan_nos.c_helper.analysis;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,14 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTStatement;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
-import org.eclipse.cdt.core.envvar.EnvironmentVariable;
 import org.eclipse.cdt.core.index.IIndex;
 import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.DefaultLogService;
@@ -24,15 +17,12 @@ import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.cdt.core.parser.ScannerInfo;
-import org.eclipse.cdt.internal.core.envvar.EnvironmentVariableManager;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.omg.CORBA.Environment;
 
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 
@@ -98,6 +88,22 @@ public class Analyzer {
         }
     }
     
+    private void printCFG(CFG cfg) {
+        try {
+            IPath filePath = new Path(System.getProperty("user.home"));
+            filePath = filePath.append("cfg.dot");
+            FileWriter writer = new FileWriter(filePath.toFile());
+            writer.write("digraph {\n");
+            writer.write(toDot("debug", cfg));
+            writer.write('\n');
+            writer.write("}\n");
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("cannot create a file to write");
+            System.out.println(toDot("debug", cfg));
+        }
+    }
+    
     private String toDot(String name, CFG cfg) {
         StringBuilder sb = new StringBuilder();
         ArrayList<CFG.Vertex> vertices = cfg.vertices();
@@ -106,7 +112,7 @@ public class Analyzer {
         // vertex attribute lines
         sb.append(name + "[shape=parallelogram];\n");
         for (CFG.Vertex v : vertices) {
-            String label = v.label().replace("\"", "\\\"").replace("\n", "\\n");
+            String label = v.label().replace("\"", "\\\"").replace("\\n", "|n").replace("\n", "\\n");
             sb.append(getVertexName(v) + " [shape=box,label=\"" + label + "\"];\n");
         }
         
@@ -138,6 +144,7 @@ public class Analyzer {
                 IASTFunctionDefinition fd = (IASTFunctionDefinition) decl;
                 String id = String.valueOf(fd.getDeclarator().getName().getSimpleID());
                 CFG cfg = createCFG(fd.getBody());
+                optimizeCFG(cfg);
                 procToCFG.put(id, cfg);
             }
         }
@@ -161,7 +168,32 @@ public class Analyzer {
                     cfg.add(subcfg, prev.exitVertices(), null);
                     prev = subcfg;
                 }
+                
+                cfg.setExitVertices(prev.exitVertices());
             }
+        } else if (stmt instanceof IASTIfStatement) {
+            IASTIfStatement s = (IASTIfStatement) stmt;
+            CFG thencfg = createCFG(s.getThenClause());
+            CFG elsecfg = s.getElseClause() != null ? createCFG(s.getElseClause()) : null;
+            CFG.Vertex v = new CFG.Vertex("if (" + s.getConditionExpression().getRawSignature() + ")");
+            v.addASTNode(s);
+
+            ArrayList<CFG.Vertex> exitVertices = new ArrayList<CFG.Vertex>();
+            exitVertices.add(v);
+
+            cfg.add(v);
+            cfg.add(thencfg);
+            cfg.add(new CFG.Edge(v, thencfg.entryVertex()));
+            exitVertices.addAll(thencfg.exitVertices());
+
+            if (elsecfg != null) {
+                cfg.add(elsecfg);
+                cfg.add(new CFG.Edge(v, elsecfg.entryVertex()));
+                exitVertices.addAll(elsecfg.exitVertices());
+            }
+            
+            cfg.setEntryVertex(v);
+            cfg.setExitVertices(exitVertices);
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature());
             v.addASTNode(stmt);
@@ -170,5 +202,142 @@ public class Analyzer {
             cfg.setExitVertices(v);
         }
         return cfg;
+    }
+    
+    private Map<CFG.Vertex, ArrayList<CFG.Edge>> getEntryEdges(CFG cfg) {
+        // 指定されたノードに入ってくる辺の集合
+        // entryEdges.get(v) -> vに入ってくる辺の集合
+        Map<CFG.Vertex, ArrayList<CFG.Edge>> entryEdges = new HashMap<CFG.Vertex, ArrayList<CFG.Edge>>();
+        
+        for (CFG.Edge edge : cfg.edges()) {
+            ArrayList<CFG.Edge> entry = entryEdges.get(edge.to());
+            if (entry == null) {
+                entry = new ArrayList<CFG.Edge>();
+                entryEdges.put(edge.to(), entry);
+            }
+            entry.add(edge);
+        }
+        
+        return entryEdges;
+    }
+    
+    private Map<CFG.Vertex, ArrayList<CFG.Edge>> getExitEdges(CFG cfg) {
+        
+        // 指定されたノードから出ていく辺の集合
+        // exitEdges.get(v) -> vから出ていく辺の集合
+        Map<CFG.Vertex, ArrayList<CFG.Edge>> exitEdges = new HashMap<CFG.Vertex, ArrayList<CFG.Edge>>();
+        
+        for (CFG.Edge edge : cfg.edges()) {
+            ArrayList<CFG.Edge> exit = exitEdges.get(edge.from());
+            if (exit == null) {
+                exit = new ArrayList<CFG.Edge>();
+                exitEdges.put(edge.from(), exit);
+            }
+            exit.add(edge);
+        }
+         
+        return exitEdges;
+    }
+   
+    private void optimizeCFG(CFG cfg) {
+        
+        class Util {
+            // 指定されたノードに入ってくる辺の集合
+            // entryEdges.get(v) -> vに入ってくる辺の集合
+            private Map<CFG.Vertex, ArrayList<CFG.Edge>> entryEdges;
+            
+            // 指定されたノードから出ていく辺の集合
+            // exitEdges.get(v) -> vから出ていく辺の集合
+            private Map<CFG.Vertex, ArrayList<CFG.Edge>> exitEdges;
+            
+            private CFG cfg;
+            
+            public Util(CFG cfg) {
+                this.cfg = cfg;
+                this.entryEdges = getEntryEdges(cfg);
+                this.exitEdges = getExitEdges(cfg);
+            }
+            
+            /**
+             * 指定された辺の前後の頂点をマージする.
+             * 辺edgeが与えられたとき、edge.to()をedge.from()にマージする.
+             * @param edge マージする辺
+             */
+            public void merge(CFG.Edge edge) {
+                CFG.Vertex from = edge.from();
+                CFG.Vertex to = edge.to();
+                
+                // toをfromに統合
+                from.setLabel(from.label() + "\\l" + to.label());
+                for (IASTNode node : to.getASTNodes()) {
+                    from.addASTNode(node);
+                }
+                
+                for (CFG.Edge e : this.exitEdges.get(to)) {
+                    CFG.Edge newEdge = new CFG.Edge(from, e.to());
+                    this.cfg.add(newEdge);
+                    this.exitEdges.get(from).add(newEdge);
+                    this.entryEdges.get(e.to()).add(newEdge);
+                }
+            }
+            
+            /**
+             * 指定された頂点と、その頂点に接続されている辺を削除する.
+             * @param v 削除する頂点
+             */
+            public void remove(CFG.Vertex v) {
+                this.cfg.remove(v);
+                
+                for (CFG.Edge e : this.entryEdges.get(v)) {
+                    // e.to()は必ずvと一致する
+                    this.cfg.remove(e);
+                    this.exitEdges.get(e.from()).remove(e);
+                }
+                for (CFG.Edge e : this.exitEdges.get(v)) {
+                    // e.from()は必ずvと一致する
+                    this.cfg.remove(e);
+                    this.entryEdges.get(e.to()).remove(e);
+                }
+                this.cfg.remove(v);
+                this.entryEdges.remove(v);
+                this.exitEdges.remove(v);
+            }
+            
+            public boolean canMerge(CFG.Edge edge) {
+                return this.exitEdges.get(edge.from()).size() == 1 &&
+                        this.entryEdges.get(edge.to()).size() == 1;
+            }
+        }
+        Util util = new Util(cfg);
+                
+        boolean modified;
+        
+        do {
+            modified = false;
+            CFG.Edge edgeToMerge = null;
+            
+            ArrayList<CFG.Edge> edgesToAdd = new ArrayList<CFG.Edge>();
+            
+            for (CFG.Edge edge : cfg.edges()) {
+                if (util.canMerge(edge)) {
+                    // まとめられる
+                    edgeToMerge = edge;
+                    break;
+                }
+            }
+            
+            if (edgeToMerge != null) {
+                modified = true;
+                
+                // toをfromに統合
+                util.merge(edgeToMerge);
+                
+                // toとtoに接続されている辺を削除
+                util.remove(edgeToMerge.to());
+                // 一つまとめたらまた最初から。
+            }
+            
+            printCFG(cfg);
+        } while (modified == true);
     }
 }
