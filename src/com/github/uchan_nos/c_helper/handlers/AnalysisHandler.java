@@ -29,11 +29,11 @@ public class AnalysisHandler extends AbstractHandler {
      * from the application context.
      */
     public Object execute(ExecutionEvent event) throws ExecutionException {
+        IEditorPart activeEditorPart = HandlerUtil.getActiveEditorChecked(event);
         IWorkbenchWindow window = HandlerUtil
                 .getActiveWorkbenchWindowChecked(event);
         MessageDialog.openInformation(window.getShell(), "c-helper",
                 "Analyzing source code...");
-        IEditorPart activeEditorPart = HandlerUtil.getActiveEditor(event);
         Analyzer analyzer = new Analyzer();
         try {
             analyzer.analyze(activeEditorPart);
