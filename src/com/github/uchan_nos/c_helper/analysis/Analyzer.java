@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
@@ -106,8 +107,8 @@ public class Analyzer {
     
     private String toDot(String name, CFG cfg) {
         StringBuilder sb = new StringBuilder();
-        ArrayList<CFG.Vertex> vertices = cfg.vertices();
-        ArrayList<CFG.Edge> edges = cfg.edges();
+        Set<CFG.Vertex> vertices = cfg.vertices();
+        Set<CFG.Edge> edges = cfg.edges();
         
         // vertex attribute lines
         sb.append(name + "[shape=parallelogram];\n");
@@ -162,13 +163,21 @@ public class Analyzer {
                 cfg.setEntryVertex(subcfg.entryVertex());
                 cfg.add(subcfg);
                 CFG prev = subcfg;
-
-                for (int i = 1; i < sub.length; ++i) {
-                    subcfg = createCFG(sub[i]);
-                    cfg.add(subcfg, prev.exitVertices(), null);
-                    prev = subcfg;
-                }
                 
+                if (sub.length >= 1) {
+                	subcfg = createCFG(sub[1]);
+                }
+
+                for (int i = 1; i < sub.length - 1; ++i) {
+                    CFG next = createCFG(sub[i + 1]);
+                    cfg.add(subcfg, prev.exitVertices(), next.entryVertex());
+                    prev = subcfg;
+                    subcfg = next;
+                }
+
+                if (sub.length >= 1) {
+                	cfg.add(subcfg, prev.exitVertices(), null);
+                }
                 cfg.setExitVertices(prev.exitVertices());
             }
         } else if (stmt instanceof IASTIfStatement) {
@@ -227,12 +236,12 @@ public class Analyzer {
         // exitEdges.get(v) -> vから出ていく辺の集合
         Map<CFG.Vertex, ArrayList<CFG.Edge>> exitEdges = new HashMap<CFG.Vertex, ArrayList<CFG.Edge>>();
         
+        for (CFG.Vertex v : cfg.vertices()) {
+        	exitEdges.put(v, new ArrayList<CFG.Edge>());
+        }
+        
         for (CFG.Edge edge : cfg.edges()) {
             ArrayList<CFG.Edge> exit = exitEdges.get(edge.from());
-            if (exit == null) {
-                exit = new ArrayList<CFG.Edge>();
-                exitEdges.put(edge.from(), exit);
-            }
             exit.add(edge);
         }
          
@@ -273,6 +282,10 @@ public class Analyzer {
                     from.addASTNode(node);
                 }
                 
+                if (this.exitEdges.get(to) == null) {
+                	System.out.println("this.exitEdges is null");
+                	return;
+                }
                 for (CFG.Edge e : this.exitEdges.get(to)) {
                     CFG.Edge newEdge = new CFG.Edge(from, e.to());
                     this.cfg.add(newEdge);
@@ -315,8 +328,6 @@ public class Analyzer {
         do {
             modified = false;
             CFG.Edge edgeToMerge = null;
-            
-            ArrayList<CFG.Edge> edgesToAdd = new ArrayList<CFG.Edge>();
             
             for (CFG.Edge edge : cfg.edges()) {
                 if (util.canMerge(edge)) {
