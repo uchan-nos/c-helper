@@ -183,19 +183,28 @@ public class Analyzer {
             root.addASTNode(s);
 
             ArrayList<CFG.Vertex> exitVertices = new ArrayList<CFG.Vertex>();
-            
+            CFG.Vertex exitVertex = new CFG.Vertex(""); // ダミーノード
+            cfg.add(exitVertex);
+            exitVertices.add(exitVertex);
 
             cfg.add(root);
             cfg.add(thencfg);
             cfg.add(new CFG.Edge(root, thencfg.entryVertex()));
-            exitVertices.addAll(thencfg.exitVertices());
+            for (CFG.Vertex v : thencfg.exitVertices()) {
+            	cfg.add(new CFG.Edge(v, exitVertex));
+            }
+            //exitVertices.addAll(thencfg.exitVertices());
 
             if (elsecfg != null) {
                 cfg.add(elsecfg);
                 cfg.add(new CFG.Edge(root, elsecfg.entryVertex()));
-                exitVertices.addAll(elsecfg.exitVertices());
+                for (CFG.Vertex v : elsecfg.exitVertices()) {
+                	cfg.add(new CFG.Edge(v, exitVertex));
+                }
+                //exitVertices.addAll(elsecfg.exitVertices());
             } else {
-            	exitVertices.add(root); // TODO: elseがある場合は追加しちゃいけない
+            	cfg.add(new CFG.Edge(root, exitVertex));
+            	//exitVertices.add(root);
             }
             
             cfg.setEntryVertex(root);
