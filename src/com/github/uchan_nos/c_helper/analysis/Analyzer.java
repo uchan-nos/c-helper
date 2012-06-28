@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -117,11 +118,13 @@ public class Analyzer {
                 CFG subcfg = createCFG(sub[0], gotoInfoList);
                 cfg.setEntryVertex(subcfg.entryVertex());
                 cfg.add(subcfg);
+                cfg.addBreakFrom(subcfg.breakFromVertices());
                 Set<Vertex> exitVertices = subcfg.exitVertices();
 
                 for (int i = 1; i < sub.length; ++i) {
                     subcfg = createCFG(sub[i], gotoInfoList);
                     cfg.add(subcfg, exitVertices, null);
+                    cfg.addBreakFrom(subcfg.breakFromVertices());
                     exitVertices = subcfg.exitVertices();
                 }
                 cfg.setExitVertices(exitVertices);
@@ -135,13 +138,12 @@ public class Analyzer {
                     + s.getConditionExpression().getRawSignature() + ")\\l");
             root.addASTNode(s);
 
-            ArrayList<CFG.Vertex> exitVertices = new ArrayList<CFG.Vertex>();
             CFG.Vertex exitVertex = new CFG.Vertex(""); // ダミーノード
             cfg.add(exitVertex);
-            exitVertices.add(exitVertex);
 
             cfg.add(root);
             cfg.add(thencfg);
+            cfg.addBreakFrom(thencfg.breakFromVertices());
             cfg.add(new CFG.Edge(root, thencfg.entryVertex()));
             for (CFG.Vertex v : thencfg.exitVertices()) {
                 cfg.add(new CFG.Edge(v, exitVertex));
@@ -150,6 +152,7 @@ public class Analyzer {
 
             if (elsecfg != null) {
                 cfg.add(elsecfg);
+                cfg.addBreakFrom(elsecfg.breakFromVertices());
                 cfg.add(new CFG.Edge(root, elsecfg.entryVertex()));
                 for (CFG.Vertex v : elsecfg.exitVertices()) {
                     cfg.add(new CFG.Edge(v, exitVertex));
@@ -161,7 +164,7 @@ public class Analyzer {
             }
 
             cfg.setEntryVertex(root);
-            cfg.setExitVertices(exitVertices);
+            cfg.setExitVertices(exitVertex);
         } else if (stmt instanceof IASTLabelStatement) {
             IASTLabelStatement s = (IASTLabelStatement) stmt;
             CFG subcfg = createCFG(s.getNestedStatement(), gotoInfoList);
@@ -170,13 +173,19 @@ public class Analyzer {
             labelVertex.addASTNode(s);
             cfg.add(labelVertex);
 
-            // subcfg.entryVertex()に入ってくるすべての辺を、labelVertexに入るように切り替える
+            // gotoからsubcfg.entryVertex()に入ってくるすべての辺を、labelVertexに入るように切り替える
             ArrayList<CFG.Edge> removeEdges = new ArrayList<CFG.Edge>();
             ArrayList<CFG.Edge> addEdges = new ArrayList<CFG.Edge>();
             for (CFG.Edge e : subcfg.edges()) {
                 if (e.to() == subcfg.entryVertex()) {
-                    removeEdges.add(e);
-                    addEdges.add(new CFG.Edge(e.from(), labelVertex));
+                    if (e.from().getASTNodes().size() != 1) {
+                        throw new RuntimeException("one vertex doesn't have exact one statement");
+                    }
+                    IASTNode n = e.from().getASTNodes().get(0);
+                    if (n instanceof IASTGotoStatement) {
+                        removeEdges.add(e);
+                        addEdges.add(new CFG.Edge(e.from(), labelVertex));
+                    }
                 }
             }
             for (CFG.Edge e : removeEdges) {
@@ -205,14 +214,46 @@ public class Analyzer {
             CFG.Vertex root = new CFG.Vertex("while ("
                     + s.getCondition().getRawSignature() + ")\\l");
             root.addASTNode(s);
+            CFG.Vertex exit = new CFG.Vertex("");
             cfg.add(root);
+            cfg.add(exit);
             cfg.add(subcfg);
             cfg.add(new CFG.Edge(root, subcfg.entryVertex()));
+            cfg.add(new CFG.Edge(root, exit));
             for (CFG.Vertex v : subcfg.exitVertices()) {
                 cfg.add(new CFG.Edge(v, root));
             }
+            for (CFG.Vertex v : subcfg.breakFromVertices()) {
+                cfg.add(new CFG.Edge(v, exit));
+                for (CFG.Edge e : getAllBreakingEdgesToRemove(v, subcfg.edges(), exit)) {
+                    cfg.remove(e);
+                }
+            }
             cfg.setEntryVertex(root);
-            cfg.setExitVertices(root);
+            cfg.setExitVertices(exit);
+        } else if (stmt instanceof IASTDoStatement) {
+            IASTDoStatement s = (IASTDoStatement) stmt;
+            CFG subcfg = createCFG(s.getBody(), gotoInfoList);
+            CFG.Vertex root = new CFG.Vertex("do-while ("
+                    + s.getCondition().getRawSignature() + ")\\l");
+            root.addASTNode(s);
+            CFG.Vertex exit = new CFG.Vertex("");
+            cfg.add(root);
+            cfg.add(exit);
+            cfg.add(subcfg);
+            cfg.add(new CFG.Edge(root, exit));
+            for (CFG.Vertex v : subcfg.exitVertices()) {
+                cfg.add(new CFG.Edge(v, root));
+            }
+            for (CFG.Vertex v : subcfg.breakFromVertices()) {
+                cfg.add(new CFG.Edge(v, exit));
+                for (CFG.Edge e : getAllBreakingEdgesToRemove(v, subcfg.edges(), exit)) {
+                    cfg.remove(e);
+                }
+            }
+            cfg.add(new CFG.Edge(root, subcfg.entryVertex()));
+            cfg.setEntryVertex(subcfg.entryVertex());
+            cfg.setExitVertices(exit);
         } else if (stmt instanceof IASTForStatement) {
             IASTForStatement s = (IASTForStatement) stmt;
             CFG subcfg = createCFG(s.getBody(), gotoInfoList);
@@ -224,20 +265,30 @@ public class Analyzer {
             condVertex.addASTNode(s.getConditionExpression());
             iterVertex.addASTNode(s.getIterationExpression());
 
+            CFG.Vertex exit = new CFG.Vertex("");
+
             cfg.add(initVertex);
             cfg.add(condVertex);
             cfg.add(iterVertex);
+            cfg.add(exit);
 
             cfg.add(new CFG.Edge(initVertex, condVertex));
             cfg.add(new CFG.Edge(iterVertex, condVertex));
+            cfg.add(new CFG.Edge(condVertex, exit));
 
             cfg.add(subcfg);
             cfg.add(new CFG.Edge(condVertex, subcfg.entryVertex()));
             for (CFG.Vertex v : subcfg.exitVertices()) {
                 cfg.add(new CFG.Edge(v, iterVertex));
             }
+            for (CFG.Vertex v : subcfg.breakFromVertices()) {
+                cfg.add(new CFG.Edge(v, exit));
+                for (CFG.Edge e : getAllBreakingEdgesToRemove(v, subcfg.edges(), exit)) {
+                    cfg.remove(e);
+                }
+            }
             cfg.setEntryVertex(initVertex);
-            cfg.setExitVertices(condVertex);
+            cfg.setExitVertices(exit);
         } else if (stmt instanceof IASTSwitchStatement) {
             IASTSwitchStatement s = (IASTSwitchStatement) stmt;
             CFG subcfg = createCFG(s.getBody(), gotoInfoList);
@@ -258,17 +309,26 @@ public class Analyzer {
                 }
 
                 IASTNode n = v.getASTNodes().get(0);
-                if (n instanceof IASTCaseStatement) {
+                if (n instanceof IASTCaseStatement || n instanceof IASTDefaultStatement) {
                     cfg.add(new CFG.Edge(root, v));
-                } else if (n instanceof IASTDefaultStatement) {
-                    cfg.add(new CFG.Edge(root, v));
-                } else if (n instanceof IASTBreakStatement) {
-                    cfg.add(new CFG.Edge(v, exit));
+                }
+            }
+            for (CFG.Vertex v : subcfg.breakFromVertices()) {
+                cfg.add(new CFG.Edge(v, exit));
+                for (CFG.Edge e : getAllBreakingEdgesToRemove(v, subcfg.edges(), subcfg.exitVertices())) {
+                    cfg.remove(e);
                 }
             }
 
             cfg.setEntryVertex(root);
             cfg.setExitVertices(exit);
+        } else if (stmt instanceof IASTBreakStatement) {
+            CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
+            v.addASTNode(stmt);
+            cfg.add(v);
+            cfg.addBreakFrom(v);
+            cfg.setEntryVertex(v);
+            cfg.setExitVertices(v);
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
             v.addASTNode(stmt);
@@ -291,9 +351,33 @@ public class Analyzer {
         }
         for (GotoInfo gi : gotoInfoList) {
             CFG.Vertex gotoVertex = labeledStatement.get(gi.toName());
+
+            for (Iterator<CFG.Edge> it = cfg.edges().iterator(); it.hasNext();) {
+                CFG.Edge e = it.next();
+                if (e.from() == gi.from()) {
+                    it.remove();
+                }
+            }
+
             if (gotoVertex != null) {
                 cfg.add(new CFG.Edge(gi.from(), gotoVertex));
             }
         }
+    }
+
+    private static ArrayList<CFG.Edge> getAllBreakingEdgesToRemove(CFG.Vertex breakVertex, Collection<CFG.Edge> edges, Collection<CFG.Vertex> except) {
+        ArrayList<CFG.Edge> remove = new ArrayList<CFG.Edge>();
+        for (CFG.Edge e : edges) {
+            if (e.from() == breakVertex && !except.contains(e.to())) {
+                remove.add(e);
+            }
+        }
+        return remove;
+    }
+
+    private static ArrayList<CFG.Edge> getAllBreakingEdgesToRemove(CFG.Vertex breakVertex, Collection<CFG.Edge> edges, CFG.Vertex except) {
+        ArrayList<CFG.Vertex> excepts = new ArrayList<CFG.Vertex>();
+        excepts.add(except);
+        return getAllBreakingEdgesToRemove(breakVertex, edges, excepts);
     }
 }
