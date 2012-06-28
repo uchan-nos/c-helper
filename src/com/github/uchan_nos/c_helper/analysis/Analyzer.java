@@ -238,6 +238,37 @@ public class Analyzer {
             }
             cfg.setEntryVertex(initVertex);
             cfg.setExitVertices(condVertex);
+        } else if (stmt instanceof IASTSwitchStatement) {
+            IASTSwitchStatement s = (IASTSwitchStatement) stmt;
+            CFG subcfg = createCFG(s.getBody(), gotoInfoList);
+            CFG.Vertex root = new CFG.Vertex("switch ("
+                    + s.getControllerExpression().getRawSignature() + ")\\l");
+            root.addASTNode(s);
+            CFG.Vertex exit = new CFG.Vertex("");
+            cfg.add(root);
+            cfg.add(exit);
+            cfg.add(subcfg);
+            for (CFG.Vertex v : subcfg.exitVertices()) {
+                cfg.add(new CFG.Edge(v, exit));
+            }
+
+            for (CFG.Vertex v : subcfg.vertices()) {
+                if (v.getASTNodes().size() != 1) {
+                    throw new RuntimeException("one vertex doesn't have exact one statement");
+                }
+
+                IASTNode n = v.getASTNodes().get(0);
+                if (n instanceof IASTCaseStatement) {
+                    cfg.add(new CFG.Edge(root, v));
+                } else if (n instanceof IASTDefaultStatement) {
+                    cfg.add(new CFG.Edge(root, v));
+                } else if (n instanceof IASTBreakStatement) {
+                    cfg.add(new CFG.Edge(v, exit));
+                }
+            }
+
+            cfg.setEntryVertex(root);
+            cfg.setExitVertices(exit);
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
             v.addASTNode(stmt);

@@ -21,6 +21,18 @@ public class Launcher {
             + "  }\n"
             + "fin:\n"
             + "  puts(\"end\");\n"
+            + "  switch (getchar()) {\n"
+            + "  case '0':\n"
+            + "    puts(\"zero\");\n"
+            + "  case '1':\n"
+            + "    puts(\"one\");\n"
+            + "    break;\n"
+            + "  case '2':\n"
+            + "    puts(\"two\");\n"
+            + "  default:\n"
+            + "    puts(\"default\");\n"
+            + "  }\n"
+            + "  return 0;\n"
             + "}\n";
 
     /**
