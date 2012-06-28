@@ -148,7 +148,8 @@ public class Analyzer {
                 IASTFunctionDefinition fd = (IASTFunctionDefinition) decl;
                 String id = String.valueOf(fd.getDeclarator().getName().getSimpleID());
                 CFG cfg = createCFG(fd.getBody());
-                optimizeCFG(cfg);
+                //optimizeCFG(cfg);
+                CFGNormalizer.normalize(cfg);
                 procToCFG.put(id, cfg);
             }
         }
@@ -178,24 +179,26 @@ public class Analyzer {
             IASTIfStatement s = (IASTIfStatement) stmt;
             CFG thencfg = createCFG(s.getThenClause());
             CFG elsecfg = s.getElseClause() != null ? createCFG(s.getElseClause()) : null;
-            CFG.Vertex v = new CFG.Vertex("if (" + s.getConditionExpression().getRawSignature() + ")\\l");
-            v.addASTNode(s);
+            CFG.Vertex root = new CFG.Vertex("if (" + s.getConditionExpression().getRawSignature() + ")\\l");
+            root.addASTNode(s);
 
             ArrayList<CFG.Vertex> exitVertices = new ArrayList<CFG.Vertex>();
-            exitVertices.add(v);
+            
 
-            cfg.add(v);
+            cfg.add(root);
             cfg.add(thencfg);
-            cfg.add(new CFG.Edge(v, thencfg.entryVertex()));
+            cfg.add(new CFG.Edge(root, thencfg.entryVertex()));
             exitVertices.addAll(thencfg.exitVertices());
 
             if (elsecfg != null) {
                 cfg.add(elsecfg);
-                cfg.add(new CFG.Edge(v, elsecfg.entryVertex()));
+                cfg.add(new CFG.Edge(root, elsecfg.entryVertex()));
                 exitVertices.addAll(elsecfg.exitVertices());
+            } else {
+            	exitVertices.add(root); // TODO: elseがある場合は追加しちゃいけない
             }
             
-            cfg.setEntryVertex(v);
+            cfg.setEntryVertex(root);
             cfg.setExitVertices(exitVertices);
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
@@ -205,140 +208,5 @@ public class Analyzer {
             cfg.setExitVertices(v);
         }
         return cfg;
-    }
-    
-    private Map<CFG.Vertex, ArrayList<CFG.Edge>> getEntryEdges(CFG cfg) {
-        // 指定されたノードに入ってくる辺の集合
-        // entryEdges.get(v) -> vに入ってくる辺の集合
-        Map<CFG.Vertex, ArrayList<CFG.Edge>> entryEdges = new HashMap<CFG.Vertex, ArrayList<CFG.Edge>>();
-        
-        for (CFG.Edge edge : cfg.edges()) {
-            ArrayList<CFG.Edge> entry = entryEdges.get(edge.to());
-            if (entry == null) {
-                entry = new ArrayList<CFG.Edge>();
-                entryEdges.put(edge.to(), entry);
-            }
-            entry.add(edge);
-        }
-        
-        return entryEdges;
-    }
-    
-    private Map<CFG.Vertex, ArrayList<CFG.Edge>> getExitEdges(CFG cfg) {
-        
-        // 指定されたノードから出ていく辺の集合
-        // exitEdges.get(v) -> vから出ていく辺の集合
-        Map<CFG.Vertex, ArrayList<CFG.Edge>> exitEdges = new HashMap<CFG.Vertex, ArrayList<CFG.Edge>>();
-        
-        for (CFG.Vertex v : cfg.vertices()) {
-        	exitEdges.put(v, new ArrayList<CFG.Edge>());
-        }
-        
-        for (CFG.Edge edge : cfg.edges()) {
-            ArrayList<CFG.Edge> exit = exitEdges.get(edge.from());
-            exit.add(edge);
-        }
-         
-        return exitEdges;
-    }
-   
-    private void optimizeCFG(CFG cfg) {
-        
-        class Util {
-            // 指定されたノードに入ってくる辺の集合
-            // entryEdges.get(v) -> vに入ってくる辺の集合
-            private Map<CFG.Vertex, ArrayList<CFG.Edge>> entryEdges;
-            
-            // 指定されたノードから出ていく辺の集合
-            // exitEdges.get(v) -> vから出ていく辺の集合
-            private Map<CFG.Vertex, ArrayList<CFG.Edge>> exitEdges;
-            
-            private CFG cfg;
-            
-            public Util(CFG cfg) {
-                this.cfg = cfg;
-                this.entryEdges = getEntryEdges(cfg);
-                this.exitEdges = getExitEdges(cfg);
-            }
-            
-            /**
-             * 指定された辺の前後の頂点をマージする.
-             * 辺edgeが与えられたとき、edge.to()をedge.from()にマージする.
-             * @param edge マージする辺
-             */
-            public void merge(CFG.Edge edge) {
-                CFG.Vertex from = edge.from();
-                CFG.Vertex to = edge.to();
-                
-                // toをfromに統合
-                from.setLabel(from.label() + to.label());
-                for (IASTNode node : to.getASTNodes()) {
-                    from.addASTNode(node);
-                }
-                
-                for (CFG.Edge e : this.exitEdges.get(to)) {
-                    CFG.Edge newEdge = new CFG.Edge(from, e.to());
-                    this.cfg.add(newEdge);
-                    this.exitEdges.get(from).add(newEdge);
-                    this.entryEdges.get(e.to()).add(newEdge);
-                }
-            }
-            
-            /**
-             * 指定された頂点と、その頂点に接続されている辺を削除する.
-             * @param v 削除する頂点
-             */
-            public void remove(CFG.Vertex v) {
-                this.cfg.remove(v);
-                
-                for (CFG.Edge e : this.entryEdges.get(v)) {
-                    // e.to()は必ずvと一致する
-                    this.cfg.remove(e);
-                    this.exitEdges.get(e.from()).remove(e);
-                }
-                for (CFG.Edge e : this.exitEdges.get(v)) {
-                    // e.from()は必ずvと一致する
-                    this.cfg.remove(e);
-                    this.entryEdges.get(e.to()).remove(e);
-                }
-                this.cfg.remove(v);
-                this.entryEdges.remove(v);
-                this.exitEdges.remove(v);
-            }
-            
-            public boolean canMerge(CFG.Edge edge) {
-                return this.exitEdges.get(edge.from()).size() == 1 &&
-                        this.entryEdges.get(edge.to()).size() == 1;
-            }
-        }
-        Util util = new Util(cfg);
-                
-        boolean modified;
-        
-        do {
-            modified = false;
-            CFG.Edge edgeToMerge = null;
-            
-            for (CFG.Edge edge : cfg.edges()) {
-                if (util.canMerge(edge)) {
-                    // まとめられる
-                    edgeToMerge = edge;
-                    break;
-                }
-            }
-            
-            if (edgeToMerge != null) {
-                modified = true;
-                
-                // toをfromに統合
-                util.merge(edgeToMerge);
-                
-                // toとtoに接続されている辺を削除
-                util.remove(edgeToMerge.to());
-                // 一つまとめたらまた最初から。
-            }
-            
-            printCFG(cfg);
-        } while (modified == true);
     }
 }
