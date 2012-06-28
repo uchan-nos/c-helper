@@ -25,6 +25,7 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.github.uchan_nos.c_helper.analysis.CFG.Vertex;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 
 public class Analyzer {
@@ -118,9 +119,11 @@ public class Analyzer {
         }
         
         // edges
-        sb.append(name + " -> " + getVertexName(cfg.entryVertex()) + ";\n");
-        for (CFG.Edge edge : edges) {
-            sb.append(getVertexName(edge.from()) + " -> " + getVertexName(edge.to()) + ";\n");
+        if (cfg.entryVertex() != null) {
+	        sb.append(name + " -> " + getVertexName(cfg.entryVertex()) + ";\n");
+	        for (CFG.Edge edge : edges) {
+	            sb.append(getVertexName(edge.from()) + " -> " + getVertexName(edge.to()) + ";\n");
+	        }
         }
         
         return sb.toString();
@@ -162,29 +165,20 @@ public class Analyzer {
                 CFG subcfg = createCFG(sub[0]);
                 cfg.setEntryVertex(subcfg.entryVertex());
                 cfg.add(subcfg);
-                CFG prev = subcfg;
+                Set<Vertex> exitVertices = subcfg.exitVertices();
                 
-                if (sub.length >= 1) {
-                	subcfg = createCFG(sub[1]);
+                for (int i = 1; i < sub.length; ++i) {
+                	subcfg = createCFG(sub[i]);
+                	cfg.add(subcfg, exitVertices, null);
+                	exitVertices = subcfg.exitVertices();
                 }
-
-                for (int i = 1; i < sub.length - 1; ++i) {
-                    CFG next = createCFG(sub[i + 1]);
-                    cfg.add(subcfg, prev.exitVertices(), next.entryVertex());
-                    prev = subcfg;
-                    subcfg = next;
-                }
-
-                if (sub.length >= 1) {
-                	cfg.add(subcfg, prev.exitVertices(), null);
-                }
-                cfg.setExitVertices(prev.exitVertices());
+                cfg.setExitVertices(exitVertices);
             }
         } else if (stmt instanceof IASTIfStatement) {
             IASTIfStatement s = (IASTIfStatement) stmt;
             CFG thencfg = createCFG(s.getThenClause());
             CFG elsecfg = s.getElseClause() != null ? createCFG(s.getElseClause()) : null;
-            CFG.Vertex v = new CFG.Vertex("if (" + s.getConditionExpression().getRawSignature() + ")");
+            CFG.Vertex v = new CFG.Vertex("if (" + s.getConditionExpression().getRawSignature() + ")\\l");
             v.addASTNode(s);
 
             ArrayList<CFG.Vertex> exitVertices = new ArrayList<CFG.Vertex>();
@@ -204,7 +198,7 @@ public class Analyzer {
             cfg.setEntryVertex(v);
             cfg.setExitVertices(exitVertices);
         } else {
-            CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature());
+            CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
             v.addASTNode(stmt);
             cfg.add(v);
             cfg.setEntryVertex(v);
@@ -277,15 +271,11 @@ public class Analyzer {
                 CFG.Vertex to = edge.to();
                 
                 // toをfromに統合
-                from.setLabel(from.label() + "\\l" + to.label());
+                from.setLabel(from.label() + to.label());
                 for (IASTNode node : to.getASTNodes()) {
                     from.addASTNode(node);
                 }
                 
-                if (this.exitEdges.get(to) == null) {
-                	System.out.println("this.exitEdges is null");
-                	return;
-                }
                 for (CFG.Edge e : this.exitEdges.get(to)) {
                     CFG.Edge newEdge = new CFG.Edge(from, e.to());
                     this.cfg.add(newEdge);
