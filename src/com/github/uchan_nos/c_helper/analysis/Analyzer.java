@@ -202,7 +202,7 @@ public class Analyzer {
         } else if (stmt instanceof IASTWhileStatement) {
             IASTWhileStatement s = (IASTWhileStatement) stmt;
             CFG subcfg = createCFG(s.getBody(), gotoInfoList);
-            CFG.Vertex root = new CFG.Vertex("whle ("
+            CFG.Vertex root = new CFG.Vertex("while ("
                     + s.getCondition().getRawSignature() + ")\\l");
             root.addASTNode(s);
             cfg.add(root);
@@ -213,6 +213,31 @@ public class Analyzer {
             }
             cfg.setEntryVertex(root);
             cfg.setExitVertices(root);
+        } else if (stmt instanceof IASTForStatement) {
+            IASTForStatement s = (IASTForStatement) stmt;
+            CFG subcfg = createCFG(s.getBody(), gotoInfoList);
+
+            CFG.Vertex initVertex = new CFG.Vertex(s.getInitializerStatement().getRawSignature() + "\\l");
+            CFG.Vertex condVertex = new CFG.Vertex(s.getConditionExpression().getRawSignature() + "\\l");
+            CFG.Vertex iterVertex = new CFG.Vertex(s.getIterationExpression().getRawSignature() + "\\l");
+            initVertex.addASTNode(s.getInitializerStatement());
+            condVertex.addASTNode(s.getConditionExpression());
+            iterVertex.addASTNode(s.getIterationExpression());
+
+            cfg.add(initVertex);
+            cfg.add(condVertex);
+            cfg.add(iterVertex);
+
+            cfg.add(new CFG.Edge(initVertex, condVertex));
+            cfg.add(new CFG.Edge(iterVertex, condVertex));
+
+            cfg.add(subcfg);
+            cfg.add(new CFG.Edge(condVertex, subcfg.entryVertex()));
+            for (CFG.Vertex v : subcfg.exitVertices()) {
+                cfg.add(new CFG.Edge(v, iterVertex));
+            }
+            cfg.setEntryVertex(initVertex);
+            cfg.setExitVertices(condVertex);
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
             v.addASTNode(stmt);

@@ -7,13 +7,20 @@ public class Launcher {
     private static String sourceCode =
               "#include <stdio.h>\n"
             + "int main(void) {\n"
-            + "  int x = 1;\n"
-            + "label1:\n"
-            + "  while (x == 1) {\n"
-            + "    puts(\"hello\");\n"
-            + "    //goto label1;\n"
-            + "    puts(\"world\");\n"
+            + "  int c = '\\0';\n"
+            + "  int i = 0;\n"
+            + "  while (!0) {\n"
+            + "    printf(\"c=%c\\n\", c);\n"
+            + "    if (c == 'q') {\n"
+            + "      goto fin;\n"
+            + "    }\n"
+            + "    puts(\"command!\");\n"
             + "  }\n"
+            + "  for (i=0;i<5;++i) {\n"
+            + "    printf(\"%d\\n\", i);\n"
+            + "  }\n"
+            + "fin:\n"
+            + "  puts(\"end\");\n"
             + "}\n";
 
     /**
