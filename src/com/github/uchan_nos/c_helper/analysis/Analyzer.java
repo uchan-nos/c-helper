@@ -169,8 +169,26 @@ public class Analyzer {
                     + ":\\l");
             labelVertex.addASTNode(s);
             cfg.add(labelVertex);
+
+            // subcfg.entryVertex()に入ってくるすべての辺を、labelVertexに入るように切り替える
+            ArrayList<CFG.Edge> removeEdges = new ArrayList<CFG.Edge>();
+            ArrayList<CFG.Edge> addEdges = new ArrayList<CFG.Edge>();
+            for (CFG.Edge e : subcfg.edges()) {
+                if (e.to() == subcfg.entryVertex()) {
+                    removeEdges.add(e);
+                    addEdges.add(new CFG.Edge(e.from(), labelVertex));
+                }
+            }
+            for (CFG.Edge e : removeEdges) {
+                subcfg.remove(e);
+            }
+
             cfg.add(subcfg);
             cfg.add(new CFG.Edge(labelVertex, subcfg.entryVertex()));
+            for (CFG.Edge e : addEdges) {
+                cfg.add(e);
+            }
+
             cfg.setEntryVertex(labelVertex);
             cfg.setExitVertices(subcfg.exitVertices());
         } else if (stmt instanceof IASTGotoStatement) {
@@ -181,6 +199,20 @@ public class Analyzer {
             cfg.setEntryVertex(v);
             cfg.setExitVertices(v);
             gotoInfoList.add(new GotoInfo(v, s.getName().getRawSignature()));
+        } else if (stmt instanceof IASTWhileStatement) {
+            IASTWhileStatement s = (IASTWhileStatement) stmt;
+            CFG subcfg = createCFG(s.getBody(), gotoInfoList);
+            CFG.Vertex root = new CFG.Vertex("whle ("
+                    + s.getCondition().getRawSignature() + ")\\l");
+            root.addASTNode(s);
+            cfg.add(root);
+            cfg.add(subcfg);
+            cfg.add(new CFG.Edge(root, subcfg.entryVertex()));
+            for (CFG.Vertex v : subcfg.exitVertices()) {
+                cfg.add(new CFG.Edge(v, root));
+            }
+            cfg.setEntryVertex(root);
+            cfg.setExitVertices(root);
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
             v.addASTNode(stmt);
