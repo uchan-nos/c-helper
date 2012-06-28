@@ -8,8 +8,11 @@ public class Launcher {
 			"#include <stdio.h>\n" +
 			"int main(void) {\n" +
 			"  int x = 1;\n" +
+			"label1:\n" +
 			"  if (x == 1) {\n" +
 			"    puts(\"hello\");\n" +
+			"    goto label1;\n" +
+			"    puts(\"world\");\n" +
 			"  }\n" +
 			"}\n";
 	

@@ -3,6 +3,7 @@ package com.github.uchan_nos.c_helper.analysis;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -147,8 +148,11 @@ public class Analyzer {
             if (decl instanceof IASTFunctionDefinition) {
                 IASTFunctionDefinition fd = (IASTFunctionDefinition) decl;
                 String id = String.valueOf(fd.getDeclarator().getName().getSimpleID());
-                CFG cfg = createCFG(fd.getBody());
-                //optimizeCFG(cfg);
+                ArrayList<GotoInfo> gotoInfoList = new ArrayList<GotoInfo>();
+                CFG cfg = createCFG(fd.getBody(), gotoInfoList);
+                //printCFG(cfg);
+                applyGotoInfo(cfg, gotoInfoList);
+                //printCFG(cfg);
                 CFGNormalizer.normalize(cfg);
                 procToCFG.put(id, cfg);
             }
@@ -156,20 +160,20 @@ public class Analyzer {
         return procToCFG;
     }
 
-    private CFG createCFG(IASTStatement stmt) {
+    private static CFG createCFG(IASTStatement stmt, Collection<GotoInfo> gotoInfoList) {
         CFG cfg = new CFG();
         if (stmt instanceof IASTCompoundStatement) {
             IASTCompoundStatement s = (IASTCompoundStatement) stmt;
             IASTStatement[] sub = s.getStatements();
 
             if (sub.length > 0) {
-                CFG subcfg = createCFG(sub[0]);
+                CFG subcfg = createCFG(sub[0], gotoInfoList);
                 cfg.setEntryVertex(subcfg.entryVertex());
                 cfg.add(subcfg);
                 Set<Vertex> exitVertices = subcfg.exitVertices();
                 
                 for (int i = 1; i < sub.length; ++i) {
-                	subcfg = createCFG(sub[i]);
+                	subcfg = createCFG(sub[i], gotoInfoList);
                 	cfg.add(subcfg, exitVertices, null);
                 	exitVertices = subcfg.exitVertices();
                 }
@@ -177,8 +181,8 @@ public class Analyzer {
             }
         } else if (stmt instanceof IASTIfStatement) {
             IASTIfStatement s = (IASTIfStatement) stmt;
-            CFG thencfg = createCFG(s.getThenClause());
-            CFG elsecfg = s.getElseClause() != null ? createCFG(s.getElseClause()) : null;
+            CFG thencfg = createCFG(s.getThenClause(), gotoInfoList);
+            CFG elsecfg = s.getElseClause() != null ? createCFG(s.getElseClause(), gotoInfoList) : null;
             CFG.Vertex root = new CFG.Vertex("if (" + s.getConditionExpression().getRawSignature() + ")\\l");
             root.addASTNode(s);
 
@@ -209,6 +213,24 @@ public class Analyzer {
             
             cfg.setEntryVertex(root);
             cfg.setExitVertices(exitVertices);
+        } else if (stmt instanceof IASTLabelStatement) {
+        	IASTLabelStatement s = (IASTLabelStatement)stmt;
+        	CFG subcfg = createCFG(s.getNestedStatement(), gotoInfoList);
+        	CFG.Vertex labelVertex = new Vertex(s.getName().getRawSignature() + ":\\l");
+        	labelVertex.addASTNode(s);
+        	cfg.add(labelVertex);
+        	cfg.add(subcfg);
+        	cfg.add(new CFG.Edge(labelVertex, subcfg.entryVertex()));
+        	cfg.setEntryVertex(labelVertex);
+        	cfg.setExitVertices(subcfg.exitVertices());
+        } else if (stmt instanceof IASTGotoStatement) {
+        	IASTGotoStatement s = (IASTGotoStatement)stmt;
+            CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
+            v.addASTNode(stmt);
+            cfg.add(v);
+            cfg.setEntryVertex(v);
+            cfg.setExitVertices(v);
+            gotoInfoList.add(new GotoInfo(v, s.getName().getRawSignature()));
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
             v.addASTNode(stmt);
@@ -217,5 +239,22 @@ public class Analyzer {
             cfg.setExitVertices(v);
         }
         return cfg;
+    }
+    
+    private static void applyGotoInfo(CFG cfg, Collection<GotoInfo> gotoInfoList) {
+    	Map<String, CFG.Vertex> labeledStatement = new HashMap<String, CFG.Vertex>();
+    	for (CFG.Vertex v : cfg.vertices()) {
+    		ArrayList<IASTNode> astNodes = v.getASTNodes();
+    		if (astNodes.size() > 0 && astNodes.get(0) instanceof IASTLabelStatement) {
+    			IASTLabelStatement s = (IASTLabelStatement)astNodes.get(0);
+    			labeledStatement.put(s.getName().getRawSignature(), v);
+    		}
+    	}
+    	for (GotoInfo gi : gotoInfoList) {
+    		CFG.Vertex gotoVertex = labeledStatement.get(gi.toName());
+    		if (gotoVertex != null) {
+    			cfg.add(new CFG.Edge(gi.from(), gotoVertex));
+    		}
+    	}
     }
 }
