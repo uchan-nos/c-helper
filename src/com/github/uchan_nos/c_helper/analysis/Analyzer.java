@@ -87,6 +87,7 @@ public class Analyzer {
     }
 
     private Map<String, CFG> createCFG(IASTTranslationUnit ast) {
+        /*
         Map<String, CFG> procToCFG = new HashMap<String, CFG>();
         IASTDeclaration[] declarations = ast.getDeclarations();
         for (int i = 0; i < declarations.length; ++i) {
@@ -105,8 +106,12 @@ public class Analyzer {
             }
         }
         return procToCFG;
+        */
+
+        return new CFGCreator(ast).create();
     }
 
+    /*
     private static CFG createCFG(IASTStatement stmt,
             Collection<GotoInfo> gotoInfoList) {
         CFG cfg = new CFG();
@@ -380,4 +385,5 @@ public class Analyzer {
         excepts.add(except);
         return getAllBreakingEdgesToRemove(breakVertex, edges, excepts);
     }
+    */
 }

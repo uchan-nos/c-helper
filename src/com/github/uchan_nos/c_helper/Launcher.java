@@ -40,13 +40,41 @@ public class Launcher {
             + "  return 0;\n"
             + "}\n";
 
+    private static String sourceCode2 =
+            "#include <stdio.h>\n"
+          + "int main(void) {\n"
+          + "  int x = 0;\n"
+          + "  int i;\n"
+          + "  for (i = 0; i < 10; ++i) {\n"
+          + "    puts(\"iteration\");\n"
+          + "    if (i == 5) {\n"
+          + "      break;\n"
+          + "      deadcode1();\n"
+          + "    }\n"
+          + "    if (i == 6) {\n"
+          + "      continue;\n"
+          + "      deadcode2();\n"
+          + "      goto label;\n"
+          + "    }\n"
+          + "  }\n"
+          + "  puts(\"before label\");\n"
+          + "label:\n"
+          + "  puts(\"hello, world\");\n"
+          + "  return 0;\n"
+          + "}\n"
+          ;
+
     /**
      * @param args
      */
     public static void main(String[] args) {
+        String sourceToParse = sourceCode2;
         System.out.println("Analyzing source code");
+        System.out.println("--");
+        System.out.print(sourceToParse);
+        System.out.println("--");
         Analyzer analyzer = new Analyzer();
-        analyzer.analyze("dummy file", sourceCode.toCharArray());
+        analyzer.analyze("dummy file", sourceToParse.toCharArray());
         System.out.println("Successfully analyzed source code.");
     }
 

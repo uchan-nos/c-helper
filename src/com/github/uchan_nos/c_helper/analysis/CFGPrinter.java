@@ -32,7 +32,7 @@ public class CFGPrinter {
         int i = 0;
         this.vertexNames = new HashMap<CFG.Vertex, Integer>();
         for (CFG cfg : procToCFG.values()) {
-            for (CFG.Vertex v : cfg.vertices()) {
+            for (CFG.Vertex v : cfg.getVertices()) {
                 this.vertexNames.put(v, i);
                 i++;
             }
@@ -41,8 +41,8 @@ public class CFGPrinter {
 
     private String toDot(String name, CFG cfg) {
         StringBuilder sb = new StringBuilder();
-        Set<CFG.Vertex> vertices = cfg.vertices();
-        Set<CFG.Edge> edges = cfg.edges();
+        Set<CFG.Vertex> vertices = cfg.getVertices();
+        //Set<CFG.Edge> edges = cfg.edges();
 
         // vertex attribute lines
         sb.append(name + "[shape=parallelogram];\n");
@@ -56,9 +56,17 @@ public class CFGPrinter {
         // edges
         if (cfg.entryVertex() != null) {
             sb.append(name + " -> " + getVertexName(cfg.entryVertex()) + ";\n");
+            /*
             for (CFG.Edge edge : edges) {
                 sb.append(getVertexName(edge.from()) + " -> "
                         + getVertexName(edge.to()) + ";\n");
+            }
+            */
+            for (CFG.Vertex from : cfg.getVertices()) {
+                for (CFG.Vertex to : cfg.getConnectedVerticesFrom(from)) {
+                    sb.append(getVertexName(from) + " -> "
+                            + getVertexName(to) + ";\n");
+                }
             }
         }
 
@@ -67,8 +75,8 @@ public class CFGPrinter {
 
     private String getVertexName(CFG.Vertex v) {
         Integer serial = this.vertexNames.get(v);
-        return "v" + serial == null ? getObjectAddress(v) : String
-                .valueOf(serial);
+        return "v" + (serial == null ?
+                getObjectAddress(v) : String.valueOf(serial));
     }
 
     private static String getObjectAddress(Object o) {

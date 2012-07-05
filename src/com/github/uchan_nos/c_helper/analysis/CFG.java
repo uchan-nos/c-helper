@@ -13,7 +13,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
  * @author uchan
  *
  */
-public class CFG {
+public class CFG extends DirectedGraph<CFG.Vertex> {
     /**
      * 制御フローグラフの1つの頂点を表す. 頂点は、0個以上のASTノードを含む.
      *
@@ -22,33 +22,30 @@ public class CFG {
      */
     static public class Vertex {
         private ArrayList<IASTNode> astNodes = new ArrayList<IASTNode>();
-        private String label = "";
+        private String label;
 
         /**
          * 指定されたラベルを持つ頂点を生成する. ラベルはIDとしては用いられないので、他の頂点と重複してもよい.
          *
-         * @param label
-         *            頂点のラベル
+         * @param label 頂点のラベル
          */
         public Vertex(String label) {
             this.label = label;
         }
 
         /**
-         * 頂点のラベルを更新する.
+         * 空の頂点を生成する. 生成された頂点のラベルは空文字列となる.
          *
-         * @param label
-         *            新しいラベル
+         * @param label 頂点のラベル
          */
-        public void setLabel(String label) {
-            this.label = label;
+        public Vertex() {
+            this.label = "";
         }
 
         /**
          * 指定されたASTノードを頂点に追加する.
          *
-         * @param node
-         *            追加するASTノード
+         * @param node 追加するASTノード
          */
         public void addASTNode(IASTNode node) {
             this.astNodes.add(node);
@@ -71,142 +68,95 @@ public class CFG {
         public String label() {
             return this.label;
         }
-    }
-
-    /**
-     * 制御フローグラフの1つの有向辺を表す. 辺は、出発点(from)と目標点(to)を含む.
-     *
-     * @author uchan
-     *
-     */
-    static public class Edge {
-        private Vertex from, to;
 
         /**
-         * 指定された出発点と目標点を結ぶ辺を生成する.
+         * 頂点のラベルを更新する.
          *
-         * @param from
-         *            出発点
-         * @param to
-         *            目標点
+         * @param label 新しいラベル
          */
-        public Edge(Vertex from, Vertex to) {
-            this.from = from;
-            this.to = to;
-        }
-
-        /**
-         * 辺の出発点を取得する.
-         *
-         * @return 出発点
-         */
-        public Vertex from() {
-            return this.from;
-        }
-
-        /**
-         * 辺の目標点を取得する.
-         *
-         * @return 目標点
-         */
-        public Vertex to() {
-            return this.to;
+        public void setLabel(String label) {
+            this.label = label;
         }
     }
 
-    private Set<Vertex> vertices = new HashSet<CFG.Vertex>();
-    private Set<Edge> edges = new HashSet<CFG.Edge>();
-    private Vertex entryVertex = null;
-    private Set<Vertex> exitVertices = null;
-    private Set<Vertex> breakFromVertices = new HashSet<CFG.Vertex>();
+    private Vertex entryVertex;
+    private Vertex exitVertex;
+    private Set<Vertex> breakVertices = new HashSet<CFG.Vertex>();
+    private Set<Vertex> continueVertices = new HashSet<CFG.Vertex>();
 
     /**
-     * 指定された頂点をグラフに追加する.
-     *
-     * @param v
-     *            追加する頂点
+     * 指定された入口ノードと出口ノードを持つ制御フローグラフを生成する.
+     * entryVertex, exitVertexはこのコンストラクタ内で頂点集合に追加される.
+     * ノードに null が指定された場合、そのノードは追加しない.
+     * @param entryVertex 入口ノード
+     * @param exitVertex 出口ノード
      */
-    public void add(Vertex v) {
-        this.vertices.add(v);
+    public CFG(Vertex entryVertex, Vertex exitVertex) {
+        if (entryVertex != null) {
+            this.add(entryVertex);
+        }
+        if (exitVertex != null) {
+            this.add(exitVertex);
+        }
+        this.entryVertex = entryVertex;
+        this.exitVertex = exitVertex;
     }
 
     /**
-     * 指定された頂点をグラフから取り除く.
-     *
-     * @param v
-     *            取り除く頂点
-     * @return TODO: ArrayList.removeの戻り値を調べる
-     */
-    public boolean remove(Vertex v) {
-        return this.vertices.remove(v);
-    }
-
-    /**
-     * 指定された辺をグラフに追加する.
-     *
-     * @param e
-     *            追加する辺
-     */
-    public void add(Edge e) {
-        this.edges.add(e);
-    }
-
-    /**
-     * 指定された辺をグラフから取り除く.
-     *
-     * @param e
-     *            取り除く辺
-     * @return TODO: ArrayList.removeの戻り値を調べる
-     */
-    public boolean remove(Edge e) {
-        return this.edges.remove(e);
-    }
-
-    /**
-     * 指定されたグラフ全体をこのグラフに追加する. グラフcfgのすべての頂点と辺を、グラフthisへ追加する.
+     * 指定されたグラフ全体をこのグラフに追加する.
+     * グラフcfgのすべての頂点と辺を、グラフthisへ追加する.
      * グラフcfgの入口ノードと出口ノードは無視されるため、ユーザーの側で対処する必要がある.
      *
-     * @param cfg
-     *            追加するグラフ
+     * @param cfg 追加するグラフ
      */
     public void add(CFG cfg) {
         if (cfg != null) {
-            this.vertices.addAll(cfg.vertices());
-            this.edges.addAll(cfg.edges());
+            Set<Vertex> vs = cfg.getVertices();
+
+            // 頂点を追加
+            add(vs);
+            add(cfg.entryVertex());
+            add(cfg.exitVertex());
+
+            // 辺を追加
+            for (Vertex v : vs) {
+                for (Vertex to : cfg.getConnectedVerticesFrom(v)) {
+                    connect(v, to);
+                }
+            }
+            for (Vertex to : cfg.getConnectedVerticesFrom(cfg.entryVertex())) {
+                connect(cfg.entryVertex(), to);
+            }
+            for (Vertex to : cfg.getConnectedVerticesFrom(cfg.exitVertex())) {
+                connect(cfg.entryVertex(), to);
+            }
         }
     }
 
     /**
-     * 指定されたグラフ全体をこのグラフに追加し、追加したグラフとこのグラフを接続する. グラフcfgのすべての頂点と辺を、グラフthisへ追加する.
-     * connectFromからcfg
-     * .entryVertex()へ、cfg.exitVertices()からconnectToへの辺をそれぞれ生成しグラフthisへ追加する.
+     * 指定されたグラフ全体をこのグラフに追加し、追加したグラフとこのグラフを接続する.
+     * グラフcfgのすべての頂点と辺を、グラフthisへ追加する.
+     * connectFromからcfg.entryVertex()へ、
+     * cfg.exitVertex()からconnectToへの辺をそれぞれ生成しグラフthisへ追加する.
      *
-     * @param cfg
-     *            追加するグラフ
-     * @param connectFrom
-     *            追加したグラフの入口ノードへ接続する本体側グラフのノード
-     * @param connectTo
-     *            追加したグラフの出口ノードから接続される本体側グラフのノード
+     * @param cfg 追加するグラフ
+     * @param connectFrom 追加したグラフの入口ノードへ接続する本体側グラフのノード
+     * @param connectTo 追加したグラフの出口ノードから接続される本体側グラフのノード
      */
-    public void add(CFG cfg, Set<Vertex> connectFrom, Vertex connectTo) {
+    public void add(CFG cfg, Vertex connectFrom, Vertex connectTo) {
         add(cfg);
         if (connectFrom != null) {
-            for (Vertex v : connectFrom) {
-                add(new Edge(v, cfg.entryVertex()));
-            }
+            connect(connectFrom, cfg.entryVertex());
         }
         if (connectTo != null) {
-            for (Vertex v : cfg.exitVertices()) {
-                add(new Edge(v, connectTo));
-            }
+            connect(cfg.exitVertex(), connectTo);
         }
     }
 
     /**
      * 指定された頂点をこのグラフの入口ノードとして設定する.
      *
-     * @param v
-     *            入口ノードとして設定したい頂点
+     * @param v 入口ノードとして設定したい頂点
      */
     public void setEntryVertex(Vertex v) {
         this.entryVertex = v;
@@ -215,68 +165,51 @@ public class CFG {
     /**
      * 指定された頂点をこのグラフの出口ノードとして設定する.
      *
-     * @param vs
-     *            出口ノードとして設定したい頂点集合
+     * @param vs 出口ノードとして設定したい頂点集合
      */
-    public void setExitVertices(Collection<Vertex> vs) {
-        if (vs instanceof Set) {
-            this.exitVertices = (Set<Vertex>) vs;
-        } else {
-            this.exitVertices = new HashSet<CFG.Vertex>(vs); // TODO:
-                                                             // TreeSetのコンストラクタ(Collection)を調べる
-        }
-    }
-
-    /**
-     * 指定された1つの頂点だけをこのグラフの出口ノードとして設定する. 便利メソッド.
-     *
-     * @param v1
-     *            出口ノードとして設定したい頂点
-     */
-    public void setExitVertices(Vertex v1) {
-        this.exitVertices = new HashSet<CFG.Vertex>();
-        this.exitVertices.add(v1);
-    }
-
-    /**
-     * 指定された2つの頂点だけをこのグラフの出口ノードとして設定する. 便利メソッド.
-     *
-     * @param v1
-     *            出口ノードとして設定したい頂点その1
-     * @param v2
-     *            出口ノードとして設定したい頂点その2
-     */
-    public void setExitVertices(Vertex v1, Vertex v2) {
-        this.exitVertices = new HashSet<CFG.Vertex>();
-        this.exitVertices.add(v1);
-        this.exitVertices.add(v2);
-    }
-
-    public Set<Vertex> vertices() {
-        return this.vertices;
-    }
-
-    public Set<Edge> edges() {
-        return this.edges;
+    public void setExitVertex(Vertex v) {
+        this.exitVertex = v;
     }
 
     public Vertex entryVertex() {
         return this.entryVertex;
     }
 
-    public Set<Vertex> exitVertices() {
-        return this.exitVertices;
+    public Vertex exitVertex() {
+        return this.exitVertex;
     }
 
-    public void addBreakFrom(Vertex v) {
-        this.breakFromVertices.add(v);
+    /**
+     * break文を含む頂点をbreak頂点集合に追加する.
+     * break文に対応するASTノードを、ASTノード配列の一番後ろに持つような頂点を想定している.
+     * @param v break文を含む頂点
+     */
+    public void addBreakVertex(Vertex v) {
+        this.breakVertices.add(v);
     }
 
-    public void addBreakFrom(Collection<Vertex> vs) {
-        this.breakFromVertices.addAll(vs);
+    public void addBreakVertex(Collection<Vertex> vs) {
+        this.breakVertices.addAll(vs);
     }
 
-    public Set<Vertex> breakFromVertices() {
-        return this.breakFromVertices;
+    public Set<Vertex> breakVertices() {
+        return this.breakVertices;
+    }
+
+    /**
+     * continue文を含む頂点をcontinue頂点集合に追加する.
+     * continue文に対応するASTノードを、ASTノード配列の一番後ろに持つような頂点を想定している.
+     * @param v continue文を含む頂点
+     */
+    public void addContinueVertex(Vertex v) {
+        this.continueVertices.add(v);
+    }
+
+    public void addContinueVertex(Collection<Vertex> vs) {
+        this.continueVertices.addAll(vs);
+    }
+
+    public Set<Vertex> continueVertices() {
+        return this.continueVertices;
     }
 }
