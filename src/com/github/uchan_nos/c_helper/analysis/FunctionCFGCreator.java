@@ -46,6 +46,8 @@ public class FunctionCFGCreator {
             cfg = create((IASTSwitchStatement)stmt);
         } else if (stmt instanceof IASTCaseStatement) {
             cfg = create((IASTCaseStatement)stmt);
+        } else if (stmt instanceof IASTDefaultStatement) {
+            cfg = create((IASTDefaultStatement)stmt);
         } else if (stmt instanceof IASTBreakStatement) {
             cfg = create((IASTBreakStatement)stmt);
         } else if (stmt instanceof IASTContinueStatement) {
@@ -225,6 +227,14 @@ public class FunctionCFGCreator {
 
     private CFG create(IASTCaseStatement stmt) {
         CFG.Vertex v = new CFG.Vertex("case " + stmt.getExpression().getRawSignature() + ":\\l");
+        v.addASTNode(stmt);
+        CFG cfg = new CFG(v, v);
+        cfg.addCaseVertex(v);
+        return cfg;
+    }
+
+    private CFG create(IASTDefaultStatement stmt) {
+        CFG.Vertex v = new CFG.Vertex("default:\\l");
         v.addASTNode(stmt);
         CFG cfg = new CFG(v, v);
         cfg.addCaseVertex(v);

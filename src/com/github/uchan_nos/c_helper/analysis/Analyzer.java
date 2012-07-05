@@ -2,6 +2,7 @@ package com.github.uchan_nos.c_helper.analysis;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,6 +32,28 @@ import com.github.uchan_nos.c_helper.analysis.CFG.Vertex;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 
 public class Analyzer {
+    private OutputStreamWriter cfgWriter;
+
+    public Analyzer() {
+        IPath filePath = new Path(System.getProperty("user.home"));
+        filePath = filePath.append("cfg.dot");
+        OutputStreamWriter writer;
+        try {
+            writer = new FileWriter(filePath.toFile());
+        } catch (IOException e) {
+            writer = new OutputStreamWriter(System.out);
+        }
+        this.cfgWriter = writer;
+    }
+
+    public Analyzer(OutputStreamWriter cfgWriter) {
+        this.cfgWriter = cfgWriter;
+    }
+
+    public void close() throws IOException {
+        this.cfgWriter.close();
+    }
+
     public void analyze(IEditorPart activeEditorPart)
             throws InvalidEditorPartException {
         if (activeEditorPart instanceof ITextEditor) {
@@ -75,13 +98,9 @@ public class Analyzer {
     private void printCFG(Map<String, CFG> procToCFG) {
         String graphString = new CFGPrinter(procToCFG).toDotString();
         try {
-            IPath filePath = new Path(System.getProperty("user.home"));
-            filePath = filePath.append("cfg.dot");
-            FileWriter writer = new FileWriter(filePath.toFile());
-            writer.write(graphString);
-            writer.close();
+            cfgWriter.write(graphString);
         } catch (IOException e) {
-            System.out.println("cannot create a file to write");
+            System.out.println("cannot write");
             System.out.println(graphString);
         }
     }

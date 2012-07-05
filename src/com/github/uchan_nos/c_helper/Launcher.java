@@ -1,5 +1,14 @@
 package com.github.uchan_nos.c_helper;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+
 import com.github.uchan_nos.c_helper.analysis.Analyzer;
 
 public class Launcher {
@@ -65,14 +74,60 @@ public class Launcher {
      * @param args
      */
     public static void main(String[] args) {
-        String sourceToParse = sourceCode2;
-        System.out.println("Analyzing source code");
-        System.out.println("--");
-        System.out.print(sourceToParse);
-        System.out.println("--");
-        Analyzer analyzer = new Analyzer();
-        analyzer.analyze("dummy file", sourceToParse.toCharArray());
-        System.out.println("Successfully analyzed source code.");
+        if (args.length != 0 && args.length != 2) {
+            System.out.println("Usage: c-helper [input output]");
+            return;
+        }
+
+        try {
+            String sourceToParse = sourceCode;
+            if (args.length == 2) {
+                FileReader reader = new FileReader(args[1]);
+
+                StringBuilder sb = new StringBuilder();
+                char[] buf = new char[1024];
+
+                while (true) {
+                    int n = reader.read(buf);
+                    if (n == 0) {
+                        break;
+                    } else {
+                        sb.append(buf, 0, n);
+                    }
+                }
+                reader.close();
+
+                sourceToParse = sb.toString();
+            }
+
+            System.out.println("Analyzing source code");
+            System.out.println("--");
+            System.out.print(sourceToParse);
+            System.out.println("--");
+
+            Analyzer analyzer;
+            if (args.length == 2) {
+                analyzer = new Analyzer(new FileWriter(args[1]));
+            } else {
+                analyzer = new Analyzer();
+            }
+
+            String filepath = "dummy file";
+            if (args.length == 2) {
+                filepath = args[1];
+            }
+
+            analyzer.analyze(filepath, sourceToParse.toCharArray());
+            System.out.println("Successfully analyzed source code.");
+
+            analyzer.close();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
 }
