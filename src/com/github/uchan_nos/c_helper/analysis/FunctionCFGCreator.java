@@ -1,6 +1,7 @@
 package com.github.uchan_nos.c_helper.analysis;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -43,6 +44,8 @@ public class FunctionCFGCreator {
             cfg = create((IASTForStatement)stmt);
         } else if (stmt instanceof IASTSwitchStatement) {
             cfg = create((IASTSwitchStatement)stmt);
+        } else if (stmt instanceof IASTCaseStatement) {
+            cfg = create((IASTCaseStatement)stmt);
         } else if (stmt instanceof IASTBreakStatement) {
             cfg = create((IASTBreakStatement)stmt);
         } else if (stmt instanceof IASTContinueStatement) {
@@ -77,6 +80,7 @@ public class FunctionCFGCreator {
             cfg.add(subcfg);
             cfg.addBreakVertex(subcfg.breakVertices());
             cfg.addContinueVertex(subcfg.continueVertices());
+            cfg.addCaseVertex(subcfg.caseVertices());
             cfg.connect(prevVertex, subcfg.entryVertex());
             prevVertex = subcfg.exitVertex();
         }
@@ -97,6 +101,7 @@ public class FunctionCFGCreator {
         cfg.add(thencfg);
         cfg.addBreakVertex(thencfg.breakVertices());
         cfg.addContinueVertex(thencfg.continueVertices());
+        cfg.addCaseVertex(thencfg.caseVertices());
         cfg.connect(entryVertex, thencfg.entryVertex());
         cfg.connect(thencfg.exitVertex(), exitVertex);
 
@@ -104,6 +109,7 @@ public class FunctionCFGCreator {
             cfg.add(elsecfg);
             cfg.addBreakVertex(elsecfg.breakVertices());
             cfg.addContinueVertex(elsecfg.continueVertices());
+            cfg.addCaseVertex(elsecfg.caseVertices());
             cfg.connect(entryVertex, elsecfg.entryVertex());
             cfg.connect(elsecfg.exitVertex(), exitVertex);
         } else {
@@ -115,15 +121,21 @@ public class FunctionCFGCreator {
     private CFG create(IASTWhileStatement stmt) {
         CFG.Vertex entryVertex = new CFG.Vertex("while (" + stmt.getCondition().getRawSignature() + ")\\l");
         CFG.Vertex exitVertex = new CFG.Vertex();
+        CFG.Vertex bodyendVertex = new CFG.Vertex();
         entryVertex.addASTNode(stmt);
 
         CFG cfg = new CFG(entryVertex, exitVertex);
         CFG subcfg = create(stmt.getBody());
 
         cfg.add(subcfg);
+        cfg.add(bodyendVertex);
+        cfg.addCaseVertex(subcfg.caseVertices());
         cfg.connect(entryVertex, subcfg.entryVertex());
-        cfg.connect(subcfg.exitVertex(), entryVertex);
+        cfg.connect(subcfg.exitVertex(), bodyendVertex);
+        cfg.connect(bodyendVertex, entryVertex);
         cfg.connect(entryVertex, exitVertex);
+
+        applyJumps(cfg, subcfg.continueVertices(), bodyendVertex, subcfg.breakVertices(), exitVertex);
 
         return cfg;
     }
@@ -140,6 +152,7 @@ public class FunctionCFGCreator {
         cfg.add(subcfg);
         cfg.add(condVertex);
         cfg.add(bodyendVertex);
+        cfg.addCaseVertex(subcfg.caseVertices());
         cfg.connect(subcfg.exitVertex(), bodyendVertex);
         cfg.connect(bodyendVertex, condVertex);
         cfg.connect(condVertex, subcfg.entryVertex());
@@ -173,6 +186,7 @@ public class FunctionCFGCreator {
         cfg.add(condVertex);
         cfg.add(iterVertex);
         cfg.add(bodyendVertex);
+        cfg.addCaseVertex(subcfg.caseVertices());
         cfg.connect(entryVertex, initVertex);
         cfg.connect(initVertex, condVertex);
         cfg.connect(condVertex, exitVertex);
@@ -187,7 +201,34 @@ public class FunctionCFGCreator {
     }
 
     private CFG create(IASTSwitchStatement stmt) {
-        return null;
+        CFG.Vertex entryVertex = new CFG.Vertex("switch (" + stmt.getControllerExpression().getRawSignature() + ")\\l");
+        CFG.Vertex exitVertex = new CFG.Vertex();
+        entryVertex.addASTNode(stmt);
+
+        CFG cfg = new CFG(entryVertex, exitVertex);
+
+        CFG subcfg = create(stmt.getBody());
+
+        cfg.add(subcfg);
+        cfg.addContinueVertex(subcfg.continueVertices());
+        //cfg.connect(entryVertex, subcfg.entryVertex());
+        cfg.connect(subcfg.exitVertex(), exitVertex);
+
+        for (CFG.Vertex caseVertex : subcfg.caseVertices()) {
+            cfg.connect(entryVertex, caseVertex);
+        }
+
+        applyUnconditionalJumps(cfg, subcfg.breakVertices(), exitVertex);
+
+        return cfg;
+    }
+
+    private CFG create(IASTCaseStatement stmt) {
+        CFG.Vertex v = new CFG.Vertex("case " + stmt.getExpression().getRawSignature() + ":\\l");
+        v.addASTNode(stmt);
+        CFG cfg = new CFG(v, v);
+        cfg.addCaseVertex(v);
+        return cfg;
     }
 
     private CFG create(IASTBreakStatement stmt) {
@@ -209,8 +250,8 @@ public class FunctionCFGCreator {
     private CFG create(IASTReturnStatement stmt) {
         CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
         v.addASTNode(stmt);
-        this.returnVertices.add(v);
         CFG cfg = new CFG(v, v);
+        this.returnVertices.add(v);
         return cfg;
     }
 
@@ -219,10 +260,10 @@ public class FunctionCFGCreator {
                 String.valueOf(stmt.getName().getSimpleID()) + ":\\l");
         entryVertex.addASTNode(stmt);
         this.labelVertices.add(new NamedVertex<CFG.Vertex>(entryVertex, stmt.getName()));
-        CFG subcfg = create(stmt.getNestedStatement());
-        CFG cfg = new CFG(entryVertex, subcfg.exitVertex());
-        cfg.add(subcfg);
-        cfg.connect(entryVertex, subcfg.entryVertex());
+        CFG cfg = create(stmt.getNestedStatement());
+        cfg.add(entryVertex);
+        cfg.connect(entryVertex, cfg.entryVertex());
+        cfg.setEntryVertex(entryVertex);
         return cfg;
     }
 
@@ -240,7 +281,7 @@ public class FunctionCFGCreator {
                 cfg.disconnect(v.vertex(), to);
             }
             for (NamedVertex<CFG.Vertex> l : labelVertices) {
-                if (v.name().getBinding() == l.name().getBinding()) {
+                if (Arrays.equals(v.name().getLookupKey(), l.name().getLookupKey())) {
                     cfg.connect(v.vertex(), l.vertex());
                     break;
                 }

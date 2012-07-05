@@ -83,6 +83,7 @@ public class CFG extends DirectedGraph<CFG.Vertex> {
     private Vertex exitVertex;
     private Set<Vertex> breakVertices = new HashSet<CFG.Vertex>();
     private Set<Vertex> continueVertices = new HashSet<CFG.Vertex>();
+    private Set<Vertex> caseVertices = new HashSet<CFG.Vertex>();
 
     /**
      * 指定された入口ノードと出口ノードを持つ制御フローグラフを生成する.
@@ -211,5 +212,22 @@ public class CFG extends DirectedGraph<CFG.Vertex> {
 
     public Set<Vertex> continueVertices() {
         return this.continueVertices;
+    }
+
+    /**
+     * case文を含む頂点をcase頂点集合に追加する.
+     * case文に対応するASTノードを、ASTノード配列の一番後ろに持つような頂点を想定している.
+     * @param v case文を含む頂点
+     */
+    public void addCaseVertex(Vertex v) {
+        this.caseVertices.add(v);
+    }
+
+    public void addCaseVertex(Collection<Vertex> vs) {
+        this.caseVertices.addAll(vs);
+    }
+
+    public Set<Vertex> caseVertices() {
+        return this.caseVertices;
     }
 }
