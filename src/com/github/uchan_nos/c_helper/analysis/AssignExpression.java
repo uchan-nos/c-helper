@@ -22,9 +22,6 @@ public class AssignExpression {
                 this.ast = ast;
             }
         }
-        if (this.ast == null) {
-            throw new RuntimeException("ast is not an assign or a declarator with a initialization");
-        }
         this.id = id;
     }
 

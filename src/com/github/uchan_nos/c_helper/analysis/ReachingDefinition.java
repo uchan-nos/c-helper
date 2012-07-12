@@ -3,6 +3,8 @@ package com.github.uchan_nos.c_helper.analysis;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
+import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.*;
 
@@ -22,16 +24,21 @@ public class ReachingDefinition {
     }
 
     private CFG cfg; // 解析すべきソースのフローグラフ
-    private ArrayList<AssignExpression> assignList; // cfgに含まれる代入文のリスト
+    private ArrayList<AssignExpression> assignList; // cfgに含まれる代入文のリスト（DummyAssignExpressionを含む）
+    private Set<IASTIdExpression> idExpressionList; // cfgに含まれるID式のリスト
+    private ArrayList<DummyAssignExpression> dummyAssignList; // cfgに含まれるダミー変数定義のリスト
 
     /**
      * 到達定義実行器を生成する.
      * @param cfg 解析するソースコードの制御フローグラフ
      * @param assignList ソースコード中の代入文のリスト
      */
-    public ReachingDefinition(CFG cfg, ArrayList<AssignExpression> assignList) {
+    public ReachingDefinition(CFG cfg, ArrayList<AssignExpression> assignList, Set<IASTIdExpression> idExpressionList) {
         this.cfg = cfg;
-        this.assignList = assignList;
+        this.assignList = new ArrayList<AssignExpression>(assignList);
+        this.idExpressionList = idExpressionList;
+        this.dummyAssignList = createInitialAssigns(this.assignList.size(), this.idExpressionList);
+        this.assignList.addAll(this.dummyAssignList);
     }
 
     public void analyze() {
@@ -57,6 +64,11 @@ public class ReachingDefinition {
             exitPrev.add(new BitSet(assignList.size()));
         }
 
+        final BitSet entryOfEntryVertex = entry.get(vertices.indexOf(cfg.entryVertex()));
+        for (DummyAssignExpression e : this.dummyAssignList) {
+            entryOfEntryVertex.set(e.getId());
+        }
+
         boolean modified = true;
         while (modified) {
             for (int i = 0; i < numVertex; ++i) {
@@ -79,13 +91,15 @@ public class ReachingDefinition {
             }
         }
 
+        final int dummyAssignStartId = dummyAssignList.size() > 0 ?
+                        dummyAssignList.get(0).getId() : assignList.size();
         for (int i = 0; i < numVertex; ++i) {
             System.out.println(vertices.get(i).label());
             System.out.print("  entry ");
             for (int b = 0; b < assignList.size(); ++b) {
                 if (entry.get(i).get(b)) {
                     System.out.print("(" + assignList.get(b).getLHS().getRawSignature()
-                            + "," + b + ")");
+                            + "," + (b >= dummyAssignStartId ? "?" : String.valueOf(b)) + ")");
                 }
             }
             System.out.println();
@@ -93,7 +107,7 @@ public class ReachingDefinition {
             for (int b = 0; b < assignList.size(); ++b) {
                 if (exit.get(i).get(b)) {
                     System.out.print("(" + assignList.get(b).getLHS().getRawSignature()
-                            + "," + b + ")");
+                            + "," + (b >= dummyAssignStartId ? "?" : String.valueOf(b)) + ")");
                 }
             }
             System.out.println();
@@ -164,15 +178,29 @@ public class ReachingDefinition {
             IASTDeclarator[] declarators =
                     ((IASTSimpleDeclaration)ast.getDeclaration()).getDeclarators();
             BitSet gen = new BitSet(assignList.size());
+            BitSet kill = new BitSet(assignList.size());
             for (int i = 0; i < declarators.length; ++i) {
                 if (declarators[i].getInitializer() != null) {
                     AssignExpression assign = getAssignExpressionOfNode(declarators[i]);
                     // assignがnullになるのは、初期化なし変数定義の場合
                     gen.set(assign.getId());
+                    IASTName nameToBeKilled = null;
+                    if (assign.getLHS() instanceof IASTName) {
+                        nameToBeKilled = (IASTName)assign.getLHS();
+                    } else if (assign.getLHS() instanceof IASTIdExpression) {
+                        nameToBeKilled = ((IASTIdExpression)assign.getLHS()).getName();
+                    }
+                    if (nameToBeKilled != null) {
+                        ArrayList<AssignExpression> killedAssigns =
+                                getAssignExpressionsOfName(nameToBeKilled);
+                        for (int j = 0; j < killedAssigns.size(); ++j) {
+                            kill.set(killedAssigns.get(j).getId());
+                        }
+                    }
                 }
             }
-            // 変数定義の場合、定義された変数は他の変数をkillしない
-            return new GenKill(gen, null);
+
+            return new GenKill(gen, kill);
         }
         return null;
     }
@@ -213,6 +241,17 @@ public class ReachingDefinition {
                     result.add(assignList.get(i));
                 }
             }
+        }
+        return result;
+    }
+
+    private static ArrayList<DummyAssignExpression> createInitialAssigns(int startId, Collection<IASTIdExpression> idExpressionList) {
+        int id = startId;
+        ArrayList<DummyAssignExpression> result = new ArrayList<DummyAssignExpression>();
+        for (IASTIdExpression idExpression : idExpressionList) {
+            DummyAssignExpression e = new DummyAssignExpression(id, idExpression);
+            result.add(e);
+            id++;
         }
         return result;
     }

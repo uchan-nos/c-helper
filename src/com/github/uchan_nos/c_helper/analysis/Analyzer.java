@@ -4,8 +4,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
@@ -88,11 +92,12 @@ public class Analyzer {
 
             ArrayList<AssignExpression> assignList =
                     createAssignExpressionList(translationUnit);
-            System.out.println(assignList.size());
+            Set<IASTIdExpression> idExpressions =
+                    createIdExpressionList(translationUnit);
 
             for (Entry<String, CFG> cfg : procToCFG.entrySet()) {
                 System.out.println("reaching definition of " + cfg.getKey());
-                ReachingDefinition rd = new ReachingDefinition(cfg.getValue(), assignList);
+                ReachingDefinition rd = new ReachingDefinition(cfg.getValue(), assignList, idExpressions);
                 rd.analyze();
             }
         } catch (CoreException e) {
@@ -141,6 +146,26 @@ public class Analyzer {
                     }
                 }
                 return super.visit(declaration);
+            }
+        });
+        return result;
+    }
+
+    private Set<IASTIdExpression> createIdExpressionList(IASTTranslationUnit ast) {
+        final Set<IASTIdExpression> result = new TreeSet<IASTIdExpression>(new Comparator<IASTIdExpression>() {
+            @Override
+            public int compare(IASTIdExpression o1, IASTIdExpression o2) {
+                return o1.getName().toString().compareTo(o2.getName().toString());
+            }
+        });
+        ast.accept(new ASTVisitor(true) {
+            private int id = 0;
+            @Override
+            public int visit(IASTExpression expression) {
+                if (expression instanceof IASTIdExpression) {
+                    result.add((IASTIdExpression)expression);
+                }
+                return super.visit(expression);
             }
         });
         return result;
