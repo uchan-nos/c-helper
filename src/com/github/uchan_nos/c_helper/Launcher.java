@@ -74,22 +74,29 @@ public class Launcher {
      * @param args
      */
     public static void main(String[] args) {
-        if (args.length != 0 && args.length != 2) {
-            System.out.println("Usage: c-helper [input output]");
-            return;
+        String inputFilename = null;
+        String outputFilename = null;
+        if (args.length >= 1) {
+            inputFilename = args[0];
+            if (args.length == 2) {
+                outputFilename = args[1];
+            } else if (args.length >= 3) {
+                System.err.println("Usage: c-helper [input [output]]");
+                return;
+            }
         }
 
         try {
             String sourceToParse = sourceCode;
-            if (args.length == 2) {
-                FileReader reader = new FileReader(args[1]);
+            if (inputFilename != null) {
+                FileReader reader = new FileReader(inputFilename);
 
                 StringBuilder sb = new StringBuilder();
                 char[] buf = new char[1024];
 
                 while (true) {
                     int n = reader.read(buf);
-                    if (n == 0) {
+                    if (n == 0 || n == -1) {
                         break;
                     } else {
                         sb.append(buf, 0, n);
@@ -100,25 +107,26 @@ public class Launcher {
                 sourceToParse = sb.toString();
             }
 
-            System.out.println("Analyzing source code");
-            System.out.println("--");
-            System.out.print(sourceToParse);
-            System.out.println("--");
+            if (outputFilename != null) {
+                System.out.println("Analyzing source code");
+                System.out.println("--");
+                System.out.print(sourceToParse);
+                System.out.println("--");
+            }
 
             Analyzer analyzer;
-            if (args.length == 2) {
-                analyzer = new Analyzer(new FileWriter(args[1]));
+            if (outputFilename != null) {
+                analyzer = new Analyzer(new FileWriter(outputFilename));
             } else {
-                analyzer = new Analyzer();
+                analyzer = new Analyzer(new OutputStreamWriter(System.out));
             }
 
-            String filepath = "dummy file";
-            if (args.length == 2) {
-                filepath = args[1];
-            }
+            String filepath = outputFilename == null ? "dummy file" : outputFilename;
 
             analyzer.analyze(filepath, sourceToParse.toCharArray());
-            System.out.println("Successfully analyzed source code.");
+            if (outputFilename != null) {
+                System.out.println("Successfully analyzed source code.");
+            }
 
             analyzer.close();
         } catch (FileNotFoundException e) {
