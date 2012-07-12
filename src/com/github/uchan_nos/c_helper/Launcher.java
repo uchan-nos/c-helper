@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
+
 import com.github.uchan_nos.c_helper.analysis.Analyzer;
 
 public class Launcher {
@@ -87,7 +90,7 @@ public class Launcher {
         }
 
         try {
-            String sourceToParse = sourceCode;
+            String sourceToParse = sourceCode2;
             if (inputFilename != null) {
                 FileReader reader = new FileReader(inputFilename);
 

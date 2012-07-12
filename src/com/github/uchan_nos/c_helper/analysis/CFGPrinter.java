@@ -99,7 +99,7 @@ public class CFGPrinter {
         }
     }
 
-    private static Set<CFG.Vertex> sort(Set<CFG.Vertex> vertices) {
+    public static Set<CFG.Vertex> sort(Set<CFG.Vertex> vertices) {
         TreeSet<CFG.Vertex> sorted = new TreeSet<CFG.Vertex>(new VertexComparator());
         sorted.addAll(vertices);
         return sorted;
