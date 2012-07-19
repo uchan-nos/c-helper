@@ -16,7 +16,7 @@ public class CFGNormalizer {
     }
 
     public static void normalize(CFG cfg) {
-        Util util = new Util(cfg);
+        CFGUtil util = new CFGUtil(cfg);
 
         // どこからも指されておらず、ASTノードを含まないような頂点を削除
         ArrayList<CFG.Vertex> removeVertices = new ArrayList<CFG.Vertex>();
@@ -34,35 +34,12 @@ public class CFGNormalizer {
         do {
             modified = false;
 
-            /*
-            CFG.Edge edgeToMerge = null;
-
-            for (CFG.Edge edge : cfg.edges()) {
-                if (util.canMerge(edge)) {
-                    // まとめられる
-                    edgeToMerge = edge;
-                    break;
-                }
-            }
-
-            if (edgeToMerge != null) {
-                modified = true;
-
-                // toをfromに統合
-                util.merge(edgeToMerge);
-
-                // toとtoに接続されている辺を削除
-                util.remove(edgeToMerge.to());
-                // 一つまとめたらまた最
-            }
-            */
-
             Edge edgeToMerge = null;
-            if ((edgeToMerge = util.getMergableEdgeDeletingTo(cfg)) != null) {
+            if ((edgeToMerge = util.getMergableEdgeDeletingEndVertex(cfg)) != null) {
                 modified = true;
                 util.mergeIntoFrom(edgeToMerge);
                 util.remove(edgeToMerge.to);
-            } else if ((edgeToMerge = util.getMergableEdgeDeletingFrom(cfg)) != null) {
+            } else if ((edgeToMerge = util.getMergableEdgeDeletingStartVertex(cfg)) != null) {
                 modified = true;
                 util.mergeIntoTo(edgeToMerge);
                 util.remove(edgeToMerge.from);
@@ -72,7 +49,7 @@ public class CFGNormalizer {
     }
 }
 
-class Util {
+class CFGUtil {
     // 指定されたノードに入ってくる辺の集合
     // entryEdges.get(v) -> vに入ってくる辺の集合
     //private Map<CFG.Vertex, ArrayList<CFG.Edge>> entryEdges;
@@ -83,7 +60,7 @@ class Util {
 
     private CFG cfg;
 
-    public Util(CFG cfg) {
+    public CFGUtil(CFG cfg) {
         this.cfg = cfg;
         //this.entryEdges = getEntryEdges(cfg);
         //this.exitEdges = getExitEdges(cfg);
@@ -131,21 +108,22 @@ class Util {
         this.cfg.remove(v);
     }
 
-    public boolean canMergeDeletingTo(CFG.Vertex from, CFG.Vertex to) {
+    public boolean canMergeDeletingEndVertex(CFG.Vertex from, CFG.Vertex to) {
         Set<CFG.Vertex> exitVerticesOfFrom = this.cfg.getConnectedVerticesFrom(from);
         Set<CFG.Vertex> entryVerticesOfTo = this.cfg.getConnectedVerticesTo(to);
         Set<CFG.Vertex> exitVerticesOfTo = this.cfg.getConnectedVerticesFrom(to);
         return (exitVerticesOfFrom.size() == 1 &&
                 entryVerticesOfTo.size() == 1) ||
                (entryVerticesOfTo.size() == 1 &&
-                exitVerticesOfTo.size() == 1 &&
+                exitVerticesOfTo.size() <= 1 &&
                 to.getASTNodes().size() == 0);
     }
 
-    public boolean canMergeDeletingFrom(CFG.Vertex from, CFG.Vertex to) {
+    public boolean canMergeDeletingStartVertex(CFG.Vertex from, CFG.Vertex to) {
+        Set<CFG.Vertex> exitVerticesOfFrom = this.cfg.getConnectedVerticesFrom(from);
         Set<CFG.Vertex> exitVerticesOfTo = this.cfg.getConnectedVerticesFrom(to);
         return (from.getASTNodes().size() == 0 &&
-                exitVerticesOfTo.size() == 1);
+                exitVerticesOfFrom.size() == 1);
     }
 
     /*
@@ -185,10 +163,10 @@ class Util {
     }
     */
 
-    public CFGNormalizer.Edge getMergableEdgeDeletingTo(CFG cfg) {
+    public CFGNormalizer.Edge getMergableEdgeDeletingEndVertex(CFG cfg) {
         for (CFG.Vertex from : cfg.getVertices()) {
             for (CFG.Vertex to : cfg.getConnectedVerticesFrom(from)) {
-                if (canMergeDeletingTo(from, to)) {
+                if (canMergeDeletingEndVertex(from, to)) {
                     return new CFGNormalizer.Edge(from, to);
                 }
             }
@@ -196,10 +174,10 @@ class Util {
         return null;
     }
 
-    public CFGNormalizer.Edge getMergableEdgeDeletingFrom(CFG cfg) {
+    public CFGNormalizer.Edge getMergableEdgeDeletingStartVertex(CFG cfg) {
         for (CFG.Vertex from : cfg.getVertices()) {
             for (CFG.Vertex to : cfg.getConnectedVerticesFrom(from)) {
-                if (canMergeDeletingFrom(from, to)) {
+                if (canMergeDeletingStartVertex(from, to)) {
                     return new CFGNormalizer.Edge(from, to);
                 }
             }

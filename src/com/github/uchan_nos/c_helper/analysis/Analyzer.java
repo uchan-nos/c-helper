@@ -90,14 +90,9 @@ public class Analyzer {
             Map<String, CFG> procToCFG = createCFG(translationUnit);
             printCFG(procToCFG);
 
-            ArrayList<AssignExpression> assignList =
-                    createAssignExpressionList(translationUnit);
-            Set<IASTIdExpression> idExpressions =
-                    createIdExpressionList(translationUnit);
-
             for (Entry<String, CFG> cfg : procToCFG.entrySet()) {
                 System.out.println("reaching definition of " + cfg.getKey());
-                ReachingDefinition rd = new ReachingDefinition(cfg.getValue(), assignList, idExpressions);
+                RDAnalyzer rd = new RDAnalyzer(translationUnit, cfg.getValue());
                 rd.analyze();
             }
         } catch (CoreException e) {

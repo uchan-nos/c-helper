@@ -1,0 +1,13 @@
+digraph {
+f[shape=parallelogram];
+v0 [shape=box,label="int y = x;\lint z = 1;\l"];
+v1 [shape=box,label="while (y > 1)\l"];
+v2 [shape=box,label="z = z * y;\ly = y - 1;\l"];
+v3 [shape=box,label="y = 0;\l"];
+f -> v0;
+v0 -> v1;
+v1 -> v2;
+v1 -> v3;
+v2 -> v1;
+
+}

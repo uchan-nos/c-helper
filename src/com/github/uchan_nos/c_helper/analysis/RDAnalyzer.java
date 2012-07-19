@@ -1,18 +1,29 @@
 package com.github.uchan_nos.c_helper.analysis;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.eclipse.cdt.core.dom.ast.*;
+import org.eclipse.core.runtime.CoreException;
+
+import com.github.uchan_nos.c_helper.Util;
 
 /**
  * 到達定義解析を行うクラス.
  * @author uchan
  */
-public class ReachingDefinition {
+public class RDAnalyzer {
     // gen, kill集合を保持する構造体
     private static class GenKill {
         final public BitSet gen;
@@ -33,22 +44,22 @@ public class ReachingDefinition {
      * @param cfg 解析するソースコードの制御フローグラフ
      * @param assignList ソースコード中の代入文のリスト
      */
-    public ReachingDefinition(CFG cfg, ArrayList<AssignExpression> assignList, Set<IASTIdExpression> idExpressionList) {
+    public RDAnalyzer(IASTTranslationUnit ast, CFG cfg) {
         this.cfg = cfg;
-        this.assignList = new ArrayList<AssignExpression>(assignList);
-        this.idExpressionList = idExpressionList;
+        this.assignList = createAssignExpressionList(ast);
+        this.idExpressionList = createIdExpressionList(ast);
         this.dummyAssignList = createInitialAssigns(this.assignList.size(), this.idExpressionList);
         this.assignList.addAll(this.dummyAssignList);
     }
 
-    public void analyze() {
+    public RD<CFG.Vertex> analyze() {
         // フローグラフ中の頂点数
         final int numVertex = cfg.getVertices().size();
 
         ArrayList<CFG.Vertex> vertices = new ArrayList<CFG.Vertex>(CFGPrinter.sort(cfg.getVertices()));
 
         // 各頂点に対応するgen, killを生成
-        ArrayList<GenKill> genkill = new ArrayList<ReachingDefinition.GenKill>(numVertex);
+        ArrayList<GenKill> genkill = new ArrayList<RDAnalyzer.GenKill>(numVertex);
         for (int i = 0; i < numVertex; ++i) {
             genkill.add(createGenKill(vertices.get(i)));
         }
@@ -91,11 +102,17 @@ public class ReachingDefinition {
             }
         }
 
-        final int dummyAssignStartId = dummyAssignList.size() > 0 ?
-                        dummyAssignList.get(0).getId() : assignList.size();
+        //final int dummyAssignStartId = dummyAssignList.size() > 0 ?
+        //                dummyAssignList.get(0).getId() : assignList.size();
+        final Map<CFG.Vertex, BitSet> entrySets = new HashMap<CFG.Vertex, BitSet>();
+        final Map<CFG.Vertex, BitSet> exitSets = new HashMap<CFG.Vertex, BitSet>();
         for (int i = 0; i < numVertex; ++i) {
-            System.out.println(vertices.get(i).label());
-            System.out.print("  entry ");
+            CFG.Vertex vertex = vertices.get(i);
+            entrySets.put(vertex, entry.get(i));
+            exitSets.put(vertex, exit.get(i));
+            /*
+            System.out.println();
+            System.out.print("  entry  ");
             for (int b = 0; b < assignList.size(); ++b) {
                 if (entry.get(i).get(b)) {
                     System.out.print("(" + assignList.get(b).getLHS().getRawSignature()
@@ -111,7 +128,11 @@ public class ReachingDefinition {
                 }
             }
             System.out.println();
+            */
         }
+
+        AssignExpression[] assigns = new AssignExpression[assignList.size()];
+        return new RD<CFG.Vertex>(assignList.toArray(assigns), entrySets, exitSets);
     }
 
     /**
@@ -254,5 +275,118 @@ public class ReachingDefinition {
             id++;
         }
         return result;
+    }
+
+    private ArrayList<AssignExpression> createAssignExpressionList(IASTTranslationUnit ast) {
+        final ArrayList<AssignExpression> result = new ArrayList<AssignExpression>();
+        ast.accept(new ASTVisitor(true) {
+            private int id = 0;
+            @Override
+            public int visit(IASTExpression expression) {
+                if (expression instanceof IASTBinaryExpression) {
+                    IASTBinaryExpression e = (IASTBinaryExpression)expression;
+                    if (e.getOperator() == IASTBinaryExpression.op_assign) {
+                        result.add(new AssignExpression(id, e));
+                        id++;
+                    }
+                }
+                return super.visit(expression);
+            }
+            @Override
+            public int visit(IASTDeclaration declaration) {
+                if (declaration instanceof IASTSimpleDeclaration) {
+                    IASTSimpleDeclaration d = (IASTSimpleDeclaration)declaration;
+                    for (IASTDeclarator decl : d.getDeclarators()) {
+                        if (decl.getInitializer() != null) {
+                            result.add(new AssignExpression(id, decl));
+                            id++;
+                        }
+                    }
+                }
+                return super.visit(declaration);
+            }
+        });
+        return result;
+    }
+
+    private Set<IASTIdExpression> createIdExpressionList(IASTTranslationUnit ast) {
+        final Set<IASTIdExpression> result = new TreeSet<IASTIdExpression>(new Comparator<IASTIdExpression>() {
+            @Override
+            public int compare(IASTIdExpression o1, IASTIdExpression o2) {
+                return o1.getName().toString().compareTo(o2.getName().toString());
+            }
+        });
+        ast.accept(new ASTVisitor(true) {
+            private int id = 0;
+            @Override
+            public int visit(IASTExpression expression) {
+                if (expression instanceof IASTIdExpression) {
+                    result.add((IASTIdExpression)expression);
+                }
+                return super.visit(expression);
+            }
+        });
+        return result;
+    }
+
+    public static void main(String[] args) {
+        class RDEntry {
+            final public String name;
+            final public int id;
+            public RDEntry(String name, int id) {
+                this.name = name;
+                this.id = id;
+            }
+        }
+
+        if (args.length == 1) {
+            String inputFilename = args[0];
+            File inputFile = new File(inputFilename);
+
+            try {
+                String fileContent = Util.readFileAll(inputFile, "UTF-8");
+                IASTTranslationUnit translationUnit =
+                        new Parser(inputFilename, fileContent).parse();
+                Map<String, CFG> procToCFG =
+                        new CFGCreator(translationUnit).create();
+                for (Entry<String, CFG> entry : procToCFG.entrySet()) {
+                    CFG cfg = entry.getValue();
+                    System.out.println("function " + entry.getKey());
+                    RD<CFG.Vertex> rd =
+                            new RDAnalyzer(translationUnit, cfg).analyze();
+                    for (CFG.Vertex vertex : cfg.getVertices()) {
+                        ArrayList<RDEntry> rdTemp = new ArrayList<RDEntry>();
+                        BitSet exitSet = rd.getExitSets().get(vertex);
+                        for (int assid = 0; assid < rd.getAssigns().length; ++assid) {
+                            if (exitSet.get(assid)) {
+                                AssignExpression assign = rd.getAssigns()[assid];
+                                rdTemp.add(new RDEntry(assign.getLHS().getRawSignature(),
+                                        assign.getRHS() == null ? -1 : assid));
+                            }
+                        }
+                        Collections.sort(rdTemp, new Comparator<RDEntry>() {
+                            @Override
+                            public int compare(RDEntry o1, RDEntry o2) {
+                                int diff = o1.name.compareTo(o2.name);
+                                if (diff == 0) {
+                                    return o1.id - o2.id;
+                                }
+                                return diff;
+                            }
+                        });
+                        System.out.println("exit of " + vertex.label());
+                        for (RDEntry rdEntry : rdTemp) {
+                            System.out.print("(" + rdEntry.name + ","
+                                    + (rdEntry.id == -1 ? "?" : String.valueOf(rdEntry.id)) + ")");
+                        }
+                        System.out.println();
+                    }
+                }
+            } catch (CoreException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

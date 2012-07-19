@@ -1,0 +1,22 @@
+digraph {
+f[shape=parallelogram];
+v0 [shape=box,label=""];
+v1 [shape=box,label="switch (x)\l"];
+v2 [shape=box,label="case 0:\lputs(\"0\");\lbreak;\l"];
+v3 [shape=box,label="case 1:\lputs(\"1\");\lbreak;\l"];
+v4 [shape=box,label="case 2:\lputs(\"2\");\l"];
+v5 [shape=box,label="case 3:\lputs(\"3\");\lbreak;\l"];
+v6 [shape=box,label="default:\lputs(\"default\");\l"];
+f -> v1;
+v1 -> v2;
+v1 -> v3;
+v1 -> v4;
+v1 -> v5;
+v1 -> v6;
+v2 -> v0;
+v3 -> v0;
+v4 -> v5;
+v5 -> v0;
+v6 -> v0;
+
+}

@@ -1,9 +1,23 @@
 package com.github.uchan_nos.c_helper.analysis;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.*;
+import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
+import org.eclipse.cdt.core.index.IIndex;
+import org.eclipse.cdt.core.model.ILanguage;
+import org.eclipse.cdt.core.parser.DefaultLogService;
+import org.eclipse.cdt.core.parser.FileContent;
+import org.eclipse.cdt.core.parser.IParserLogService;
+import org.eclipse.cdt.core.parser.IScannerInfo;
+import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
+import org.eclipse.cdt.core.parser.ScannerInfo;
+import org.eclipse.core.runtime.CoreException;
+
+import com.github.uchan_nos.c_helper.Util;
 
 public class CFGCreator {
     private IASTTranslationUnit translationUnit;
@@ -34,5 +48,27 @@ public class CFGCreator {
             }
         }
         return procToCFG;
+    }
+
+    public static void main(String[] args) {
+        if (args.length == 1) {
+            String inputFilename = args[0];
+            File inputFile = new File(inputFilename);
+
+            try {
+                String fileContent = Util.readFileAll(inputFile, "UTF-8");
+                IASTTranslationUnit translationUnit =
+                        new Parser(inputFilename, fileContent).parse();
+                Map<String, CFG> procToCFG =
+                        new CFGCreator(translationUnit).create();
+                String dot =
+                        new CFGPrinter(procToCFG).toDotString();
+                System.out.print(dot);
+            } catch (CoreException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -23,7 +23,7 @@ if __name__ == '__main__':
 				print('cannot find output file ' + name + '.dot')
 			else:
 				cmd = 'CLASSPATH=../bin:`python ./searchplugins.py` '+ \
-						'java com.github.uchan_nos.c_helper.Launcher ' + \
+						'java com.github.uchan_nos.c_helper.analysis.CFGCreator ' + \
 						'input/' + name + '.c' + \
 						' | diff -u output/' + name + '.dot -'
 				p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
