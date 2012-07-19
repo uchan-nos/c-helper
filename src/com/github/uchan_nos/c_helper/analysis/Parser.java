@@ -48,12 +48,15 @@ public class Parser {
         FileContent reader = FileContent.create(filePath, sourceCode.toCharArray());
 
         Map<String, String> macroDefinitions = null;
-        String[] includeSearchPath = null;
+        String[] includeSearchPath = new String[] { "/usr/include/" };
+        //String[] includeSearchPath = new String[] {};
         IScannerInfo scanInfo = new ScannerInfo(macroDefinitions,
                 includeSearchPath);
 
-        IncludeFileContentProvider fileCreator = IncludeFileContentProvider
-                .getEmptyFilesProvider();
+        IncludeFileContentProvider fileCreator =
+                //IncludeFileContentProvider.getSavedFilesProvider();
+                //IncludeFileContentProvider.getEmptyFilesProvider();
+                new MyFileContentProvider();
         IIndex index = null;
         int options = ILanguage.OPTION_IS_SOURCE_UNIT;
         IParserLogService log = new DefaultLogService();

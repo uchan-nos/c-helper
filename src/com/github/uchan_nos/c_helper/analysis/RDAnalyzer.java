@@ -271,6 +271,8 @@ public class RDAnalyzer {
         ArrayList<DummyAssignExpression> result = new ArrayList<DummyAssignExpression>();
         for (IASTIdExpression idExpression : idExpressionList) {
             if (idExpression.isLValue()) {
+                IType type = idExpression.getExpressionType();
+                String raw = idExpression.getRawSignature();
                 DummyAssignExpression e = new DummyAssignExpression(id, idExpression);
                 result.add(e);
                 id++;

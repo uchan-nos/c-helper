@@ -4,6 +4,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
@@ -28,6 +30,7 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.github.uchan_nos.c_helper.Util;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 
 public class Analyzer {
@@ -59,15 +62,15 @@ public class Analyzer {
             ITextEditor textEditorPart = (ITextEditor) activeEditorPart;
             IDocument documentToAnalyze = textEditorPart.getDocumentProvider()
                     .getDocument(textEditorPart.getEditorInput());
-            analyze(textEditorPart.getTitle(), documentToAnalyze.get()
-                    .toCharArray());
+            analyze(textEditorPart.getTitle(), documentToAnalyze.get());
         } else {
             throw new InvalidEditorPartException(
                     "We need a class implementing ITextEditor");
         }
     }
 
-    public void analyze(String filePath, char[] source) {
+    public void analyze(String filePath, String source) {
+        /*
         ILanguage language = GCCLanguage.getDefault();
 
         FileContent reader = FileContent.create(filePath, source);
@@ -94,6 +97,58 @@ public class Analyzer {
                 System.out.println("reaching definition of " + cfg.getKey());
                 RDAnalyzer rd = new RDAnalyzer(translationUnit, cfg.getValue());
                 rd.analyze();
+            }
+        } catch (CoreException e) {
+            e.printStackTrace();
+        }
+        */
+
+        class RDEntry {
+            final public String name;
+            final public int id;
+            public RDEntry(String name, int id) {
+                this.name = name;
+                this.id = id;
+            }
+        }
+
+        try {
+            IASTTranslationUnit translationUnit =
+                    new Parser(filePath, source).parse();
+            Map<String, CFG> procToCFG =
+                    new CFGCreator(translationUnit).create();
+            for (Entry<String, CFG> entry : procToCFG.entrySet()) {
+                CFG cfg = entry.getValue();
+                System.out.println("function " + entry.getKey());
+                RD<CFG.Vertex> rd =
+                        new RDAnalyzer(translationUnit, cfg).analyze();
+                for (CFG.Vertex vertex : Util.sort(cfg.getVertices())) {
+                    ArrayList<RDEntry> rdTemp = new ArrayList<RDEntry>();
+                    BitSet exitSet = rd.getExitSets().get(vertex);
+                    for (int assid = 0; assid < rd.getAssigns().length; ++assid) {
+                        if (exitSet.get(assid)) {
+                            AssignExpression assign = rd.getAssigns()[assid];
+                            rdTemp.add(new RDEntry(assign.getLHS().getRawSignature(),
+                                    assign.getRHS() == null ? -1 : assid));
+                        }
+                    }
+                    Collections.sort(rdTemp, new Comparator<RDEntry>() {
+                        @Override
+                        public int compare(RDEntry o1, RDEntry o2) {
+                            int diff = o1.name.compareTo(o2.name);
+                            if (diff == 0) {
+                                return o1.id - o2.id;
+                            }
+                            return diff;
+                        }
+                    });
+                    System.out.println("exit of " + vertex.label());
+                    for (RDEntry rdEntry : rdTemp) {
+                        System.out.print("(" + rdEntry.name + ","
+                                + (rdEntry.id == -1 ? "?" : String.valueOf(rdEntry.id)) + ")");
+                    }
+                    System.out.println();
+                }
             }
         } catch (CoreException e) {
             e.printStackTrace();

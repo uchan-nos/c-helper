@@ -126,7 +126,7 @@ public class Launcher {
 
             String filepath = outputFilename == null ? "dummy file" : outputFilename;
 
-            analyzer.analyze(filepath, sourceToParse.toCharArray());
+            analyzer.analyze(filepath, sourceToParse);
             if (outputFilename != null) {
                 System.out.println("Successfully analyzed source code.");
             }
