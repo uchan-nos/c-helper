@@ -5,6 +5,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Comparator;
+import java.util.Set;
+import java.util.TreeSet;
+
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+
+import com.github.uchan_nos.c_helper.analysis.CFG;
 
 /**
  * 便利関数群.
@@ -39,5 +46,35 @@ public class Util {
      */
     public static String readFileAll(File file) throws IOException {
         return readFileAll(file, "UTF-8");
+    }
+
+    /**
+     * コントロールフローグラフの頂点集合をソートした集合を返す.
+     * @param vertices 頂点集合
+     * @return ソート済み頂点集合
+     */
+    public static Set<CFG.Vertex> sort(Set<CFG.Vertex> vertices) {
+        /**
+         * コントロールフローグラフの頂点の比較器.
+         * @author uchan
+         */
+        class VertexComparator implements Comparator<CFG.Vertex> {
+            @Override
+            public int compare(CFG.Vertex o1, CFG.Vertex o2) {
+                if (o1.getASTNodes().size() == 0) {
+                    return -1;
+                } else if (o2.getASTNodes().size() == 0) {
+                    return 1;
+                } else {
+                    IASTNode n1 = o1.getASTNodes().get(0);
+                    IASTNode n2 = o2.getASTNodes().get(0);
+                    return n1.getFileLocation().getNodeOffset() - n2.getFileLocation().getNodeOffset();
+                }
+            }
+        }
+
+        TreeSet<CFG.Vertex> sorted = new TreeSet<CFG.Vertex>(new VertexComparator());
+        sorted.addAll(vertices);
+        return sorted;
     }
 }

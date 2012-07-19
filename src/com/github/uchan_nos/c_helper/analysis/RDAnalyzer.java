@@ -56,7 +56,7 @@ public class RDAnalyzer {
         // フローグラフ中の頂点数
         final int numVertex = cfg.getVertices().size();
 
-        ArrayList<CFG.Vertex> vertices = new ArrayList<CFG.Vertex>(CFGPrinter.sort(cfg.getVertices()));
+        ArrayList<CFG.Vertex> vertices = new ArrayList<CFG.Vertex>(Util.sort(cfg.getVertices()));
 
         // 各頂点に対応するgen, killを生成
         ArrayList<GenKill> genkill = new ArrayList<RDAnalyzer.GenKill>(numVertex);
@@ -270,9 +270,11 @@ public class RDAnalyzer {
         int id = startId;
         ArrayList<DummyAssignExpression> result = new ArrayList<DummyAssignExpression>();
         for (IASTIdExpression idExpression : idExpressionList) {
-            DummyAssignExpression e = new DummyAssignExpression(id, idExpression);
-            result.add(e);
-            id++;
+            if (idExpression.isLValue()) {
+                DummyAssignExpression e = new DummyAssignExpression(id, idExpression);
+                result.add(e);
+                id++;
+            }
         }
         return result;
     }
@@ -354,7 +356,7 @@ public class RDAnalyzer {
                     System.out.println("function " + entry.getKey());
                     RD<CFG.Vertex> rd =
                             new RDAnalyzer(translationUnit, cfg).analyze();
-                    for (CFG.Vertex vertex : cfg.getVertices()) {
+                    for (CFG.Vertex vertex : Util.sort(cfg.getVertices())) {
                         ArrayList<RDEntry> rdTemp = new ArrayList<RDEntry>();
                         BitSet exitSet = rd.getExitSets().get(vertex);
                         for (int assid = 0; assid < rd.getAssigns().length; ++assid) {

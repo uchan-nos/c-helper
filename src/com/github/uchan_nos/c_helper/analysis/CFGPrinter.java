@@ -9,6 +9,7 @@ import java.util.TreeSet;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 
+import com.github.uchan_nos.c_helper.Util;
 import com.github.uchan_nos.c_helper.analysis.CFG.Vertex;
 
 public class CFGPrinter {
@@ -38,7 +39,7 @@ public class CFGPrinter {
         int i = 0;
         this.vertexNames = new HashMap<CFG.Vertex, Integer>();
         for (CFG cfg : procToCFG.values()) {
-            for (CFG.Vertex v : sort(cfg.getVertices())) {
+            for (CFG.Vertex v : Util.sort(cfg.getVertices())) {
                 this.vertexNames.put(v, i);
                 i++;
             }
@@ -47,7 +48,7 @@ public class CFGPrinter {
 
     private String toDot(String name, CFG cfg) {
         StringBuilder sb = new StringBuilder();
-        Set<CFG.Vertex> sortedVertices = sort(cfg.getVertices());
+        Set<CFG.Vertex> sortedVertices = Util.sort(cfg.getVertices());
 
         // vertex attribute lines
         sb.append(name + "[shape=parallelogram];\n");
@@ -62,7 +63,7 @@ public class CFGPrinter {
         if (cfg.entryVertex() != null) {
             sb.append(name + " -> " + getVertexName(cfg.entryVertex()) + ";\n");
             for (CFG.Vertex from : sortedVertices) {
-                for (CFG.Vertex to : sort(cfg.getConnectedVerticesFrom(from))) {
+                for (CFG.Vertex to : Util.sort(cfg.getConnectedVerticesFrom(from))) {
                     sb.append(getVertexName(from) + " -> "
                             + getVertexName(to) + ";\n");
                 }
@@ -84,24 +85,4 @@ public class CFGPrinter {
         return addr;
     }
 
-    private static class VertexComparator implements Comparator<CFG.Vertex> {
-        @Override
-        public int compare(Vertex o1, Vertex o2) {
-            if (o1.getASTNodes().size() == 0) {
-                return -1;
-            } else if (o2.getASTNodes().size() == 0) {
-                return 1;
-            } else {
-                IASTNode n1 = o1.getASTNodes().get(0);
-                IASTNode n2 = o2.getASTNodes().get(0);
-                return n1.getFileLocation().getNodeOffset() - n2.getFileLocation().getNodeOffset();
-            }
-        }
-    }
-
-    public static Set<CFG.Vertex> sort(Set<CFG.Vertex> vertices) {
-        TreeSet<CFG.Vertex> sorted = new TreeSet<CFG.Vertex>(new VertexComparator());
-        sorted.addAll(vertices);
-        return sorted;
-    }
 }
