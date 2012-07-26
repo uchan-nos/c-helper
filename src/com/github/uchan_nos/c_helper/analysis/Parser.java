@@ -47,7 +47,7 @@ public class Parser {
         Map<String, String> macroDefinitions = new HashMap<String, String>();
         macroDefinitions.put("__STDC__", "100");
 
-        String[] includeSearchPath = null;
+        String[] includeSearchPath = new String[] { "/Users/uchan/git/c-helper/stdheaders" };
         IScannerInfo scanInfo = new ScannerInfo(macroDefinitions,
                 includeSearchPath);
 

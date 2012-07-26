@@ -271,7 +271,7 @@ public class RDAnalyzer {
         ArrayList<DummyAssignExpression> result = new ArrayList<DummyAssignExpression>();
         for (IASTIdExpression idExpression : idExpressionList) {
             IType type = idExpression.getExpressionType();
-            if (true) {
+            if (!(type instanceof IFunctionType)) {
                 String raw = idExpression.getRawSignature();
                 DummyAssignExpression e = new DummyAssignExpression(id, idExpression);
                 result.add(e);
@@ -302,6 +302,7 @@ public class RDAnalyzer {
                     IASTSimpleDeclaration d = (IASTSimpleDeclaration)declaration;
                     for (IASTDeclarator decl : d.getDeclarators()) {
                         if (decl.getInitializer() != null) {
+                            // 初期化付き変数宣言
                             result.add(new AssignExpression(id, decl));
                             id++;
                         }

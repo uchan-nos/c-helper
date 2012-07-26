@@ -37,7 +37,11 @@ public class AssignExpression {
         if (ast instanceof IASTBinaryExpression) {
             return ((IASTBinaryExpression)ast).getOperand1();
         } else if (ast instanceof IASTDeclarator) {
-            return ((IASTDeclarator)ast).getName();
+            IASTDeclarator nestedDecl = (IASTDeclarator)ast;
+            while (nestedDecl.getNestedDeclarator() != null) {
+                nestedDecl = nestedDecl.getNestedDeclarator();
+            }
+            return nestedDecl.getName();
         }
         return null;
     }
