@@ -1,4 +1,4 @@
-package com.github.uchan_nos.c_helper;
+package com.github.uchan_nos.c_helper.util;
 
 import java.io.BufferedReader;
 import java.io.File;

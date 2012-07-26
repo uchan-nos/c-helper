@@ -9,8 +9,8 @@ import java.util.TreeSet;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 
-import com.github.uchan_nos.c_helper.Util;
 import com.github.uchan_nos.c_helper.analysis.CFG.Vertex;
+import com.github.uchan_nos.c_helper.util.Util;
 
 public class CFGPrinter {
     private Map<String, CFG> procToCFG;

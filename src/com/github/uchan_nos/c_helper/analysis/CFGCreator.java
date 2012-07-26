@@ -17,7 +17,7 @@ import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.cdt.core.parser.ScannerInfo;
 import org.eclipse.core.runtime.CoreException;
 
-import com.github.uchan_nos.c_helper.Util;
+import com.github.uchan_nos.c_helper.util.Util;
 
 public class CFGCreator {
     private IASTTranslationUnit translationUnit;

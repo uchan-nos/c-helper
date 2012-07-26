@@ -30,8 +30,8 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.github.uchan_nos.c_helper.Util;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
+import com.github.uchan_nos.c_helper.util.Util;
 
 public class Analyzer {
     private OutputStreamWriter cfgWriter;

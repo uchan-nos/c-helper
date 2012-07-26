@@ -1,11 +1,8 @@
 package com.github.uchan_nos.c_helper.analysis;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.Map.Entry;
 
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
 import org.eclipse.cdt.core.index.IIndex;
@@ -47,16 +44,17 @@ public class Parser {
 
         FileContent reader = FileContent.create(filePath, sourceCode.toCharArray());
 
-        Map<String, String> macroDefinitions = null;
-        String[] includeSearchPath = new String[] { "/usr/include/" };
-        //String[] includeSearchPath = new String[] {};
+        Map<String, String> macroDefinitions = new HashMap<String, String>();
+        macroDefinitions.put("__STDC__", "100");
+
+        String[] includeSearchPath = null;
         IScannerInfo scanInfo = new ScannerInfo(macroDefinitions,
                 includeSearchPath);
 
         IncludeFileContentProvider fileCreator =
                 //IncludeFileContentProvider.getSavedFilesProvider();
                 //IncludeFileContentProvider.getEmptyFilesProvider();
-                new MyFileContentProvider();
+                new MyFileContentProvider("/Users/uchan/git/c-helper/stdheaders");
         IIndex index = null;
         int options = ILanguage.OPTION_IS_SOURCE_UNIT;
         IParserLogService log = new DefaultLogService();

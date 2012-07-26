@@ -17,7 +17,7 @@ import java.util.TreeSet;
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.core.runtime.CoreException;
 
-import com.github.uchan_nos.c_helper.Util;
+import com.github.uchan_nos.c_helper.util.Util;
 
 /**
  * 到達定義解析を行うクラス.
@@ -270,8 +270,8 @@ public class RDAnalyzer {
         int id = startId;
         ArrayList<DummyAssignExpression> result = new ArrayList<DummyAssignExpression>();
         for (IASTIdExpression idExpression : idExpressionList) {
-            if (idExpression.isLValue()) {
-                IType type = idExpression.getExpressionType();
+            IType type = idExpression.getExpressionType();
+            if (true) {
                 String raw = idExpression.getRawSignature();
                 DummyAssignExpression e = new DummyAssignExpression(id, idExpression);
                 result.add(e);
