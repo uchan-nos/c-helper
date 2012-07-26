@@ -29,8 +29,6 @@ public class MyFileContentProvider extends InternalFileContentProvider {
         IPath filePath = new Path(filePathString);
         String filename = filePath.lastSegment();
 
-        System.out.println("getContentForInclusion(" + filePathString + ") : " + filename);
-
         IPath stdPath = new Path(this.stdHeaderDir).append(filename);
         //if (stdHeaders.containsKey(filename)) {
         if (stdPath.toFile().exists()) {

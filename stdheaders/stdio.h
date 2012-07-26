@@ -9,9 +9,9 @@ typedef unsigned int fpos_t;
 
 #define NULL ((void*)0)
 
-export FILE *stderr;
-export FILE *stdin;
-export FILE *stdout;
+extern FILE *stderr;
+extern FILE *stdin;
+extern FILE *stdout;
 
 int remove(const char *filename);
 int rename(const char *old, const char *new);

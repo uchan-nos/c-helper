@@ -5,13 +5,19 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.*;
+import org.eclipse.cdt.internal.core.pdom.indexer.IndexerASTVisitor;
 
+import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.analysis.CFG;
+import com.github.uchan_nos.c_helper.analysis.RD;
 
 /**
  * 便利関数群.
@@ -76,5 +82,28 @@ public class Util {
         TreeSet<CFG.Vertex> sorted = new TreeSet<CFG.Vertex>(new VertexComparator());
         sorted.addAll(vertices);
         return sorted;
+    }
+
+    /**
+     * 指定された名前の到達定義を取得する.
+     */
+    public static Set<AssignExpression> getAssigns(AssignExpression[] assigns, BitSet rd, String name) {
+        Set<AssignExpression> result = new HashSet<AssignExpression>();
+        for (AssignExpression ae : assigns) {
+            if (rd.get(ae.getId())) {
+                IASTNode lhs = ae.getLHS();
+                String nameOfLhs = null;
+                if (lhs instanceof IASTIdExpression) {
+                    nameOfLhs = ((IASTIdExpression)lhs).getName().toString();
+                } else if (lhs instanceof IASTName) {
+                    nameOfLhs = ((IASTName)lhs).toString();
+                }
+
+                if (name.equals(nameOfLhs)) {
+                    result.add(ae);
+                }
+            }
+        }
+        return result;
     }
 }

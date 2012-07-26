@@ -1,6 +1,8 @@
 package com.github.uchan_nos.c_helper.analysis;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer;
+import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 
@@ -50,7 +52,12 @@ public class AssignExpression {
         if (ast instanceof IASTBinaryExpression) {
             return ((IASTBinaryExpression)ast).getOperand2();
         } else if (ast instanceof IASTDeclarator) {
-            return ((IASTDeclarator)ast).getInitializer();
+            IASTInitializer initializer = ((IASTDeclarator)ast).getInitializer();
+            if (initializer instanceof IASTEqualsInitializer) {
+                return ((IASTEqualsInitializer)initializer).getInitializerClause();
+            } else {
+                throw new RuntimeException("initializer must be IASTEqualsInitializer");
+            }
         }
         return null;
     }

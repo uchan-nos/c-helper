@@ -39,10 +39,16 @@ public class CFGNormalizer {
                 modified = true;
                 util.mergeIntoFrom(edgeToMerge);
                 util.remove(edgeToMerge.to);
+                if (cfg.exitVertex() == edgeToMerge.to) {
+                    cfg.setExitVertex(edgeToMerge.from);
+                }
             } else if ((edgeToMerge = util.getMergableEdgeDeletingStartVertex(cfg)) != null) {
                 modified = true;
                 util.mergeIntoTo(edgeToMerge);
                 util.remove(edgeToMerge.from);
+                if (cfg.entryVertex() == edgeToMerge.from) {
+                    cfg.setEntryVertex(edgeToMerge.to);
+                }
             }
 
         } while (modified == true);
@@ -112,16 +118,16 @@ class CFGUtil {
         Set<CFG.Vertex> exitVerticesOfFrom = this.cfg.getConnectedVerticesFrom(from);
         Set<CFG.Vertex> entryVerticesOfTo = this.cfg.getConnectedVerticesTo(to);
         Set<CFG.Vertex> exitVerticesOfTo = this.cfg.getConnectedVerticesFrom(to);
-        return (exitVerticesOfFrom.size() == 1 &&
-                entryVerticesOfTo.size() == 1) ||
-               (entryVerticesOfTo.size() == 1 &&
-                exitVerticesOfTo.size() <= 1 &&
-                to.getASTNodes().size() == 0);
+        return (exitVerticesOfFrom.size() == 1
+                && entryVerticesOfTo.size() == 1
+                && to.getASTNodes().size() == 0)
+                || (entryVerticesOfTo.size() == 1
+                    && exitVerticesOfTo.size() <= 1
+                    && to.getASTNodes().size() == 0);
     }
 
     public boolean canMergeDeletingStartVertex(CFG.Vertex from, CFG.Vertex to) {
         Set<CFG.Vertex> exitVerticesOfFrom = this.cfg.getConnectedVerticesFrom(from);
-        Set<CFG.Vertex> exitVerticesOfTo = this.cfg.getConnectedVerticesFrom(to);
         return (from.getASTNodes().size() == 0 &&
                 exitVerticesOfFrom.size() == 1);
     }
