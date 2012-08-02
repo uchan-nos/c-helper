@@ -21,7 +21,7 @@ public class CFGNormalizer {
         // どこからも指されておらず、ASTノードを含まないような頂点を削除
         ArrayList<CFG.Vertex> removeVertices = new ArrayList<CFG.Vertex>();
         for (CFG.Vertex v : cfg.getVertices()) {
-            if (v != cfg.entryVertex() && v.getASTNodes().size() == 0 && cfg.getConnectedVerticesTo(v).size() == 0) {
+            if (v != cfg.entryVertex() && v.getASTNode() == null && cfg.getConnectedVerticesTo(v).size() == 0) {
                 removeVertices.add(v);
             }
         }
@@ -83,8 +83,10 @@ class CFGUtil {
 
         // toをfromに統合
         from.setLabel(from.label() + to.label());
-        for (IASTNode node : to.getASTNodes()) {
-            from.addASTNode(node);
+        if (from.getASTNode() != null && to.getASTNode() != null) {
+            throw new RuntimeException("cannot merge because both from and to have ast nodes");
+        } else if (from.getASTNode() == null) {
+            from.setASTNode(to.getASTNode());
         }
 
         for (CFG.Vertex toto : this.cfg.getConnectedVerticesFrom(to)) {
@@ -98,8 +100,11 @@ class CFGUtil {
 
         // fromをtoに統合
         to.setLabel(from.label() + to.label());
-        ArrayList<IASTNode> astNodes = new ArrayList<IASTNode>(from.getASTNodes());
-        astNodes.addAll(to.getASTNodes());
+        if (from.getASTNode() != null && to.getASTNode() != null) {
+            throw new RuntimeException("cannot merge because both from and to have ast nodes");
+        } else if (to.getASTNode() == null) {
+            to.setASTNode(from.getASTNode());
+        }
 
         for (CFG.Vertex tofrom : this.cfg.getConnectedVerticesTo(from)) {
             this.cfg.connect(tofrom, to);
@@ -120,15 +125,15 @@ class CFGUtil {
         Set<CFG.Vertex> exitVerticesOfTo = this.cfg.getConnectedVerticesFrom(to);
         return (exitVerticesOfFrom.size() == 1
                 && entryVerticesOfTo.size() == 1
-                && to.getASTNodes().size() == 0)
+                && to.getASTNode() == null)
                 || (entryVerticesOfTo.size() == 1
                     && exitVerticesOfTo.size() <= 1
-                    && to.getASTNodes().size() == 0);
+                    && to.getASTNode() == null);
     }
 
     public boolean canMergeDeletingStartVertex(CFG.Vertex from, CFG.Vertex to) {
         Set<CFG.Vertex> exitVerticesOfFrom = this.cfg.getConnectedVerticesFrom(from);
-        return (from.getASTNodes().size() == 0 &&
+        return (from.getASTNode() == null &&
                 exitVerticesOfFrom.size() == 1);
     }
 

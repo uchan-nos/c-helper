@@ -1,6 +1,5 @@
 package com.github.uchan_nos.c_helper.analysis;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -21,7 +20,7 @@ public class CFG extends DirectedGraph<CFG.Vertex> {
      *
      */
     static public class Vertex {
-        private ArrayList<IASTNode> astNodes = new ArrayList<IASTNode>();
+        private IASTNode astNode = null;
         private String label;
 
         /**
@@ -47,17 +46,17 @@ public class CFG extends DirectedGraph<CFG.Vertex> {
          *
          * @param node 追加するASTノード
          */
-        public void addASTNode(IASTNode node) {
-            this.astNodes.add(node);
+        public void setASTNode(IASTNode node) {
+            this.astNode = node;
         }
 
         /**
-         * 頂点が含むすべてのASTノードを取得する.
+         * 頂点が含むASTノードを取得する.
          *
          * @return 頂点が含むASTノードのリスト
          */
-        public ArrayList<IASTNode> getASTNodes() {
-            return this.astNodes;
+        public IASTNode getASTNode() {
+            return this.astNode;
         }
 
         /**

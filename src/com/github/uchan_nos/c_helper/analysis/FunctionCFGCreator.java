@@ -60,7 +60,7 @@ public class FunctionCFGCreator {
             cfg = create((IASTGotoStatement)stmt);
         } else {
             CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
-            v.addASTNode(stmt);
+            v.setASTNode(stmt);
             cfg = new CFG(v, v);
         }
 
@@ -94,7 +94,7 @@ public class FunctionCFGCreator {
     private CFG create(IASTIfStatement stmt) {
         CFG.Vertex entryVertex = new CFG.Vertex("if (" + stmt.getConditionExpression().getRawSignature() + ")\\l");
         CFG.Vertex exitVertex = new CFG.Vertex();
-        entryVertex.addASTNode(stmt);
+        entryVertex.setASTNode(stmt);
 
         CFG cfg = new CFG(entryVertex, exitVertex);
         CFG thencfg = create(stmt.getThenClause());
@@ -124,7 +124,7 @@ public class FunctionCFGCreator {
         CFG.Vertex entryVertex = new CFG.Vertex("while (" + stmt.getCondition().getRawSignature() + ")\\l");
         CFG.Vertex exitVertex = new CFG.Vertex();
         CFG.Vertex bodyendVertex = new CFG.Vertex();
-        entryVertex.addASTNode(stmt);
+        entryVertex.setASTNode(stmt);
 
         CFG cfg = new CFG(entryVertex, exitVertex);
         CFG subcfg = create(stmt.getBody());
@@ -146,7 +146,7 @@ public class FunctionCFGCreator {
         CFG.Vertex exitVertex = new CFG.Vertex();
         CFG.Vertex condVertex = new CFG.Vertex("do-while (" + stmt.getCondition().getRawSignature() + ")\\l");
         CFG.Vertex bodyendVertex = new CFG.Vertex();
-        condVertex.addASTNode(stmt);
+        condVertex.setASTNode(stmt);
 
         CFG subcfg = create(stmt.getBody());
         CFG cfg = new CFG(subcfg.entryVertex(), exitVertex);
@@ -175,10 +175,10 @@ public class FunctionCFGCreator {
         CFG.Vertex condVertex = new CFG.Vertex(stmt.getConditionExpression().getRawSignature() + "\\l");
         CFG.Vertex iterVertex = new CFG.Vertex(stmt.getIterationExpression().getRawSignature() + "\\l");
         CFG.Vertex bodyendVertex = new CFG.Vertex();
-        entryVertex.addASTNode(stmt);
-        initVertex.addASTNode(stmt.getInitializerStatement());
-        condVertex.addASTNode(stmt.getConditionExpression());
-        iterVertex.addASTNode(stmt.getIterationExpression());
+        entryVertex.setASTNode(stmt);
+        initVertex.setASTNode(stmt.getInitializerStatement());
+        condVertex.setASTNode(stmt.getConditionExpression());
+        iterVertex.setASTNode(stmt.getIterationExpression());
 
         CFG cfg = new CFG(entryVertex, exitVertex);
         CFG subcfg = create(stmt.getBody());
@@ -205,7 +205,7 @@ public class FunctionCFGCreator {
     private CFG create(IASTSwitchStatement stmt) {
         CFG.Vertex entryVertex = new CFG.Vertex("switch (" + stmt.getControllerExpression().getRawSignature() + ")\\l");
         CFG.Vertex exitVertex = new CFG.Vertex();
-        entryVertex.addASTNode(stmt);
+        entryVertex.setASTNode(stmt);
 
         CFG cfg = new CFG(entryVertex, exitVertex);
 
@@ -227,7 +227,7 @@ public class FunctionCFGCreator {
 
     private CFG create(IASTCaseStatement stmt) {
         CFG.Vertex v = new CFG.Vertex("case " + stmt.getExpression().getRawSignature() + ":\\l");
-        v.addASTNode(stmt);
+        v.setASTNode(stmt);
         CFG cfg = new CFG(v, v);
         cfg.addCaseVertex(v);
         return cfg;
@@ -235,7 +235,7 @@ public class FunctionCFGCreator {
 
     private CFG create(IASTDefaultStatement stmt) {
         CFG.Vertex v = new CFG.Vertex("default:\\l");
-        v.addASTNode(stmt);
+        v.setASTNode(stmt);
         CFG cfg = new CFG(v, v);
         cfg.addCaseVertex(v);
         return cfg;
@@ -243,7 +243,7 @@ public class FunctionCFGCreator {
 
     private CFG create(IASTBreakStatement stmt) {
         CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
-        v.addASTNode(stmt);
+        v.setASTNode(stmt);
         CFG cfg = new CFG(v, v);
         cfg.addBreakVertex(v);
         return cfg;
@@ -251,7 +251,7 @@ public class FunctionCFGCreator {
 
     private CFG create(IASTContinueStatement stmt) {
         CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
-        v.addASTNode(stmt);
+        v.setASTNode(stmt);
         CFG cfg = new CFG(v, v);
         cfg.addContinueVertex(v);
         return cfg;
@@ -259,7 +259,7 @@ public class FunctionCFGCreator {
 
     private CFG create(IASTReturnStatement stmt) {
         CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
-        v.addASTNode(stmt);
+        v.setASTNode(stmt);
         CFG cfg = new CFG(v, v);
         this.returnVertices.add(v);
         return cfg;
@@ -268,7 +268,7 @@ public class FunctionCFGCreator {
     private CFG create(IASTLabelStatement stmt) {
         CFG.Vertex entryVertex = new CFG.Vertex(
                 String.valueOf(stmt.getName().getSimpleID()) + ":\\l");
-        entryVertex.addASTNode(stmt);
+        entryVertex.setASTNode(stmt);
         this.labelVertices.add(new NamedVertex<CFG.Vertex>(entryVertex, stmt.getName()));
         CFG cfg = create(stmt.getNestedStatement());
         cfg.add(entryVertex);
@@ -279,7 +279,7 @@ public class FunctionCFGCreator {
 
     private CFG create(IASTGotoStatement stmt) {
         CFG.Vertex v = new CFG.Vertex(stmt.getRawSignature() + "\\l");
-        v.addASTNode(stmt);
+        v.setASTNode(stmt);
         this.gotoVertices.add(new NamedVertex<CFG.Vertex>(v, stmt.getName()));
         CFG cfg = new CFG(v, v);
         return cfg;

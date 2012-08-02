@@ -141,21 +141,14 @@ public class RDAnalyzer {
      * @return gen, kill集合
      */
     private GenKill createGenKill(CFG.Vertex v) {
-        BitSet kill = new BitSet(assignList.size());
-        BitSet gen = new BitSet(assignList.size());
-        for (int i = v.getASTNodes().size() - 1; i >= 0; --i) {
-            GenKill sub = createGenKill(v.getASTNodes().get(i));
-            if (sub != null) {
-                if (sub.gen != null) {
-                    sub.gen.andNot(kill);
-                    gen.or(sub.gen);
-                }
-                if (sub.kill != null) {
-                    kill.or(sub.kill);
-                }
-            }
+        GenKill result = null;
+        if (v.getASTNode() != null) {
+            result = createGenKill(v.getASTNode());
         }
-        return new GenKill(gen, kill);
+        if (result == null) {
+            result = new GenKill(new BitSet(), new BitSet());
+        }
+        return result;
     }
 
     // 指定されたASTノードのgen, kill集合を生成する.

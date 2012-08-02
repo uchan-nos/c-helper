@@ -67,13 +67,15 @@ public class Util {
         class VertexComparator implements Comparator<CFG.Vertex> {
             @Override
             public int compare(CFG.Vertex o1, CFG.Vertex o2) {
-                if (o1.getASTNodes().size() == 0) {
+                if (o1.getASTNode() == null && o2.getASTNode() == null) {
+                    return 0;
+                } else if (o1.getASTNode() == null && o2.getASTNode() != null) {
                     return -1;
-                } else if (o2.getASTNodes().size() == 0) {
+                } else if (o1.getASTNode() != null && o2.getASTNode() == null) {
                     return 1;
                 } else {
-                    IASTNode n1 = o1.getASTNodes().get(0);
-                    IASTNode n2 = o2.getASTNodes().get(0);
+                    IASTNode n1 = o1.getASTNode();
+                    IASTNode n2 = o2.getASTNode();
                     return n1.getFileLocation().getNodeOffset() - n2.getFileLocation().getNodeOffset();
                 }
             }

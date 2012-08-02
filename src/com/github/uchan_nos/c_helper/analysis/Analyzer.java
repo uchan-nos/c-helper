@@ -44,10 +44,10 @@ public class Analyzer {
                         new RDAnalyzer(translationUnit, cfg).analyze();
 
                 for (CFG.Vertex v : cfg.getVertices()) {
-                    if (v.getASTNodes().size() != 1) {
-                        throw new RuntimeException("only one ast node should be contained");
+                    if (v.getASTNode() == null) {
+                        throw new RuntimeException("a vertex should include only one ast node");
                     }
-                    IASTNode ast = v.getASTNodes().get(0);
+                    IASTNode ast = v.getASTNode();
                     ASTFilter filter = new ASTFilter(ast);
 
                     Collection<IASTNode> sizeofExpressions =
