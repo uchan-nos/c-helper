@@ -151,53 +151,48 @@ public class IntegerValueTest {
     }
 
     @Test
-    public void canBeRepresentedTest() {
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(1L), CHAR, 0)
-                .canBeRepresentedBy(CHAR));
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(1L), CHAR, 0)
-                .canBeRepresentedBy(INT));
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(1L), UCHAR, 0)
-                .canBeRepresentedBy(UCHAR));
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(1L), UCHAR, 0)
-                .canBeRepresentedBy(UINT));
+    public void castTest11() {
+        Value v1 = new IntegerValue(BigInteger.valueOf(0x01a0L), SHORT, 0);
 
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(1L), INT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertFalse(
-                new IntegerValue(BigInteger.valueOf(1000L), INT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(-1L), INT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertFalse(
-                new IntegerValue(BigInteger.valueOf(-1000L), INT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(1L), INT, 0)
-                .canBeRepresentedBy(UCHAR));
-        assertFalse(
-                new IntegerValue(BigInteger.valueOf(-1L), INT, 0)
-                .canBeRepresentedBy(UCHAR));
+        IntegerValue casted = (IntegerValue)v1.castTo(CHAR);
 
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(1L), UINT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(127L), UINT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertFalse(
-                new IntegerValue(BigInteger.valueOf(128L), UINT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertFalse(
-                new IntegerValue(BigInteger.valueOf(1000L), UINT, 0)
-                .canBeRepresentedBy(CHAR));
-        assertTrue(
-                new IntegerValue(BigInteger.valueOf(128L), UINT, 0)
-                .canBeRepresentedBy(UCHAR));
+        assertEquals(-96, casted.getValue().longValue());
+        assertEquals(Value.IMPLDEPENDENT, casted.getFlag());
+    }
+
+    private static void castHelper(IBasicType originalType, long original,
+            IBasicType expectedType, long expected, int expectedFlag) {
+        Value value = new IntegerValue(BigInteger.valueOf(original), originalType, 0);
+        IntegerValue casted = (IntegerValue) value.castTo(expectedType);
+        assertEquals(expected, casted.getValue().longValue());
+        assertEquals(expectedFlag, casted.getFlag());
+    }
+
+    @Test
+    public void castGeneralTest() {
+        castHelper(INT, 0x15L, INT, 0x15L, 0);
+        castHelper(INT, 0x15L, CHAR, 0x15L, 0);
+        castHelper(CHAR, 0x15L, INT, 0x15L, 0);
+        castHelper(INT, 0x81L, CHAR, -127, Value.IMPLDEPENDENT);
+        castHelper(INT, -0x81L, CHAR, 127, Value.IMPLDEPENDENT);
+        castHelper(CHAR, -127, INT, -127, 0);
+
+        castHelper(SHORT, 0x1234L, USHORT, 0x1234L, 0);
+        castHelper(SHORT, -0x1234L, USHORT, 0xedccL, 0);
+        castHelper(SHORT, 0x1234L, UCHAR, 0x34L, 0);
+        castHelper(SHORT, -0x1234L, UCHAR, 0xccL, 0);
+
+        castHelper(USHORT, 0x1234L, UINT, 0x1234L, 0);
+        castHelper(USHORT, 0x1234L, USHORT, 0x1234L, 0);
+        castHelper(USHORT, 0x1234L, UCHAR, 0x34L, 0);
+        castHelper(USHORT, 0xf234L, USHORT, 0xf234L, 0);
+
+        castHelper(USHORT, 0x1234L, INT, 0x1234L, 0);
+        castHelper(USHORT, 0x1234L, SHORT, 0x1234L, 0);
+        castHelper(USHORT, 0x1234L, CHAR, 0x34L, Value.IMPLDEPENDENT);
+        castHelper(USHORT, 0x1284L, CHAR, -0x7cL, Value.IMPLDEPENDENT);
+        castHelper(USHORT, 0xff34L, CHAR, 0x34L, Value.IMPLDEPENDENT);
+        castHelper(USHORT, 0xf001L, SHORT, -4095, Value.IMPLDEPENDENT);
+
     }
 }

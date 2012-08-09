@@ -64,47 +64,6 @@ public class IntegerValue extends Value {
         return null;
     }
 
-    public boolean canBeRepresentedBy(IBasicType newType) {
-        if (newType.getKind() == Kind.eChar || newType.getKind() == Kind.eInt) {
-            IntegerLimits thisLimit = IntegerLimits.create(this.type);
-            IntegerLimits newLimit = IntegerLimits.create(newType);
-
-            if (this.type.isUnsigned()) {
-                if ((newType.isUnsigned() && thisLimit.bits <= newLimit.bits)
-                        || (!newType.isUnsigned() && thisLimit.bits < newLimit.bits)) {
-                    // この型に入る任意の値が目的の型で表現できる
-                    return true;
-                } else if ((newType.isUnsigned() && this.value.bitLength() <= newLimit.bits)
-                        || (!newType.isUnsigned() && this.value.bitLength() < newLimit.bits)) {
-                    // 実際の値が目的の型で表現できる
-                    return true;
-                } else {
-                    // 目的の方では表現できない
-                    return false;
-                }
-            } else { // this.type isn't unsigned
-                if (newType.isUnsigned()) {
-                    if (this.value.signum() >= 0 && this.value.bitLength() <= newLimit.bits) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else { // newType isn't unsigned
-                    if (thisLimit.bits <= newLimit.bits) {
-                        return true;
-                    } else if ((this.value.signum() >= 0 && this.value.bitLength() <= newLimit.bits)
-                            || (this.value.signum() < 0 && this.value.bitLength() + 1 <= newLimit.bits)) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-            }
-        } else {
-            throw new RuntimeException("Not Implemented");
-        }
-    }
-
     private Value castTo(IBasicType newType) {
         if (newType.getKind() == Kind.eChar || newType.getKind() == Kind.eInt) {
             IntegerLimits thisLimit = IntegerLimits.create(this.type);
@@ -128,19 +87,6 @@ public class IntegerValue extends Value {
                         // この変換は処理系依存である
                         newFlag |= Value.IMPLDEPENDENT;
                         newValue = Util.cutBits(this.value, newLimit.bits);
-                        /*
-
-                        // 変換先の型のビット数になるようにマスクする
-                        //BigInteger masked = this.value.and(newLimit.max);
-                        BigInteger masked = Util.maskBits(this.value, newLimit.bits);
-
-                        if (masked.testBit(newLimit.bits - 1)) {
-                            // 負数
-                            newValue = masked.not().add(BigInteger.ONE);
-                        } else {
-                            newValue = masked;
-                        }
-                        */
                     } else {
                         newValue = this.value;
                     }
@@ -166,14 +112,7 @@ public class IntegerValue extends Value {
                                 && this.value.bitLength() > newLimit.bits)
                             || this.value.signum() < 0) {
                         // this.valueが新しい型で表せない。
-                        // この変換は処理系依存である
-                        newFlag |= Value.IMPLDEPENDENT;
-                        // 変換先の型のビット数になるようにマスクする
-                        //BigInteger masked = this.value.and(newLimit.max);
-                        BigInteger masked = Util.maskBits(this.value, newLimit.bits);
-
-                        // 非負の値でandすると、結果は非負となる
-                        newValue = masked;
+                        newValue = this.value.mod(newLimit.max.add(BigInteger.ONE));
                     } else {
                         newValue = this.value;
                     }
@@ -181,9 +120,9 @@ public class IntegerValue extends Value {
                     if (thisLimit.bits <= newLimit.bits) {
                         newValue = this.value;
                     } else if ((this.value.signum() >= 0
-                                && this.value.bitLength() > newLimit.bits)
+                                && this.value.bitLength() > newLimit.bits - 1)
                             || (this.value.signum() < 0
-                                && this.value.bitLength() + 1 > newLimit.bits)) {
+                                && this.value.bitLength() > newLimit.bits - 1)) {
                         // this.valueが新しい型で表せない。
                         // この変換は処理系依存である
                         newFlag |= Value.IMPLDEPENDENT;
