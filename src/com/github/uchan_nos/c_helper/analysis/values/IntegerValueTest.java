@@ -6,12 +6,9 @@ import java.math.BigInteger;
 
 import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
-import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.internal.core.dom.parser.c.CBasicType;
 import org.junit.Test;
 
-import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
-import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.util.IntegerLimits;
 
 @SuppressWarnings("restriction")
@@ -29,78 +26,78 @@ public class IntegerValueTest {
 
     @Test
     public void castTest1() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(1L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(1L), INT, 0);
 
         Value casted = v1.castTo(INT);
-        assertTrue(casted instanceof IntegerValue);
+        assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(INT));
 
-        IntegerValue casted_ = (IntegerValue)casted;
+        IntegralValue casted_ = (IntegralValue)casted;
         assertEquals(1, casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
     }
 
     @Test
     public void castTest2() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(0xffffffffL), UINT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0xffffffffL), UINT, 0);
 
         Value casted = v1.castTo(INT);
-        assertTrue(casted instanceof IntegerValue);
+        assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(INT));
 
-        IntegerValue casted_ = (IntegerValue)casted;
+        IntegralValue casted_ = (IntegralValue)casted;
         assertEquals(-1, casted_.getValue().longValue());
         assertEquals(Value.IMPLDEPENDENT, casted_.getFlag());
     }
 
     @Test
     public void castTest3() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(0xffffL), USHORT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0xffffL), USHORT, 0);
 
         Value casted = v1.castTo(INT);
-        assertTrue(casted instanceof IntegerValue);
+        assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(INT));
 
-        IntegerValue casted_ = (IntegerValue)casted;
+        IntegralValue casted_ = (IntegralValue)casted;
         assertEquals(0xffffL, casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
     }
 
     @Test
     public void castTest4() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(-1L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-1L), INT, 0);
 
         Value casted = v1.castTo(UINT);
-        assertTrue(casted instanceof IntegerValue);
+        assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(UINT));
 
-        IntegerValue casted_ = (IntegerValue)casted;
+        IntegralValue casted_ = (IntegralValue)casted;
         assertEquals(0xffffffffL, casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
     }
 
     @Test
     public void castTest5() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(1L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(1L), INT, 0);
 
         Value casted = v1.castTo(UINT);
-        assertTrue(casted instanceof IntegerValue);
+        assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(UINT));
 
-        IntegerValue casted_ = (IntegerValue)casted;
+        IntegralValue casted_ = (IntegralValue)casted;
         assertEquals(1L, casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
     }
 
     @Test
     public void castTest6() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(-10L), SHORT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), SHORT, 0);
 
         Value casted = v1.castTo(UINT);
-        assertTrue(casted instanceof IntegerValue);
+        assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(UINT));
 
-        IntegerValue casted_ = (IntegerValue)casted;
+        IntegralValue casted_ = (IntegralValue)casted;
         assertEquals(IntegerLimits.create(UINT).max.add(BigInteger.ONE).add(BigInteger.valueOf(-10L)).longValue(),
                 casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
@@ -108,13 +105,13 @@ public class IntegerValueTest {
 
     @Test
     public void castTest7() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(-10L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), INT, 0);
 
         Value casted = v1.castTo(UINT);
-        assertTrue(casted instanceof IntegerValue);
+        assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(UINT));
 
-        IntegerValue casted_ = (IntegerValue)casted;
+        IntegralValue casted_ = (IntegralValue)casted;
         assertEquals(IntegerLimits.create(UINT).max.add(BigInteger.ONE).add(BigInteger.valueOf(-10L)).longValue(),
                 casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
@@ -122,9 +119,9 @@ public class IntegerValueTest {
 
     @Test
     public void castTest8() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(-10L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), INT, 0);
 
-        IntegerValue casted = (IntegerValue)v1.castTo(SHORT);
+        IntegralValue casted = (IntegralValue)v1.castTo(SHORT);
 
         assertEquals(-10L, casted.getValue().longValue());
         assertEquals(0, casted.getFlag());
@@ -132,9 +129,9 @@ public class IntegerValueTest {
 
     @Test
     public void castTest9() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(0x205a5L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0x205a5L), INT, 0);
 
-        IntegerValue casted = (IntegerValue)v1.castTo(SHORT);
+        IntegralValue casted = (IntegralValue)v1.castTo(SHORT);
 
         assertEquals(0x5a5L, casted.getValue().longValue());
         assertEquals(Value.IMPLDEPENDENT, casted.getFlag());
@@ -142,9 +139,9 @@ public class IntegerValueTest {
 
     @Test
     public void castTest10() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(0x2a5a5L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0x2a5a5L), INT, 0);
 
-        IntegerValue casted = (IntegerValue)v1.castTo(SHORT);
+        IntegralValue casted = (IntegralValue)v1.castTo(SHORT);
 
         assertEquals(-0x5a5bL, casted.getValue().longValue());
         assertEquals(Value.IMPLDEPENDENT, casted.getFlag());
@@ -152,9 +149,9 @@ public class IntegerValueTest {
 
     @Test
     public void castTest11() {
-        Value v1 = new IntegerValue(BigInteger.valueOf(0x01a0L), SHORT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0x01a0L), SHORT, 0);
 
-        IntegerValue casted = (IntegerValue)v1.castTo(CHAR);
+        IntegralValue casted = (IntegralValue)v1.castTo(CHAR);
 
         assertEquals(-96, casted.getValue().longValue());
         assertEquals(Value.IMPLDEPENDENT, casted.getFlag());
@@ -162,8 +159,8 @@ public class IntegerValueTest {
 
     private static void castHelper(IBasicType originalType, long original,
             IBasicType expectedType, long expected, int expectedFlag) {
-        Value value = new IntegerValue(BigInteger.valueOf(original), originalType, 0);
-        IntegerValue casted = (IntegerValue) value.castTo(expectedType);
+        Value value = new IntegralValue(BigInteger.valueOf(original), originalType, 0);
+        IntegralValue casted = (IntegralValue) value.castTo(expectedType);
         assertEquals(expected, casted.getValue().longValue());
         assertEquals(expectedFlag, casted.getFlag());
     }

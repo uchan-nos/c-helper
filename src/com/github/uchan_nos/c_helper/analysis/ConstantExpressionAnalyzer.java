@@ -1,7 +1,16 @@
 package com.github.uchan_nos.c_helper.analysis;
 
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import java.math.BigInteger;
 
+import org.eclipse.cdt.core.dom.ast.ASTVisitor;
+import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
+import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CBasicType;
+
+import com.github.uchan_nos.c_helper.analysis.values.IntegralValue;
 import com.github.uchan_nos.c_helper.analysis.values.Value;
 
 /**
@@ -77,6 +86,48 @@ public class ConstantExpressionAnalyzer {
     }
 
     public Value eval(IASTExpression expression) {
+        class SearchLiteralVisitor extends ASTVisitor {
+            private IASTLiteralExpression literalExpression = null;
+            public IASTLiteralExpression literalExpression() {
+                return literalExpression;
+            }
+            public SearchLiteralVisitor() {
+                super(true);
+            }
+            @Override
+            public int visit(IASTExpression expression) {
+                if (expression instanceof IASTCastExpression) {
+                    ((IASTCastExpression) expression).getOperand().accept(this);
+                } else if (expression instanceof IASTLiteralExpression) {
+                    literalExpression = (IASTLiteralExpression) expression;
+                }
+                return super.visit(expression);
+            }
+        };
+
+        if (expression instanceof IASTBinaryExpression) {
+            IASTBinaryExpression be = (IASTBinaryExpression) expression;
+            Value lhs = eval(be.getOperand1());
+            Value rhs = eval(be.getOperand2());
+            if (lhs != null && rhs != null) {
+                if (lhs instanceof IntegralValue && rhs instanceof IntegralValue) {
+                    IntegralValue lhs_ = (IntegralValue) lhs;
+                    IntegralValue rhs_ = (IntegralValue) rhs;
+                    return new IntegralValue(lhs_.getValue().multiply(rhs_.getValue()), lhs_.getType(), 0);
+                }
+            }
+        }
+        SearchLiteralVisitor searchLiteral = new SearchLiteralVisitor();
+        expression.accept(searchLiteral);
+        IASTLiteralExpression literalExpression = searchLiteral.literalExpression();
+        if (literalExpression != null) {
+            if (literalExpression.getKind() == IASTLiteralExpression.lk_integer_constant) {
+                long value = Long.parseLong(String.valueOf(literalExpression.getValue()));
+                return new IntegralValue(
+                        BigInteger.valueOf(value),
+                        literalExpression.getExpressionType(), 0);
+            }
+        }
         return null;
     }
 }

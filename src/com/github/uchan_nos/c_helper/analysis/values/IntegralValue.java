@@ -1,12 +1,8 @@
 package com.github.uchan_nos.c_helper.analysis.values;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.eclipse.cdt.core.dom.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IEnumeration;
-import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.cdt.internal.core.dom.parser.c.CBasicType;
@@ -15,7 +11,7 @@ import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
 import com.github.uchan_nos.c_helper.util.IntegerLimits;
 import com.github.uchan_nos.c_helper.util.Util;
 
-public class IntegerValue extends Value {
+public class IntegralValue extends ArithmeticValue {
     public static final BigInteger INT_MAX;
     public static final BigInteger INT_MIN;
     public static final BigInteger UINT_MAX;
@@ -34,7 +30,7 @@ public class IntegerValue extends Value {
     private BigInteger value;
     private int flag;
 
-    public IntegerValue(BigInteger value, IType type, int flag) {
+    public IntegralValue(BigInteger value, IType type, int flag) {
         this.type = (IBasicType)type;
         this.value = value;
         this.flag = flag;
@@ -97,12 +93,12 @@ public class IntegerValue extends Value {
                         if (this.value.signum() >= 0) {
                             newValue = this.value;
                         } else {
-                            IntegerValue intermediateValue;
+                            IntegralValue intermediateValue;
                             if (thisLimit.bits < newLimit.bits) {
                                 IBasicType intermediateType =
                                         new CBasicType(newType.getKind(),
                                                 (newType.getModifiers() & ~IBasicType.IS_UNSIGNED) | IBasicType.IS_SIGNED);
-                                intermediateValue = (IntegerValue)this.castTo(intermediateType);
+                                intermediateValue = (IntegralValue)this.castTo(intermediateType);
                             } else {
                                 intermediateValue = this;
                             }
@@ -132,7 +128,7 @@ public class IntegerValue extends Value {
                     }
                 }
             }
-            return new IntegerValue(newValue, newType, newFlag);
+            return new IntegralValue(newValue, newType, newFlag);
         } else {
             throw new RuntimeException("Not Implemented");
         }
@@ -142,13 +138,13 @@ public class IntegerValue extends Value {
      * 汎整数拡張を行った後の値を返す.
      * @return
      */
-    private IntegerValue promote() {
+    private IntegralValue promote() {
         if (type.getKind() == Kind.eChar
                 || (type.getKind() == Kind.eInt && type.isShort())) {
             if (value.compareTo(INT_MIN) >= 0 && value.compareTo(INT_MAX) <= 0) {
-                return new IntegerValue(value, new CBasicType(Kind.eInt, 0), 0);
+                return new IntegralValue(value, new CBasicType(Kind.eInt, 0), 0);
             } else {
-                return new IntegerValue(value, new CBasicType(Kind.eInt, IBasicType.IS_UNSIGNED), 0);
+                return new IntegralValue(value, new CBasicType(Kind.eInt, IBasicType.IS_UNSIGNED), 0);
             }
         }
         return this;
@@ -176,10 +172,10 @@ public class IntegerValue extends Value {
     }
 
     public Value add(Value rhs) {
-        IntegerValue l = this.promote();
+        IntegralValue l = this.promote();
         IntegerLimits lLimit = IntegerLimits.create(l.type);
-        if (rhs instanceof IntegerValue) {
-            IntegerValue r = ((IntegerValue)rhs).promote();
+        if (rhs instanceof IntegralValue) {
+            IntegralValue r = ((IntegralValue)rhs).promote();
             IntegerLimits rLimit = IntegerLimits.create(r.type);
 
             // 精度の高い方を取る
@@ -192,9 +188,14 @@ public class IntegerValue extends Value {
                     && (result.compareTo(resultLimit.min) < 0
                         || result.compareTo(resultLimit.max) > 0)) {
                 // overflow
-                return new IntegerValue(result, resultType, Value.OVERFLOWED);
+                return new IntegralValue(result, resultType, Value.OVERFLOWED);
             }
         }
         return null;
+    }
+
+    @Override
+    public boolean isTrue() {
+        return this.value.compareTo(BigInteger.ZERO) == 0;
     }
 }

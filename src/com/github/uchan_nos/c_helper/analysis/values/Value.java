@@ -29,4 +29,10 @@ public abstract class Value {
      * @return
      */
     public abstract Value castTo(IType newType);
+
+    /**
+     * このValueが真値を表す場合はtrueを返す.
+     * @return Valueが非0の値を保持しているならtrue、0の値を保持しているならfalse
+     */
+    public abstract boolean isTrue();
 }

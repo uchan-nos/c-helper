@@ -11,6 +11,8 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.github.uchan_nos.c_helper.analysis.values.IntegralValue;
+import com.github.uchan_nos.c_helper.analysis.values.Value;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.Util;
@@ -42,6 +44,8 @@ public class Analyzer {
                 CFG cfg = entry.getValue();
                 RD<CFG.Vertex> rd =
                         new RDAnalyzer(translationUnit, cfg).analyze();
+                ConstantExpressionAnalyzer constantExpressionAnalyzer =
+                        new ConstantExpressionAnalyzer(cfg, rd);
 
                 for (CFG.Vertex v : cfg.getVertices()) {
                     if (v.getASTNode() == null) {
@@ -101,6 +105,20 @@ public class Analyzer {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    if (ast instanceof IASTIfStatement) {
+                        IASTExpression conditionExpression = ((IASTIfStatement) ast).getConditionExpression();
+                        Value conditionValue = constantExpressionAnalyzer.eval(conditionExpression);
+                        if (conditionValue != null) {
+                            String conditionValueString = null;
+                            if (conditionValue instanceof IntegralValue) {
+                                conditionValueString = ((IntegralValue) conditionValue).getValue().toString();
+                            }
+                            System.out.println("conditional expression is a constant (at line "
+                                    + conditionExpression.getFileLocation().getStartingLineNumber()
+                                    + ") : " + conditionValueString);
                         }
                     }
                 }
