@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
@@ -107,5 +108,36 @@ public class Util {
             }
         }
         return result;
+    }
+
+    /**
+     * 指定されたビット数だけを取り出す.
+     * @return ビットマスク後の値（非負整数）
+     */
+    public static BigInteger maskBits(BigInteger value, int bits) {
+        BigInteger mask = BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
+        return value.and(mask);
+    }
+
+    /**
+     * 与えられた整数の指定されたbits以上のビットを切り落とす.
+     * 切り落とした後の整数の bits-1 ビット目が1なら、負数に変換する.
+     *
+     * value = 416 (0x01a0), bits = 8
+     * のとき、結果は
+     * -96 (0xffa0)
+     * となる.
+     *
+     * @param value 切り落とし対象の整数
+     * @param bits 切り落とす位置
+     * @return bits 以上のビットを切り落とした整数
+     */
+    public static BigInteger cutBits(BigInteger value, int bits) {
+        BigInteger mask = BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
+        value = value.and(mask);
+        if (value.testBit(bits - 1)) {
+            value = value.or(mask.not());
+        }
+        return value;
     }
 }

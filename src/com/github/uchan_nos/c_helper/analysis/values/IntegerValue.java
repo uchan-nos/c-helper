@@ -13,6 +13,7 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CBasicType;
 
 import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
 import com.github.uchan_nos.c_helper.util.IntegerLimits;
+import com.github.uchan_nos.c_helper.util.Util;
 
 public class IntegerValue extends Value {
     public static final BigInteger INT_MAX;
@@ -58,53 +59,144 @@ public class IntegerValue extends Value {
         if (this.type.isSameType(newType)) {
             return this;
         } else if (newType instanceof IBasicType) {
-            IBasicType t = (IBasicType)newType;
-            if (t.getKind() == Kind.eChar || t.getKind() == Kind.eInt) {
-                IntegerLimits thisLimit = IntegerLimits.create(this.type);
-                IntegerLimits newLimit = IntegerLimits.create(t);
-                BigInteger newValue = null;
-                int newFlag = 0;
-
-                if (this.type.isUnsigned()) {
-                    if (t.isUnsigned()) {
-                        if (thisLimit.bits <= newLimit.bits) {
-                            newValue = this.value;
-                        } else {
-                            newValue = this.value.mod(
-                                    newLimit.max.add(BigInteger.ONE));
-                        }
-                    } else { // signed
-                        if (thisLimit.bits < newLimit.bits) {
-                            newValue = this.value;
-                        } else if ((this.value.signum() >= 0
-                                    && this.value.bitLength() > newLimit.bits)
-                                || (this.value.signum() < 0
-                                    && (this.value.bitLength() + 1) > newLimit.bits)) {
-                            // この変換は処理系依存である
-                            newFlag |= Value.IMPLDEPENDENT;
-                            // 変換先の型のビット数になるようにマスクする
-                            BigInteger masked = this.value.and(newLimit.max);
-                            if (masked.testBit(newLimit.bits - 1)) {
-                                // 負数
-                                newValue = masked.not().add(BigInteger.ONE).negate();
-                            } else {
-                                newValue = masked;
-                            }
-                        } else {
-                            if (this.value.testBit(newLimit.bits - 1)) {
-                                // 負数
-                                newValue = this.value.not().add(BigInteger.ONE).negate();
-                                newFlag |= Value.IMPLDEPENDENT;
-                            } else {
-                                newValue = this.value;
-                            }
-                        }
-                    }
-                }
-                return new IntegerValue(newValue, newType, newFlag);
-            }
+            return castTo((IBasicType) newType);
         }
         return null;
+    }
+
+    public boolean canBeRepresentedBy(IBasicType newType) {
+        if (newType.getKind() == Kind.eChar || newType.getKind() == Kind.eInt) {
+            IntegerLimits thisLimit = IntegerLimits.create(this.type);
+            IntegerLimits newLimit = IntegerLimits.create(newType);
+
+            if (this.type.isUnsigned()) {
+                if ((newType.isUnsigned() && thisLimit.bits <= newLimit.bits)
+                        || (!newType.isUnsigned() && thisLimit.bits < newLimit.bits)) {
+                    // この型に入る任意の値が目的の型で表現できる
+                    return true;
+                } else if ((newType.isUnsigned() && this.value.bitLength() <= newLimit.bits)
+                        || (!newType.isUnsigned() && this.value.bitLength() < newLimit.bits)) {
+                    // 実際の値が目的の型で表現できる
+                    return true;
+                } else {
+                    // 目的の方では表現できない
+                    return false;
+                }
+            } else { // this.type isn't unsigned
+                if (newType.isUnsigned()) {
+                    if (this.value.signum() >= 0 && this.value.bitLength() <= newLimit.bits) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else { // newType isn't unsigned
+                    if (thisLimit.bits <= newLimit.bits) {
+                        return true;
+                    } else if ((this.value.signum() >= 0 && this.value.bitLength() <= newLimit.bits)
+                            || (this.value.signum() < 0 && this.value.bitLength() + 1 <= newLimit.bits)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        } else {
+            throw new RuntimeException("Not Implemented");
+        }
+    }
+
+    private Value castTo(IBasicType newType) {
+        if (newType.getKind() == Kind.eChar || newType.getKind() == Kind.eInt) {
+            IntegerLimits thisLimit = IntegerLimits.create(this.type);
+            IntegerLimits newLimit = IntegerLimits.create(newType);
+            BigInteger newValue = null;
+            int newFlag = 0;
+
+            if (this.type.isUnsigned()) {
+                if (newType.isUnsigned()) {
+                    if (thisLimit.bits <= newLimit.bits) {
+                        newValue = this.value;
+                    } else {
+                        newValue = this.value.mod(
+                                newLimit.max.add(BigInteger.ONE));
+                    }
+                } else { // newType isn't unsigned
+                    if (thisLimit.bits < newLimit.bits) {
+                        newValue = this.value;
+                    } else if (this.value.bitLength() > newLimit.bits - 1) {
+                        // this.valueが新しい型で表せない。
+                        // この変換は処理系依存である
+                        newFlag |= Value.IMPLDEPENDENT;
+                        newValue = Util.cutBits(this.value, newLimit.bits);
+                        /*
+
+                        // 変換先の型のビット数になるようにマスクする
+                        //BigInteger masked = this.value.and(newLimit.max);
+                        BigInteger masked = Util.maskBits(this.value, newLimit.bits);
+
+                        if (masked.testBit(newLimit.bits - 1)) {
+                            // 負数
+                            newValue = masked.not().add(BigInteger.ONE);
+                        } else {
+                            newValue = masked;
+                        }
+                        */
+                    } else {
+                        newValue = this.value;
+                    }
+                }
+            } else { // this.type isn't unsigned
+                if (newType.isUnsigned()) {
+                    if (thisLimit.bits <= newLimit.bits) {
+                        if (this.value.signum() >= 0) {
+                            newValue = this.value;
+                        } else {
+                            IntegerValue intermediateValue;
+                            if (thisLimit.bits < newLimit.bits) {
+                                IBasicType intermediateType =
+                                        new CBasicType(newType.getKind(),
+                                                (newType.getModifiers() & ~IBasicType.IS_UNSIGNED) | IBasicType.IS_SIGNED);
+                                intermediateValue = (IntegerValue)this.castTo(intermediateType);
+                            } else {
+                                intermediateValue = this;
+                            }
+                            newValue = intermediateValue.value.add(newLimit.max.add(BigInteger.ONE));
+                        }
+                    } else if ((this.value.signum() >= 0
+                                && this.value.bitLength() > newLimit.bits)
+                            || this.value.signum() < 0) {
+                        // this.valueが新しい型で表せない。
+                        // この変換は処理系依存である
+                        newFlag |= Value.IMPLDEPENDENT;
+                        // 変換先の型のビット数になるようにマスクする
+                        //BigInteger masked = this.value.and(newLimit.max);
+                        BigInteger masked = Util.maskBits(this.value, newLimit.bits);
+
+                        // 非負の値でandすると、結果は非負となる
+                        newValue = masked;
+                    } else {
+                        newValue = this.value;
+                    }
+                } else { // newType isn't unsigned
+                    if (thisLimit.bits <= newLimit.bits) {
+                        newValue = this.value;
+                    } else if ((this.value.signum() >= 0
+                                && this.value.bitLength() > newLimit.bits)
+                            || (this.value.signum() < 0
+                                && this.value.bitLength() + 1 > newLimit.bits)) {
+                        // this.valueが新しい型で表せない。
+                        // この変換は処理系依存である
+                        newFlag |= Value.IMPLDEPENDENT;
+                        newValue = Util.cutBits(this.value, newLimit.bits);
+                    } else {
+                        newValue = this.value;
+                    }
+                }
+            }
+            return new IntegerValue(newValue, newType, newFlag);
+        } else {
+            throw new RuntimeException("Not Implemented");
+        }
     }
 
     /**
