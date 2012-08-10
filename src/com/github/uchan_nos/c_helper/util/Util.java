@@ -140,4 +140,9 @@ public class Util {
         }
         return value;
     }
+
+    public static int calculateColumnNumber(String source, int offset) {
+        int prevLF = source.lastIndexOf('\n', offset);
+        return offset - prevLF - 1; // prevLFが-1でもきちんと動く
+    }
 }

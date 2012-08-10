@@ -11,4 +11,5 @@ public class AnalysisEnvironment {
     public static final int INT_BITS = 32;
     public static final int LONG_BITS = 32;
     public static final int LONG_LONG_BITS = 64;
+    public static final int POINTER_BITS = INT_BITS;
 }
