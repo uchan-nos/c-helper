@@ -75,8 +75,8 @@ public class IndentationSuggester extends Suggester {
                                 input.getFilePath(),
                                 location.getStartingLineNumber(),
                                 columnNumber,
-                                location.getNodeOffset(),
-                                location.getNodeLength(),
+                                location.getNodeOffset() - columnNumber,
+                                columnNumber,
                                 "インデントが乱れています。スペース "
                                 + (shiftWidth * nestDepth)
                                 + " 個分インデントすべきです。"));
@@ -87,8 +87,8 @@ public class IndentationSuggester extends Suggester {
                                 input.getFilePath(),
                                 location.getStartingLineNumber(),
                                 columnNumber,
-                                location.getNodeOffset(),
-                                location.getNodeLength(),
+                                location.getNodeOffset() - columnNumber,
+                                columnNumber,
                                 "インデントに用いる文字は統一すべきです。ソースコード先頭では"
                                 + (indentChar == ' ' ? "スペース" : "タブ")
                                 + "が、ここでは"
@@ -111,17 +111,19 @@ public class IndentationSuggester extends Suggester {
 
                     // 行頭からlastColumnNumberまでの部分文字列
                     String lastNodeHead = input.getSource().substring(
-                            location.getNodeOffset() + location.getNodeLength() - lastColumnNumber,
+                            location.getNodeOffset() + location.getNodeLength() - lastColumnNumber - 1,
                             location.getNodeOffset() + location.getNodeLength());
 
                     if (lastNodeHead.length() > 0) {
+                        int spaceWidth = getSpaceWidth(lastNodeHead.substring(0, lastNodeHead.length() - 1));
+
                         assert lastNodeHead.charAt(lastNodeHead.length() - 1) == '}';
                         if (lastNodeHead.indexOf(indentChar == ' ' ? '\t' : ' ') != -1) {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
                                     location.getEndingLineNumber(),
                                     lastColumnNumber,
-                                    location.getNodeOffset() + location.getNodeLength() - lastColumnNumber,
+                                    location.getNodeOffset() + location.getNodeLength() - lastColumnNumber - 1,
                                     lastColumnNumber,
                                     "インデントに用いる文字は統一すべきです。ソースコード先頭では"
                                     + (indentChar == ' ' ? "スペース" : "タブ")
@@ -129,6 +131,18 @@ public class IndentationSuggester extends Suggester {
                                     + (indentChar == ' ' ?  "タブ" : "スペース")
                                     + "が用いられています。"
                                     ));
+                        }
+
+                        if (spaceWidth != shiftWidth * nestDepth) {
+                            suggestions.add(new Suggestion(
+                                    input.getFilePath(),
+                                    location.getStartingLineNumber(),
+                                    lastColumnNumber,
+                                    location.getNodeOffset() + location.getNodeLength() - lastColumnNumber - 1,
+                                    lastColumnNumber,
+                                    "インデントが乱れています。スペース "
+                                    + (shiftWidth * nestDepth)
+                                    + " 個分インデントすべきです。"));
                         }
                     }
 
