@@ -27,7 +27,9 @@ import com.github.uchan_nos.c_helper.Activator;
 import com.github.uchan_nos.c_helper.analysis.values.IntegralValue;
 import com.github.uchan_nos.c_helper.analysis.values.Value;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
+import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
 import com.github.uchan_nos.c_helper.suggest.SizeofSuggester;
+import com.github.uchan_nos.c_helper.suggest.Suggester;
 import com.github.uchan_nos.c_helper.suggest.SuggesterInput;
 import com.github.uchan_nos.c_helper.suggest.Suggestion;
 import com.github.uchan_nos.c_helper.util.ASTFilter;
@@ -60,6 +62,11 @@ public class Analyzer {
     }
 
     public void analyze(String filePath, String source) {
+        Suggester[] suggesters = {
+                new SizeofSuggester(),
+                new IndentationSuggester()
+        };
+
         try {
             IASTTranslationUnit translationUnit =
                     new Parser(filePath, source).parse();
@@ -79,8 +86,12 @@ public class Analyzer {
             ArrayList<Suggestion> suggestions = new ArrayList<Suggestion>();
 
             // 各種サジェストを生成
-            suggestions.addAll(
-                    new SizeofSuggester().suggest(input));
+            for (Suggester suggester : suggesters) {
+                Collection<Suggestion> s = suggester.suggest(input);
+                if (s != null && s.size() > 0) {
+                    suggestions.addAll(s);
+                }
+            }
 
             // サジェストを行番号、列番号順にソート
             Collections.sort(suggestions, new Comparator<Suggestion>() {

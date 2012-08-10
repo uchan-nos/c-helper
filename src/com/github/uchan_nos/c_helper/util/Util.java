@@ -141,6 +141,12 @@ public class Util {
         return value;
     }
 
+    /**
+     * 行頭からのオフセットを返す.
+     * @param source ソースコード
+     * @param offset ソースコード先頭からのオフセット
+     * @return 行頭からのオフセット
+     */
     public static int calculateColumnNumber(String source, int offset) {
         int prevLF = source.lastIndexOf('\n', offset);
         return offset - prevLF - 1; // prevLFが-1でもきちんと動く
