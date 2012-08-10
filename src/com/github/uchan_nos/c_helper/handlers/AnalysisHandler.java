@@ -29,18 +29,14 @@ public class AnalysisHandler extends AbstractHandler {
      * from the application context.
      */
     public Object execute(ExecutionEvent event) throws ExecutionException {
-        IEditorPart activeEditorPart = HandlerUtil.getActiveEditorChecked(event);
-        IWorkbenchWindow window = HandlerUtil
-                .getActiveWorkbenchWindowChecked(event);
-        MessageDialog.openInformation(window.getShell(), "c-helper",
-                "Analyzing source code...");
         Analyzer analyzer = new Analyzer();
         try {
+            IEditorPart activeEditorPart = HandlerUtil.getActiveEditorChecked(event);
             analyzer.analyze(activeEditorPart);
-            MessageDialog.openInformation(window.getShell(), "c-helper",
-                    "Successfully analyzed source code.");
         } catch (InvalidEditorPartException e) {
             e.printStackTrace();
+            IWorkbenchWindow window = HandlerUtil
+                    .getActiveWorkbenchWindowChecked(event);
             MessageDialog.openError(window.getShell(), "c-helper",
                     "Failed to analyze source code.");
         }

@@ -57,6 +57,9 @@ public class SizeofSuggester extends Suggester {
                                         rd.getAssigns(),
                                         rd.getEntrySets().get(v),
                                         id.getName().toString());
+
+                        ArrayList<String> beginnerExpectingValues =
+                                new ArrayList<String>();
                         for (AssignExpression assign : assigns) {
                             IASTNode rhs = assign.getRHS();
                             while (rhs instanceof IASTCastExpression) {
@@ -67,27 +70,35 @@ public class SizeofSuggester extends Suggester {
                                 if (fce.getFunctionNameExpression() instanceof IASTIdExpression) {
                                     String funcname = ((IASTIdExpression)fce.getFunctionNameExpression()).getName().toString();
                                     if (funcname.equals("malloc")) {
-                                        String message =
-                                                "variable `" + id.getName().toString()
-                                                + "' was assigned a heap memory. "
-                                                + "But " + node.getRawSignature()
-                                                + " (at line "
-                                                + node.getFileLocation().getStartingLineNumber()
-                                                + ") always returns the size of pointer ("
-                                                + (AnalysisEnvironment.POINTER_BITS / AnalysisEnvironment.CHAR_BITS)
-                                                + "), not " + fce.getArguments()[0].getRawSignature() + ". "
-                                                + "Is it OK?";
-                                        Suggestion suggestion = new Suggestion(
-                                                input.getFilePath(),
-                                                node.getFileLocation().getStartingLineNumber(),
-                                                Util.calculateColumnNumber(input.getSource(), node.getFileLocation().getNodeOffset()),
-                                                node.getFileLocation().getNodeOffset(),
-                                                node.getFileLocation().getNodeLength(),
-                                                message);
-                                        suggestions.add(suggestion);
+                                        beginnerExpectingValues.add(
+                                                fce.getArguments()[0].getRawSignature());
                                     }
                                 }
                             }
+                        }
+
+                        if (beginnerExpectingValues.size() > 0) {
+                            StringBuilder message = new StringBuilder();
+                            message.append(node.getRawSignature());
+                            message.append(" は ");
+                            if (beginnerExpectingValues.size() == 1) {
+                                message.append(beginnerExpectingValues.get(0));
+                            } else if (beginnerExpectingValues.size() >= 2) {
+                                message.append(beginnerExpectingValues.get(0));
+                                message.append(" や ");
+                                message.append(beginnerExpectingValues.get(1));
+                            }
+                            message.append(" ではなく ");
+                            message.append(AnalysisEnvironment.POINTER_BITS / AnalysisEnvironment.CHAR_BITS);
+                            message.append(" を返します。それは本当に意図したことですか？");
+                            Suggestion suggestion = new Suggestion(
+                                    input.getFilePath(),
+                                    node.getFileLocation().getStartingLineNumber(),
+                                    Util.calculateColumnNumber(input.getSource(), node.getFileLocation().getNodeOffset()),
+                                    node.getFileLocation().getNodeOffset(),
+                                    node.getFileLocation().getNodeLength(),
+                                    message.toString());
+                            suggestions.add(suggestion);
                         }
                     }
                 }
