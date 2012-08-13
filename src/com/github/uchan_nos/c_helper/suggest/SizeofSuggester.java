@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.*;
 
-import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
 import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.analysis.CFG;
 import com.github.uchan_nos.c_helper.analysis.RD;
@@ -16,7 +15,7 @@ import com.github.uchan_nos.c_helper.util.Util;
 public class SizeofSuggester extends Suggester {
 
     @Override
-    public Collection<Suggestion> suggest(SuggesterInput input) {
+    public Collection<Suggestion> suggest(SuggesterInput input, AssumptionManager assumptionManager) {
         ArrayList<Suggestion> suggestions = new ArrayList<Suggestion>();
 
         for (String proc : input.getProcToCFG().keySet()) {
@@ -89,8 +88,10 @@ public class SizeofSuggester extends Suggester {
                                 message.append(beginnerExpectingValues.get(1));
                             }
                             message.append(" ではなく ");
-                            message.append(AnalysisEnvironment.POINTER_BITS / AnalysisEnvironment.CHAR_BITS);
-                            message.append(" を返します。それは本当に意図したことですか？");
+                            message.append(input.getAnalysisEnvironment().POINTER_BYTE);
+                            message.append(" を返します (仮定");
+                            message.append(assumptionManager.ref(Assumption.POINTER_BYTE));
+                            message.append(")。それは本当に意図したことですか？");
                             Suggestion suggestion = new Suggestion(
                                     input.getFilePath(),
                                     node.getFileLocation().getStartingLineNumber(),

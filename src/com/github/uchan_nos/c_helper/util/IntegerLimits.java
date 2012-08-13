@@ -39,22 +39,22 @@ public class IntegerLimits {
                 bits);
     }
 
-    public static IntegerLimits create(IType type) {
+    public static IntegerLimits create(IType type, AnalysisEnvironment analysisEnvironment) {
         if (type instanceof IBasicType) {
             IBasicType t = (IBasicType)type;
 
             int bits = 0;
             if (t.getKind() == Kind.eChar) {
-                bits = AnalysisEnvironment.CHAR_BITS;
+                bits = analysisEnvironment.CHAR_BIT;
             } else if (t.getKind() == Kind.eInt) {
                 if (t.isShort()) {
-                    bits = AnalysisEnvironment.SHORT_BITS;
+                    bits = analysisEnvironment.SHORT_BIT;
                 } else if (t.isLong()) {
-                    bits = AnalysisEnvironment.LONG_BITS;
+                    bits = analysisEnvironment.LONG_BIT;
                 } else if (t.isLongLong()) {
-                    bits = AnalysisEnvironment.LONG_LONG_BITS;
+                    bits = analysisEnvironment.LONG_LONG_BIT;
                 } else {
-                    bits = AnalysisEnvironment.INT_BITS;
+                    bits = analysisEnvironment.INT_BIT;
                 }
             } else {
                 throw new RuntimeException("IntegerLimits.create needs type to be an integer type.");

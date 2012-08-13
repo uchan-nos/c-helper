@@ -12,28 +12,28 @@ import com.github.uchan_nos.c_helper.util.IntegerLimits;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class IntegralValue extends ArithmeticValue {
-    public static final BigInteger INT_MAX;
-    public static final BigInteger INT_MIN;
-    public static final BigInteger UINT_MAX;
+    public final BigInteger INT_MAX;
+    public final BigInteger INT_MIN;
+    public final BigInteger UINT_MAX;
 
-    static {
-        final BigInteger intMaxPlusOne =
-                BigInteger.ONE.shiftLeft(AnalysisEnvironment.INT_BITS - 1);
-        INT_MAX = intMaxPlusOne.subtract(BigInteger.ONE);
-        INT_MIN = intMaxPlusOne.negate();
-        UINT_MAX = BigInteger.ONE
-                .shiftLeft(AnalysisEnvironment.INT_BITS)
-                .subtract(BigInteger.ONE);
-    }
+    private final IBasicType type;
+    private final BigInteger value;
+    private final int flag;
+    private final AnalysisEnvironment analysisEnvironment;
 
-    private IBasicType type;
-    private BigInteger value;
-    private int flag;
-
-    public IntegralValue(BigInteger value, IType type, int flag) {
+    public IntegralValue(BigInteger value, IType type, int flag, AnalysisEnvironment analysisEnvironment) {
         this.type = (IBasicType)type;
         this.value = value;
         this.flag = flag;
+        this.analysisEnvironment = analysisEnvironment;
+
+        final BigInteger intMaxPlusOne =
+                BigInteger.ONE.shiftLeft(this.analysisEnvironment.INT_BIT - 1);
+        INT_MAX = intMaxPlusOne.subtract(BigInteger.ONE);
+        INT_MIN = intMaxPlusOne.negate();
+        UINT_MAX = BigInteger.ONE
+                .shiftLeft(this.analysisEnvironment.INT_BIT)
+                .subtract(BigInteger.ONE);
     }
 
     @Override
@@ -62,8 +62,8 @@ public class IntegralValue extends ArithmeticValue {
 
     private Value castTo(IBasicType newType) {
         if (newType.getKind() == Kind.eChar || newType.getKind() == Kind.eInt) {
-            IntegerLimits thisLimit = IntegerLimits.create(this.type);
-            IntegerLimits newLimit = IntegerLimits.create(newType);
+            IntegerLimits thisLimit = IntegerLimits.create(this.type, this.analysisEnvironment);
+            IntegerLimits newLimit = IntegerLimits.create(newType, this.analysisEnvironment);
             BigInteger newValue = null;
             int newFlag = 0;
 
@@ -128,7 +128,7 @@ public class IntegralValue extends ArithmeticValue {
                     }
                 }
             }
-            return new IntegralValue(newValue, newType, newFlag);
+            return new IntegralValue(newValue, newType, newFlag, this.analysisEnvironment);
         } else {
             throw new RuntimeException("Not Implemented");
         }
@@ -142,9 +142,9 @@ public class IntegralValue extends ArithmeticValue {
         if (type.getKind() == Kind.eChar
                 || (type.getKind() == Kind.eInt && type.isShort())) {
             if (value.compareTo(INT_MIN) >= 0 && value.compareTo(INT_MAX) <= 0) {
-                return new IntegralValue(value, new CBasicType(Kind.eInt, 0), 0);
+                return new IntegralValue(value, new CBasicType(Kind.eInt, 0), 0, this.analysisEnvironment);
             } else {
-                return new IntegralValue(value, new CBasicType(Kind.eInt, IBasicType.IS_UNSIGNED), 0);
+                return new IntegralValue(value, new CBasicType(Kind.eInt, IBasicType.IS_UNSIGNED), 0, this.analysisEnvironment);
             }
         }
         return this;
@@ -173,22 +173,22 @@ public class IntegralValue extends ArithmeticValue {
 
     public Value add(Value rhs) {
         IntegralValue l = this.promote();
-        IntegerLimits lLimit = IntegerLimits.create(l.type);
+        IntegerLimits lLimit = IntegerLimits.create(l.type, this.analysisEnvironment);
         if (rhs instanceof IntegralValue) {
             IntegralValue r = ((IntegralValue)rhs).promote();
-            IntegerLimits rLimit = IntegerLimits.create(r.type);
+            IntegerLimits rLimit = IntegerLimits.create(r.type, this.analysisEnvironment);
 
             // 精度の高い方を取る
             // TODO: 演算結果の型の決定は規格書を読むべき
             IBasicType resultType = max(l.type, r.type);
-            IntegerLimits resultLimit = IntegerLimits.create(resultType);
+            IntegerLimits resultLimit = IntegerLimits.create(resultType, this.analysisEnvironment);
 
             BigInteger result = l.value.add(r.value);
             if (!resultType.isUnsigned()
                     && (result.compareTo(resultLimit.min) < 0
                         || result.compareTo(resultLimit.max) > 0)) {
                 // overflow
-                return new IntegralValue(result, resultType, Value.OVERFLOWED);
+                return new IntegralValue(result, resultType, Value.OVERFLOWED, this.analysisEnvironment);
             }
         }
         return null;

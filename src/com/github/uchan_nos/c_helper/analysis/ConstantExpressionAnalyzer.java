@@ -79,10 +79,12 @@ public class ConstantExpressionAnalyzer {
 
     private CFG cfg;
     private RD<CFG.Vertex> rd;
+    private AnalysisEnvironment analysisEnvironment;
 
-    public ConstantExpressionAnalyzer(CFG cfg, RD<CFG.Vertex> rd) {
+    public ConstantExpressionAnalyzer(CFG cfg, RD<CFG.Vertex> rd, AnalysisEnvironment env) {
         this.cfg = cfg;
         this.rd = rd;
+        this.analysisEnvironment = env;
     }
 
     public Value eval(IASTExpression expression) {
@@ -113,7 +115,7 @@ public class ConstantExpressionAnalyzer {
                 if (lhs instanceof IntegralValue && rhs instanceof IntegralValue) {
                     IntegralValue lhs_ = (IntegralValue) lhs;
                     IntegralValue rhs_ = (IntegralValue) rhs;
-                    return new IntegralValue(lhs_.getValue().multiply(rhs_.getValue()), lhs_.getType(), 0);
+                    return new IntegralValue(lhs_.getValue().multiply(rhs_.getValue()), lhs_.getType(), 0, analysisEnvironment);
                 }
             }
         }
@@ -125,7 +127,7 @@ public class ConstantExpressionAnalyzer {
                 long value = Long.parseLong(String.valueOf(literalExpression.getValue()));
                 return new IntegralValue(
                         BigInteger.valueOf(value),
-                        literalExpression.getExpressionType(), 0);
+                        literalExpression.getExpressionType(), 0, analysisEnvironment);
             }
         }
         return null;

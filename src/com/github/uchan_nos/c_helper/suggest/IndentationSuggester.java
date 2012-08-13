@@ -13,7 +13,7 @@ import com.github.uchan_nos.c_helper.util.Util;
 public class IndentationSuggester extends Suggester {
 
     @Override
-    public Collection<Suggestion> suggest(final SuggesterInput input) {
+    public Collection<Suggestion> suggest(final SuggesterInput input, AssumptionManager assumptionManager) {
 
         class IndentCheckingVisitor extends DoNothingASTVisitor {
             private int shiftWidth = -1; // インデントの1段のスペース換算幅（推定中=-1）

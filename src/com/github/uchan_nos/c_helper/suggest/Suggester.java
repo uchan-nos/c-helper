@@ -8,5 +8,5 @@ import java.util.Collection;
  *
  */
 public abstract class Suggester {
-    public abstract Collection<Suggestion> suggest(SuggesterInput input);
+    public abstract Collection<Suggestion> suggest(SuggesterInput input, AssumptionManager assumptionManager);
 }

@@ -9,6 +9,7 @@ import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.cdt.internal.core.dom.parser.c.CBasicType;
 import org.junit.Test;
 
+import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
 import com.github.uchan_nos.c_helper.util.IntegerLimits;
 
 @SuppressWarnings("restriction")
@@ -24,9 +25,11 @@ public class IntegerValueTest {
     private static final IBasicType SCHAR = new CBasicType(Kind.eChar, IBasicType.IS_SIGNED);
     private static final IBasicType UCHAR = new CBasicType(Kind.eChar, IBasicType.IS_UNSIGNED);
 
+    private static final AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
+
     @Test
     public void castTest1() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(1L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(1L), INT, 0, analysisEnvironment);
 
         Value casted = v1.castTo(INT);
         assertTrue(casted instanceof IntegralValue);
@@ -39,7 +42,7 @@ public class IntegerValueTest {
 
     @Test
     public void castTest2() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(0xffffffffL), UINT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0xffffffffL), UINT, 0, analysisEnvironment);
 
         Value casted = v1.castTo(INT);
         assertTrue(casted instanceof IntegralValue);
@@ -52,7 +55,7 @@ public class IntegerValueTest {
 
     @Test
     public void castTest3() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(0xffffL), USHORT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0xffffL), USHORT, 0, analysisEnvironment);
 
         Value casted = v1.castTo(INT);
         assertTrue(casted instanceof IntegralValue);
@@ -65,7 +68,7 @@ public class IntegerValueTest {
 
     @Test
     public void castTest4() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(-1L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-1L), INT, 0, analysisEnvironment);
 
         Value casted = v1.castTo(UINT);
         assertTrue(casted instanceof IntegralValue);
@@ -78,7 +81,7 @@ public class IntegerValueTest {
 
     @Test
     public void castTest5() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(1L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(1L), INT, 0, analysisEnvironment);
 
         Value casted = v1.castTo(UINT);
         assertTrue(casted instanceof IntegralValue);
@@ -91,35 +94,35 @@ public class IntegerValueTest {
 
     @Test
     public void castTest6() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), SHORT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), SHORT, 0, analysisEnvironment);
 
         Value casted = v1.castTo(UINT);
         assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(UINT));
 
         IntegralValue casted_ = (IntegralValue)casted;
-        assertEquals(IntegerLimits.create(UINT).max.add(BigInteger.ONE).add(BigInteger.valueOf(-10L)).longValue(),
+        assertEquals(IntegerLimits.create(UINT, analysisEnvironment).max.add(BigInteger.ONE).add(BigInteger.valueOf(-10L)).longValue(),
                 casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
     }
 
     @Test
     public void castTest7() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), INT, 0, analysisEnvironment);
 
         Value casted = v1.castTo(UINT);
         assertTrue(casted instanceof IntegralValue);
         assertTrue(casted.getType().isSameType(UINT));
 
         IntegralValue casted_ = (IntegralValue)casted;
-        assertEquals(IntegerLimits.create(UINT).max.add(BigInteger.ONE).add(BigInteger.valueOf(-10L)).longValue(),
+        assertEquals(IntegerLimits.create(UINT, analysisEnvironment).max.add(BigInteger.ONE).add(BigInteger.valueOf(-10L)).longValue(),
                 casted_.getValue().longValue());
         assertEquals(0, casted_.getFlag());
     }
 
     @Test
     public void castTest8() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(-10L), INT, 0, analysisEnvironment);
 
         IntegralValue casted = (IntegralValue)v1.castTo(SHORT);
 
@@ -129,7 +132,7 @@ public class IntegerValueTest {
 
     @Test
     public void castTest9() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(0x205a5L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0x205a5L), INT, 0, analysisEnvironment);
 
         IntegralValue casted = (IntegralValue)v1.castTo(SHORT);
 
@@ -139,7 +142,7 @@ public class IntegerValueTest {
 
     @Test
     public void castTest10() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(0x2a5a5L), INT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0x2a5a5L), INT, 0, analysisEnvironment);
 
         IntegralValue casted = (IntegralValue)v1.castTo(SHORT);
 
@@ -149,7 +152,7 @@ public class IntegerValueTest {
 
     @Test
     public void castTest11() {
-        Value v1 = new IntegralValue(BigInteger.valueOf(0x01a0L), SHORT, 0);
+        Value v1 = new IntegralValue(BigInteger.valueOf(0x01a0L), SHORT, 0, analysisEnvironment);
 
         IntegralValue casted = (IntegralValue)v1.castTo(CHAR);
 
@@ -159,7 +162,7 @@ public class IntegerValueTest {
 
     private static void castHelper(IBasicType originalType, long original,
             IBasicType expectedType, long expected, int expectedFlag) {
-        Value value = new IntegralValue(BigInteger.valueOf(original), originalType, 0);
+        Value value = new IntegralValue(BigInteger.valueOf(original), originalType, 0, analysisEnvironment);
         IntegralValue casted = (IntegralValue) value.castTo(expectedType);
         assertEquals(expected, casted.getValue().longValue());
         assertEquals(expectedFlag, casted.getFlag());
