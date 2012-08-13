@@ -30,6 +30,60 @@ public class IndentationSuggester extends Suggester {
                 return suggestions;
             }
 
+            /**
+             * ソースコード中でoffsetが示す行の行頭からoffset-1までの部分文字列を返す.
+             * @param offset ソースコード先頭からのオフセット
+             * @return 行頭から offset-1 までの文字からなる部分文字列
+             */
+            private String getHeadString(int offset) {
+                int prevLF = input.getSource().lastIndexOf('\n', offset);
+                return input.getSource().substring(prevLF + 1, offset);
+            }
+
+            /**
+             * 指定されたオフセットが示す行のインデントが乱れていたらサジェストを生成して返す.
+             * @param offset ソースコード先頭からのオフセット
+             * @return 生成したサジェスト. インデント乱れがなければ null を返す.
+             */
+            private Collection<Suggestion> createSuggestionIfIndentIsWrong(int offset, int lineNumber) {
+                assert shiftWidth > 0 && nestDepth >= 0;
+
+                ArrayList<Suggestion> result = new ArrayList<Suggestion>();
+                String head = getHeadString(offset);
+                String indentation = getIndentation(head);
+                int width = getSpaceWidth(indentation);
+
+                if (width != shiftWidth * nestDepth) {
+                    result.add(new Suggestion(
+                            input.getFilePath(),
+                            lineNumber,
+                            0,
+                            offset - head.length(),
+                            indentation.length(),
+                            "インデントが乱れています。スペース "
+                            + (shiftWidth * nestDepth)
+                            + " 個分インデントすべきです。"));
+                } else {
+                    int pos = head.indexOf(indentChar == ' ' ? '\t' : ' ');
+                    if (pos != -1) {
+                        result.add(new Suggestion(
+                                input.getFilePath(),
+                                lineNumber,
+                                pos,
+                                offset - head.length() + pos,
+                                1,
+                                "インデントに用いる文字は統一すべきです。前方では"
+                                + (indentChar == ' ' ? "スペース" : "タブ")
+                                + "が、ここでは"
+                                + (indentChar == ' ' ?  "タブ" : "スペース")
+                                + "が用いられています。"
+                                ));
+                    }
+                }
+
+                return result;
+            }
+
             @Override
             public int visit(IASTExpression expression) {
                 throw new RuntimeException();
@@ -39,14 +93,7 @@ public class IndentationSuggester extends Suggester {
             public int visit(IASTStatement statement) {
                 IASTFileLocation location = statement.getFileLocation();
 
-                // 行頭からのオフセット
-                int columnNumber = Util.calculateColumnNumber(
-                        input.getSource(), location.getNodeOffset());
-
-                // 行頭からcolumnNumberまでの部分文字列
-                String nodeHead = input.getSource().substring(
-                        location.getNodeOffset() - columnNumber,
-                        location.getNodeOffset());
+                String nodeHead = getHeadString(location.getNodeOffset());
 
                 if (nodeHead.trim().length() == 0) {
                     // ステートメントの開始位置から行頭の間に非空白文字がない
@@ -55,14 +102,13 @@ public class IndentationSuggester extends Suggester {
                     if (shiftWidth == -1) {
                         if (spaceWidth > 0) {
                             shiftWidth = spaceWidth;
-
                             // インデントに用いられている文字を推定
                             indentChar = nodeHead.charAt(0);
                         } else if (spaceWidth == 0 && nestDepth > 0) {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
                                     location.getStartingLineNumber(),
-                                    columnNumber,
+                                    0,
                                     location.getNodeOffset(),
                                     location.getNodeLength(),
                                     "行頭から書き始めるのは分かりにくいため、スペース "
@@ -70,32 +116,11 @@ public class IndentationSuggester extends Suggester {
                                     ));
                             shiftWidth = 4;
                         }
-                    } else if (spaceWidth != shiftWidth * nestDepth) {
-                        suggestions.add(new Suggestion(
-                                input.getFilePath(),
-                                location.getStartingLineNumber(),
-                                columnNumber,
-                                location.getNodeOffset() - columnNumber,
-                                columnNumber,
-                                "インデントが乱れています。スペース "
-                                + (shiftWidth * nestDepth)
-                                + " 個分インデントすべきです。"));
                     }
 
-                    if (nodeHead.indexOf(indentChar == ' ' ? '\t' : ' ') != -1) {
-                        suggestions.add(new Suggestion(
-                                input.getFilePath(),
-                                location.getStartingLineNumber(),
-                                columnNumber,
-                                location.getNodeOffset() - columnNumber,
-                                columnNumber,
-                                "インデントに用いる文字は統一すべきです。ソースコード先頭では"
-                                + (indentChar == ' ' ? "スペース" : "タブ")
-                                + "が、ここでは"
-                                + (indentChar == ' ' ?  "タブ" : "スペース")
-                                + "が用いられています。"
-                                ));
-                    }
+                    suggestions.addAll(createSuggestionIfIndentIsWrong(
+                            location.getNodeOffset(), location.getStartingLineNumber()));
+
                 }
 
                 if (statement instanceof IASTCompoundStatement) {
@@ -105,46 +130,9 @@ public class IndentationSuggester extends Suggester {
                     }
                     --nestDepth;
 
-                    // 行頭からのオフセット
-                    int lastColumnNumber = Util.calculateColumnNumber(
-                            input.getSource(), location.getNodeOffset() + location.getNodeLength() - 1);
-
-                    // 行頭からlastColumnNumberまでの部分文字列
-                    String lastNodeHead = input.getSource().substring(
-                            location.getNodeOffset() + location.getNodeLength() - lastColumnNumber - 1,
-                            location.getNodeOffset() + location.getNodeLength());
-
-                    if (lastNodeHead.length() > 0) {
-                        int spaceWidth = getSpaceWidth(lastNodeHead.substring(0, lastNodeHead.length() - 1));
-
-                        assert lastNodeHead.charAt(lastNodeHead.length() - 1) == '}';
-                        if (lastNodeHead.indexOf(indentChar == ' ' ? '\t' : ' ') != -1) {
-                            suggestions.add(new Suggestion(
-                                    input.getFilePath(),
-                                    location.getEndingLineNumber(),
-                                    lastColumnNumber,
-                                    location.getNodeOffset() + location.getNodeLength() - lastColumnNumber - 1,
-                                    lastColumnNumber,
-                                    "インデントに用いる文字は統一すべきです。ソースコード先頭では"
-                                    + (indentChar == ' ' ? "スペース" : "タブ")
-                                    + "が、ここでは"
-                                    + (indentChar == ' ' ?  "タブ" : "スペース")
-                                    + "が用いられています。"
-                                    ));
-                        }
-
-                        if (spaceWidth != shiftWidth * nestDepth) {
-                            suggestions.add(new Suggestion(
-                                    input.getFilePath(),
-                                    location.getStartingLineNumber(),
-                                    lastColumnNumber,
-                                    location.getNodeOffset() + location.getNodeLength() - lastColumnNumber - 1,
-                                    lastColumnNumber,
-                                    "インデントが乱れています。スペース "
-                                    + (shiftWidth * nestDepth)
-                                    + " 個分インデントすべきです。"));
-                        }
-                    }
+                    suggestions.addAll(createSuggestionIfIndentIsWrong(
+                            location.getNodeOffset() + location.getNodeLength() - 1,
+                            location.getEndingLineNumber()));
 
                 } else {
                     for (IASTNode sub : statement.getChildren()) {
@@ -192,7 +180,7 @@ public class IndentationSuggester extends Suggester {
         return visitor.getSuggestions();
     }
 
-    private static Pattern indentationPattern = Pattern.compile("^([ \\t])+.*$");
+    private static Pattern indentationPattern = Pattern.compile("^([ \\t]+).*$");
     private static String getIndentation(String line) {
         Matcher m = indentationPattern.matcher(line);
         if (m.matches()) {
