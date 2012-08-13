@@ -16,8 +16,10 @@ public class ASTPrinter {
     private IASTNode ast;
     private StringBuilder dotBuilder = null;
     private HashMap<IASTNode, Integer> nodeIdMap = null;
-    public ASTPrinter(IASTNode ast) {
+    final private String nodePrefix;
+    public ASTPrinter(IASTNode ast, String nodePrefix) {
         this.ast = ast;
+        this.nodePrefix = nodePrefix;
     }
 
     public String toDot(boolean includeGraphDecl) {
@@ -52,6 +54,7 @@ public class ASTPrinter {
                 sig = sig.substring(0, sig.indexOf('\n'));
             }
             sig = sig.replace("\"", "\\\"").replace("\\n", "|n").replace("\n", "\\n");
+            this.dotBuilder.append(nodePrefix);
             this.dotBuilder.append('v');
             this.dotBuilder.append(nodeIdMap.get(node));
             this.dotBuilder.append(" [shape=box,label=\"");
@@ -74,9 +77,11 @@ public class ASTPrinter {
 
     private void createEdge(IASTNode node) {
         for (IASTNode child : node.getChildren()) {
+            this.dotBuilder.append(nodePrefix);
             this.dotBuilder.append('v');
             this.dotBuilder.append(nodeIdMap.get(node));
             this.dotBuilder.append(" -> ");
+            this.dotBuilder.append(nodePrefix);
             this.dotBuilder.append('v');
             this.dotBuilder.append(nodeIdMap.get(child));
             this.dotBuilder.append('\n');
@@ -94,12 +99,15 @@ public class ASTPrinter {
                 IASTTranslationUnit translationUnit =
                         new Parser(inputFilename, fileContent).parse();
                 System.out.println("digraph AST {\n");
+
+                int declCount = 0;
                 for (IASTDeclaration declaration : translationUnit.getDeclarations()) {
-                    if (declaration instanceof IASTFunctionDefinition) {
+                    //if (declaration instanceof IASTFunctionDefinition) {
                         String dot =
-                                new ASTPrinter(declaration).toDot(false);
+                                new ASTPrinter(declaration, "decl" + declCount).toDot(false);
                         System.out.print(dot);
-                    }
+                        declCount++;
+                    //}
                 }
                 System.out.println("}\n");
             } catch (CoreException e) {
