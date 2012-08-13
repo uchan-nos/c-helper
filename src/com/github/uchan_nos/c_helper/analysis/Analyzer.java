@@ -161,7 +161,7 @@ public class Analyzer {
                 }
 
                 for (Assumption ass : assumptionManager.getReferredAssumptions()) {
-                    System.out.println(assumptionDescriptions.get(ass));
+                    System.out.println("仮定" + ass.ordinal() + ": " + assumptionDescriptions.get(ass));
                 }
             }
 
