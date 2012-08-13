@@ -17,9 +17,11 @@ public class ASTPrinter {
     private StringBuilder dotBuilder = null;
     private HashMap<IASTNode, Integer> nodeIdMap = null;
     final private String nodePrefix;
-    public ASTPrinter(IASTNode ast, String nodePrefix) {
+    final private String sourceCodeLineDelimiter;
+    public ASTPrinter(IASTNode ast, String nodePrefix, String sourceCodeLineDelimiter) {
         this.ast = ast;
         this.nodePrefix = nodePrefix;
+        this.sourceCodeLineDelimiter = sourceCodeLineDelimiter;
     }
 
     public String toDot(boolean includeGraphDecl) {
@@ -50,8 +52,8 @@ public class ASTPrinter {
     private void createVertex(IASTNode node) {
         if (node.getFileLocation() != null) {
             String sig = node.getRawSignature();
-            if (sig.indexOf('\n') != -1) {
-                sig = sig.substring(0, sig.indexOf('\n'));
+            if (sig.indexOf(sourceCodeLineDelimiter) != -1) {
+                sig = sig.substring(0, sig.indexOf(sourceCodeLineDelimiter));
             }
             sig = sig.replace("\"", "\\\"").replace("\\n", "|n").replace("\n", "\\n");
             this.dotBuilder.append(nodePrefix);
@@ -104,7 +106,7 @@ public class ASTPrinter {
                 for (IASTDeclaration declaration : translationUnit.getDeclarations()) {
                     //if (declaration instanceof IASTFunctionDefinition) {
                         String dot =
-                                new ASTPrinter(declaration, "decl" + declCount).toDot(false);
+                                new ASTPrinter(declaration, "decl" + declCount, "\n").toDot(false);
                         System.out.print(dot);
                         declCount++;
                     //}

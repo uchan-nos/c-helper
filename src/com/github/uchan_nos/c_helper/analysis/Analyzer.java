@@ -6,8 +6,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.core.resources.IFile;
@@ -29,6 +31,7 @@ import com.github.uchan_nos.c_helper.suggest.SizeofSuggester;
 import com.github.uchan_nos.c_helper.suggest.Suggester;
 import com.github.uchan_nos.c_helper.suggest.SuggesterInput;
 import com.github.uchan_nos.c_helper.suggest.Suggestion;
+import com.github.uchan_nos.c_helper.util.Util;
 
 public class Analyzer {
     private IFile fileToAnalyze = null;
@@ -57,11 +60,59 @@ public class Analyzer {
     }
 
     public void analyze(String filePath, String source) {
+
+        String lineDelimiter = "\n";
+
+        LineDelimiterChecker checker = new LineDelimiterChecker();
+        List<LineDelimiterChecker.DelimiterPosition>
+                delimiterPositions = checker.check(source);
+        if (delimiterPositions.size() >= 0) {
+            final LineDelimiterChecker.Delimiter firstDelimiter =
+                    delimiterPositions.get(0).delimiter();
+            for (int i = 1; i < delimiterPositions.size(); ++i) {
+                LineDelimiterChecker.DelimiterPosition delpos =
+                        delimiterPositions.get(i);
+                if (!delpos.delimiter().equals(firstDelimiter)) {
+                    final String lineDelimiterError =
+                            (i + 1) + "行目: 改行コードを混在させてはいけません。解析を中断します。";
+                    if (fileToAnalyze != null) {
+                        try {
+                            fileToAnalyze.deleteMarkers(Activator.PLUGIN_ID + ".suggestionmarker", false, IResource.DEPTH_ZERO);
+                            IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmaker");
+                            marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+                            marker.setAttribute(IMarker.MESSAGE, lineDelimiterError);
+                        } catch (CoreException e) {
+                            e.printStackTrace();
+                            return;
+                        }
+                    } else {
+                        System.out.println(lineDelimiterError);
+                    }
+                    return;
+                }
+            }
+
+            switch (firstDelimiter) {
+            case CR: lineDelimiter = "\r"; break;
+            case LF: lineDelimiter = "\n"; break;
+            case CRLF: lineDelimiter = "\r\n"; break;
+            }
+        }
+
         Suggester[] suggesters = {
                 new SizeofSuggester(),
                 new IndentationSuggester()
         };
         AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
+        analysisEnvironment.CHAR_BIT = 8;
+        analysisEnvironment.SHORT_BIT = 16;
+        analysisEnvironment.INT_BIT = 32;
+        analysisEnvironment.LONG_BIT = 32;
+        analysisEnvironment.LONG_LONG_BIT = 64;
+        analysisEnvironment.POINTER_BIT = analysisEnvironment.INT_BIT;
+        analysisEnvironment.POINTER_BYTE = analysisEnvironment.POINTER_BIT / analysisEnvironment.CHAR_BIT;
+        analysisEnvironment.LINE_DELIMITER = lineDelimiter;
+
         AssumptionManager assumptionManager = new AssumptionManager();
 
         Map<Assumption, String> assumptionDescriptions =
@@ -89,6 +140,7 @@ public class Analyzer {
                 "ポインタ変数のサイズを " + analysisEnvironment.POINTER_BYTE + " バイトと仮定しています。");
 
         try {
+
             IASTTranslationUnit translationUnit =
                     new Parser(filePath, source).parse();
             Map<String, CFG> procToCFG =
@@ -128,13 +180,10 @@ public class Analyzer {
                 }
             });
 
-            IResource resource = fileToAnalyze;
-
             // サジェストを表示
-            if (resource != null) {
-                resource.deleteMarkers(Activator.PLUGIN_ID + ".suggestionmarker", false, IResource.DEPTH_ZERO);
+            if (fileToAnalyze != null) {
                 for (Suggestion suggestion : suggestions) {
-                    IMarker marker = resource.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
+                    IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
                     marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
                     marker.setAttribute(IMarker.LOCATION, suggestion.getFilePath());
                     marker.setAttribute(IMarker.CHAR_START, suggestion.getOffset());
@@ -143,7 +192,7 @@ public class Analyzer {
                 }
 
                 for (Assumption ass : assumptionManager.getReferredAssumptions()) {
-                    IMarker marker = resource.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
+                    IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
                     marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
                     marker.setAttribute(IMarker.MESSAGE,
                             "仮定" + ass.ordinal() + ": " + assumptionDescriptions.get(ass));

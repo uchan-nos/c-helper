@@ -6,11 +6,12 @@ package com.github.uchan_nos.c_helper.analysis;
  * 環境とは、様々な前提条件の集まりである。例えば整数型のビット数やポインタのサイズなど。
  */
 public class AnalysisEnvironment {
-    public final int CHAR_BIT = 8;
-    public final int SHORT_BIT = 16;
-    public final int INT_BIT = 32;
-    public final int LONG_BIT = 32;
-    public final int LONG_LONG_BIT = 64;
-    public final int POINTER_BIT = INT_BIT;
-    public final int POINTER_BYTE = POINTER_BIT / CHAR_BIT;
+    public int CHAR_BIT;
+    public int SHORT_BIT;
+    public int INT_BIT;
+    public int LONG_BIT;
+    public int LONG_LONG_BIT;
+    public int POINTER_BIT;
+    public int POINTER_BYTE;
+    public String LINE_DELIMITER;
 }

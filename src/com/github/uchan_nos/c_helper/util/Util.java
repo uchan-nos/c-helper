@@ -12,6 +12,8 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.internal.core.pdom.indexer.IndexerASTVisitor;
@@ -147,8 +149,26 @@ public class Util {
      * @param offset ソースコード先頭からのオフセット
      * @return 行頭からのオフセット
      */
-    public static int calculateColumnNumber(String source, int offset) {
-        int prevLF = source.lastIndexOf('\n', offset);
-        return offset - prevLF - 1; // prevLFが-1でもきちんと動く
+    public static int calculateColumnNumber(String source, int offset, String lineDelimiter) {
+        int prevLF = source.lastIndexOf(lineDelimiter, offset);
+        if (prevLF >= 0) {
+            return offset - prevLF - lineDelimiter.length();
+        }
+        return offset;
+    }
+
+    /**
+     * 文字列にパターンが出現する回数を返す.
+     * @param s 検索対象の文字列
+     * @param pattern 検索するパターン
+     * @return パターンの出現回数
+     */
+    public static int countMatches(String s, Pattern pattern) {
+        int count = 0;
+        Matcher m = pattern.matcher(s);
+        while (m.find()) {
+            ++count;
+        }
+        return count;
     }
 }

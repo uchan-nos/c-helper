@@ -36,8 +36,11 @@ public class IndentationSuggester extends Suggester {
              * @return 行頭から offset-1 までの文字からなる部分文字列
              */
             private String getHeadString(int offset) {
-                int prevLF = input.getSource().lastIndexOf('\n', offset);
-                return input.getSource().substring(prevLF + 1, offset);
+                final String lineDelimiter = input.getAnalysisEnvironment().LINE_DELIMITER;
+                int prevLF = input.getSource().lastIndexOf(
+                        lineDelimiter, offset);
+                return input.getSource().substring(
+                        prevLF >= 0 ? prevLF + lineDelimiter.length() : 0, offset);
             }
 
             /**
@@ -159,7 +162,8 @@ public class IndentationSuggester extends Suggester {
                 if (declaration instanceof IASTFunctionDefinition) {
                     IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
                     int columnNumber = Util.calculateColumnNumber(
-                            input.getSource(), fd.getFileLocation().getNodeOffset());
+                            input.getSource(), fd.getFileLocation().getNodeOffset(),
+                            input.getAnalysisEnvironment().LINE_DELIMITER);
                     if (columnNumber != 0) {
                         suggestions.add(new Suggestion(
                                 input.getFilePath(),
