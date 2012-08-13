@@ -34,7 +34,9 @@ public class SemicolonOblivionSuggester extends Suggester {
             @Override
             public int visit(IASTDeclaration declaration) {
                 for (IASTNode node : declaration.getChildren()) {
-                    node.accept(this);
+                    if (node.isPartOfTranslationUnitFile()) {
+                        node.accept(this);
+                    }
                 }
                 return super.visit(declaration);
             }

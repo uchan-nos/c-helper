@@ -64,12 +64,15 @@ public class Analyzer {
 
         String lineDelimiter = "\n";
 
-        LineDelimiterChecker checker = new LineDelimiterChecker();
+        // 改行コード推定と改行コード混在警告
         List<LineDelimiterChecker.DelimiterPosition>
-                delimiterPositions = checker.check(source);
+                delimiterPositions = new LineDelimiterChecker().check(source);
         if (delimiterPositions.size() >= 0) {
+            // 一番初めに見つけた改行コード
             final LineDelimiterChecker.Delimiter firstDelimiter =
                     delimiterPositions.get(0).delimiter();
+
+            // 他の改行コードが firstDelimiter と等しいかチェック
             for (int i = 1; i < delimiterPositions.size(); ++i) {
                 LineDelimiterChecker.DelimiterPosition delpos =
                         delimiterPositions.get(i);
@@ -142,7 +145,6 @@ public class Analyzer {
                 "ポインタ変数のサイズを " + analysisEnvironment.POINTER_BYTE + " バイトと仮定しています。");
 
         try {
-
             IASTTranslationUnit translationUnit =
                     new Parser(filePath, source).parse();
             Map<String, CFG> procToCFG =
@@ -184,6 +186,8 @@ public class Analyzer {
 
             // サジェストを表示
             if (fileToAnalyze != null) {
+                fileToAnalyze.deleteMarkers(Activator.PLUGIN_ID + ".suggestionmarker", false, IResource.DEPTH_ZERO);
+
                 for (Suggestion suggestion : suggestions) {
                     IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
                     marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
