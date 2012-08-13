@@ -27,6 +27,7 @@ import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 import com.github.uchan_nos.c_helper.suggest.AssumptionManager;
 import com.github.uchan_nos.c_helper.suggest.Assumption;
 import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
+import com.github.uchan_nos.c_helper.suggest.SemicolonOblivionSuggester;
 import com.github.uchan_nos.c_helper.suggest.SizeofSuggester;
 import com.github.uchan_nos.c_helper.suggest.Suggester;
 import com.github.uchan_nos.c_helper.suggest.SuggesterInput;
@@ -73,20 +74,20 @@ public class Analyzer {
                 LineDelimiterChecker.DelimiterPosition delpos =
                         delimiterPositions.get(i);
                 if (!delpos.delimiter().equals(firstDelimiter)) {
-                    final String lineDelimiterError =
-                            (i + 1) + "行目: 改行コードを混在させてはいけません。解析を中断します。";
+                    final String lineDelimiterError = "改行コードを混在させてはいけません。解析を中断します。";
                     if (fileToAnalyze != null) {
                         try {
                             fileToAnalyze.deleteMarkers(Activator.PLUGIN_ID + ".suggestionmarker", false, IResource.DEPTH_ZERO);
-                            IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmaker");
+                            IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
                             marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+                            marker.setAttribute(IMarker.LINE_NUMBER, i + 1);
                             marker.setAttribute(IMarker.MESSAGE, lineDelimiterError);
                         } catch (CoreException e) {
                             e.printStackTrace();
                             return;
                         }
                     } else {
-                        System.out.println(lineDelimiterError);
+                        System.out.println(filePath + ":" + (i + 1) + ":" + lineDelimiterError);
                     }
                     return;
                 }
@@ -101,7 +102,8 @@ public class Analyzer {
 
         Suggester[] suggesters = {
                 new SizeofSuggester(),
-                new IndentationSuggester()
+                new IndentationSuggester(),
+                new SemicolonOblivionSuggester()
         };
         AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
         analysisEnvironment.CHAR_BIT = 8;
@@ -186,8 +188,12 @@ public class Analyzer {
                     IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
                     marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
                     marker.setAttribute(IMarker.LOCATION, suggestion.getFilePath());
-                    marker.setAttribute(IMarker.CHAR_START, suggestion.getOffset());
-                    marker.setAttribute(IMarker.CHAR_END, suggestion.getOffset() + suggestion.getLength());
+                    if (suggestion.getOffset() >= 0 && suggestion.getLength() >= 0) {
+                        marker.setAttribute(IMarker.CHAR_START, suggestion.getOffset());
+                        marker.setAttribute(IMarker.CHAR_END, suggestion.getOffset() + suggestion.getLength());
+                    } else {
+                        marker.setAttribute(IMarker.LINE_NUMBER, suggestion.getLineNumber());
+                    }
                     marker.setAttribute(IMarker.MESSAGE, suggestion.getMessage());
                 }
 
