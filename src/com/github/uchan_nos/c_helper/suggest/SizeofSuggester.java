@@ -98,7 +98,7 @@ public class SizeofSuggester extends Suggester {
                             try {
                                 suggestions.add(new Suggestion(
                                         input.getFilePath(),
-                                        node.getFileLocation().getStartingLineNumber(),
+                                        node.getFileLocation().getStartingLineNumber() - 1,
                                         /*
                                         Util.calculateColumnNumber(input.getSource(), node.getFileLocation().getNodeOffset(),
                                                 input.getAnalysisEnvironment().LINE_DELIMITER),

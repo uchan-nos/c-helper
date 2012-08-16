@@ -116,7 +116,7 @@ public class IndentationSuggester extends Suggester {
                         } else if (spaceWidth == 0 && nestDepth > 0) {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
-                                    location.getStartingLineNumber(),
+                                    location.getStartingLineNumber() - 1,
                                     0,
                                     location.getNodeOffset(),
                                     location.getNodeLength(),
@@ -128,7 +128,7 @@ public class IndentationSuggester extends Suggester {
                     }
 
                     suggestions.addAll(createSuggestionIfIndentIsWrong(
-                            location.getNodeOffset(), location.getStartingLineNumber()));
+                            location.getNodeOffset(), location.getStartingLineNumber() - 1));
 
                 }
 
@@ -141,7 +141,7 @@ public class IndentationSuggester extends Suggester {
 
                     suggestions.addAll(createSuggestionIfIndentIsWrong(
                             location.getNodeOffset() + location.getNodeLength() - 1,
-                            location.getEndingLineNumber()));
+                            location.getEndingLineNumber() - 1));
 
                 } else {
                     for (IASTNode sub : statement.getChildren()) {
@@ -173,7 +173,7 @@ public class IndentationSuggester extends Suggester {
                         if (columnNumber != 0) {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
-                                    fd.getFileLocation().getStartingLineNumber(),
+                                    fd.getFileLocation().getStartingLineNumber() - 1,
                                     columnNumber,
                                     fd.getFileLocation().getNodeOffset(),
                                     fd.getFileLocation().getNodeLength(),

@@ -71,7 +71,7 @@ public class SemicolonOblivionSuggester extends Suggester {
                         } else if (foundSemicolon == false) {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
-                                    declSpec.getFileLocation().getEndingLineNumber(),
+                                    declSpec.getFileLocation().getEndingLineNumber() - 1,
                                     0, -1, -1,
                                     "構造体の宣言にはセミコロンが必要です。"
                                     ));
