@@ -24,7 +24,9 @@ public class SizeofSuggester extends Suggester {
             RD<CFG.Vertex> rd = input.getProcToRD().get(proc);
 
             for (CFG.Vertex v : cfg.getVertices()) {
-                assert v.getASTNode() != null : "a vertex should include only one ast node";
+                if (v.getASTNode() == null) {
+                    continue;
+                }
 
                 IASTNode ast = v.getASTNode();
                 ASTFilter filter = new ASTFilter(ast);

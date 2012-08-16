@@ -26,6 +26,7 @@ import com.github.uchan_nos.c_helper.suggest.AssumptionManager;
 import com.github.uchan_nos.c_helper.suggest.Assumption;
 import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
 import com.github.uchan_nos.c_helper.suggest.SemicolonOblivionSuggester;
+import com.github.uchan_nos.c_helper.suggest.SemicolonUnnecessarySuggester;
 import com.github.uchan_nos.c_helper.suggest.SizeofSuggester;
 import com.github.uchan_nos.c_helper.suggest.Suggester;
 import com.github.uchan_nos.c_helper.suggest.SuggesterInput;
@@ -62,7 +63,8 @@ public class Analyzer {
             Suggester[] suggesters = {
                     new SizeofSuggester(),
                     new IndentationSuggester(),
-                    new SemicolonOblivionSuggester()
+                    new SemicolonOblivionSuggester(),
+                    new SemicolonUnnecessarySuggester()
             };
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
             analysisEnvironment.CHAR_BIT = 8;
@@ -165,9 +167,9 @@ public class Analyzer {
                 for (Suggestion suggestion : suggestions) {
                     System.out.print(suggestion.getFilePath());
                     System.out.print(":");
-                    System.out.print(suggestion.getLineNumber());
+                    System.out.print(suggestion.getLineNumber() + 1);
                     System.out.print(":");
-                    System.out.print(suggestion.getColumnNumber());
+                    System.out.print(suggestion.getColumnNumber() + 1);
                     System.out.print(":");
                     System.out.print(suggestion.getMessage());
                     System.out.println();

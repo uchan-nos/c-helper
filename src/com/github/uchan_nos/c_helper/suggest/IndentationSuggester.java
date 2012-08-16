@@ -52,9 +52,12 @@ public class IndentationSuggester extends Suggester {
              * @return 生成したサジェスト. インデント乱れがなければ null を返す.
              */
             private Collection<Suggestion> createSuggestionIfIndentIsWrong(int offset, int lineNumber) {
-                assert shiftWidth > 0 && nestDepth >= 0;
-
                 ArrayList<Suggestion> result = new ArrayList<Suggestion>();
+
+                if (shiftWidth < 0) {
+                    return result; // まだインデントの推定ができていない
+                }
+
                 String head = getHeadString(offset);
                 String indentation = getIndentation(head);
                 int width = getSpaceWidth(indentation);
@@ -165,8 +168,8 @@ public class IndentationSuggester extends Suggester {
                 if (declaration instanceof IASTFunctionDefinition) {
                     IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
                     try {
-                        final int columnNumber = input.getSource().getLineInformationOfOffset(
-                                fd.getFileLocation().getNodeOffset()).getOffset();
+                        final int columnNumber = fd.getFileLocation().getNodeOffset()
+                                - input.getSource().getLineOffset(fd.getFileLocation().getStartingLineNumber() - 1);
                         if (columnNumber != 0) {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),

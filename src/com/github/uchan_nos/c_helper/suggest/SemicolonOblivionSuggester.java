@@ -47,7 +47,7 @@ public class SemicolonOblivionSuggester extends Suggester {
                     // 構造体に対する declaration specifier は閉じカッコ}までを指す
                     try {
                         final IDocument src = input.getSource();
-                        final int endingLine = declSpec.getFileLocation().getEndingLineNumber();
+                        final int endingLine = declSpec.getFileLocation().getEndingLineNumber() - 1;
 
                         boolean foundSemicolon = false;
                         for (int line = 0; line < 2; ++line) {
