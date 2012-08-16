@@ -26,7 +26,9 @@ public class SemicolonOblivionSuggester extends Suggester {
             @Override
             public int visit(IASTTranslationUnit tu) {
                 for (IASTDeclaration decl : tu.getDeclarations()) {
-                    decl.accept(this);
+                    if (decl.isPartOfTranslationUnitFile()) {
+                        decl.accept(this);
+                    }
                 }
                 return super.visit(tu);
             }
@@ -34,9 +36,7 @@ public class SemicolonOblivionSuggester extends Suggester {
             @Override
             public int visit(IASTDeclaration declaration) {
                 for (IASTNode node : declaration.getChildren()) {
-                    if (node.isPartOfTranslationUnitFile()) {
-                        node.accept(this);
-                    }
+                    node.accept(this);
                 }
                 return super.visit(declaration);
             }
