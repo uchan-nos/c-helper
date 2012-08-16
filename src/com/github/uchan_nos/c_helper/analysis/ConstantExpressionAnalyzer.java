@@ -6,9 +6,7 @@ import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.internal.core.dom.parser.c.CBasicType;
 
 import com.github.uchan_nos.c_helper.analysis.values.IntegralValue;
 import com.github.uchan_nos.c_helper.analysis.values.Value;

@@ -3,8 +3,6 @@ package com.github.uchan_nos.c_helper.analysis;
 import java.util.ArrayList;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-
 public class CFGNormalizer {
 
     public static class Edge {

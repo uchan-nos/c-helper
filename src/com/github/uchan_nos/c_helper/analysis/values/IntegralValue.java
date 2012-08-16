@@ -3,8 +3,8 @@ package com.github.uchan_nos.c_helper.analysis.values;
 import java.math.BigInteger;
 
 import org.eclipse.cdt.core.dom.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
+import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.internal.core.dom.parser.c.CBasicType;
 
 import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;

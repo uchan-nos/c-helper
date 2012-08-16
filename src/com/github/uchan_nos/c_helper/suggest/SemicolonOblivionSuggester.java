@@ -4,18 +4,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
-import com.github.uchan_nos.c_helper.util.Util;
 
 public class SemicolonOblivionSuggester extends Suggester {
 
@@ -80,7 +77,7 @@ public class SemicolonOblivionSuggester extends Suggester {
                                     ));
                         }
                     } catch (BadLocationException e) {
-                        assert true : "must not be here";
+                        assert false : "must not be here";
                         e.printStackTrace();
                     }
                 }

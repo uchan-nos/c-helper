@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -15,12 +14,12 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.cdt.core.dom.ast.*;
-import org.eclipse.cdt.internal.core.pdom.indexer.IndexerASTVisitor;
+import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTName;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 
 import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.analysis.CFG;
-import com.github.uchan_nos.c_helper.analysis.RD;
 
 /**
  * 便利関数群.

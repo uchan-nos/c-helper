@@ -10,7 +10,6 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
-import com.github.uchan_nos.c_helper.util.Util;
 
 public class IndentationSuggester extends Suggester {
 
@@ -178,7 +177,7 @@ public class IndentationSuggester extends Suggester {
                                     "関数の定義は行頭から書き始めると綺麗です"));
                         }
                     } catch (BadLocationException e) {
-                        assert true : "must not be here";
+                        assert false : "must not be here";
                         e.printStackTrace();
                     }
                     fd.getBody().accept(this);

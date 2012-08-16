@@ -14,7 +14,20 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.eclipse.cdt.core.dom.ast.*;
+import org.eclipse.cdt.core.dom.ast.ASTVisitor;
+import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
+import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTName;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.IFunctionType;
+import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.core.runtime.CoreException;
 
 import com.github.uchan_nos.c_helper.util.Util;
@@ -265,7 +278,6 @@ public class RDAnalyzer {
         for (IASTIdExpression idExpression : idExpressionList) {
             IType type = idExpression.getExpressionType();
             if (!(type instanceof IFunctionType)) {
-                String raw = idExpression.getRawSignature();
                 DummyAssignExpression e = new DummyAssignExpression(id, idExpression);
                 result.add(e);
                 id++;
@@ -315,7 +327,6 @@ public class RDAnalyzer {
             }
         });
         ast.accept(new ASTVisitor(true) {
-            private int id = 0;
             @Override
             public int visit(IASTExpression expression) {
                 if (expression instanceof IASTIdExpression) {

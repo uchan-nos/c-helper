@@ -1,15 +1,11 @@
 package com.github.uchan_nos.c_helper.analysis;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeSet;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-
-import com.github.uchan_nos.c_helper.analysis.CFG.Vertex;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class CFGPrinter {
