@@ -23,7 +23,8 @@ public class CFGPrinter {
 
         StringBuilder sb = new StringBuilder();
         sb.append("digraph {\n");
-        for (Entry<String, CFG> entry : new TreeSet<Entry<String, CFG>>(procToCFG.entrySet())) {
+        //for (Entry<String, CFG> entry : new TreeSet<Entry<String, CFG>>(procToCFG.entrySet())) {
+        for (Entry<String, CFG> entry : procToCFG.entrySet()) {
             sb.append(toDot(entry.getKey(), entry.getValue()));
             sb.append('\n');
         }

@@ -103,12 +103,12 @@ public class ASTPrinter {
 
                 int declCount = 0;
                 for (IASTDeclaration declaration : translationUnit.getDeclarations()) {
-                    //if (declaration instanceof IASTFunctionDefinition) {
+                    if (declaration.isPartOfTranslationUnitFile()) {
                         String dot =
                                 new ASTPrinter(declaration, "decl" + declCount, "\n").toDot(false);
                         System.out.print(dot);
                         declCount++;
-                    //}
+                    }
                 }
                 System.out.println("}\n");
             } catch (CoreException e) {

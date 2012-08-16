@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
 
 import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.analysis.CFG;
@@ -154,6 +156,16 @@ public class Util {
             return offset - prevLF - lineDelimiter.length();
         }
         return offset;
+    }
+
+    /**
+     * 行頭からのオフセットを返す.
+     * @param source ソースコード
+     * @param offset ソースコード先頭からのオフセット
+     * @return 行頭からのオフセット
+     */
+    public static int calculateColumnNumbeer(IDocument source, int offset) throws BadLocationException {
+        return offset - source.getLineOffset(source.getLineOfOffset(offset));
     }
 
     /**
