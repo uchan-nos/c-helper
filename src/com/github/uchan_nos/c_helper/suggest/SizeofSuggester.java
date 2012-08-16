@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.*;
+import org.eclipse.jface.text.BadLocationException;
 
 import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.analysis.CFG;
@@ -92,15 +93,22 @@ public class SizeofSuggester extends Suggester {
                             message.append(" を返します (仮定");
                             message.append(assumptionManager.ref(Assumption.POINTER_BYTE));
                             message.append(")。それは本当に意図したことですか？");
-                            Suggestion suggestion = new Suggestion(
-                                    input.getFilePath(),
-                                    node.getFileLocation().getStartingLineNumber(),
-                                    Util.calculateColumnNumber(input.getSource(), node.getFileLocation().getNodeOffset(),
-                                            input.getAnalysisEnvironment().LINE_DELIMITER),
-                                    node.getFileLocation().getNodeOffset(),
-                                    node.getFileLocation().getNodeLength(),
-                                    message.toString());
-                            suggestions.add(suggestion);
+                            try {
+                                suggestions.add(new Suggestion(
+                                        input.getFilePath(),
+                                        node.getFileLocation().getStartingLineNumber(),
+                                        /*
+                                        Util.calculateColumnNumber(input.getSource(), node.getFileLocation().getNodeOffset(),
+                                                input.getAnalysisEnvironment().LINE_DELIMITER),
+                                                */
+                                        input.getSource().getLineInformationOfOffset(node.getFileLocation().getNodeOffset()).getOffset(),
+                                        node.getFileLocation().getNodeOffset(),
+                                        node.getFileLocation().getNodeLength(),
+                                        message.toString()));
+                            } catch (BadLocationException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }

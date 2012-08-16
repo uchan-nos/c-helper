@@ -3,6 +3,7 @@ package com.github.uchan_nos.c_helper.suggest;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.jface.text.IDocument;
 
 import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
 import com.github.uchan_nos.c_helper.analysis.CFG;
@@ -15,14 +16,14 @@ import com.github.uchan_nos.c_helper.analysis.RD;
  */
 public class SuggesterInput {
     private final String filePath;
-    private final String source;
+    private final IDocument source;
     private final IASTTranslationUnit ast;
     private final Map<String, CFG> procToCFG;
     private final Map<String, RD<CFG.Vertex>> procToRD;
     private final AnalysisEnvironment analysisEnvironment;
 
     public SuggesterInput(String filePath,
-            String source,
+            IDocument source,
             IASTTranslationUnit ast,
             Map<String, CFG> procToCFG,
             Map<String, RD<CFG.Vertex>> procToRD,
@@ -39,7 +40,7 @@ public class SuggesterInput {
         return filePath;
     }
 
-    public String getSource() {
+    public IDocument getSource() {
         return source;
     }
 

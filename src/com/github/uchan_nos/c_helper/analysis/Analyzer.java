@@ -6,10 +6,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.core.resources.IFile;
@@ -32,7 +30,6 @@ import com.github.uchan_nos.c_helper.suggest.SizeofSuggester;
 import com.github.uchan_nos.c_helper.suggest.Suggester;
 import com.github.uchan_nos.c_helper.suggest.SuggesterInput;
 import com.github.uchan_nos.c_helper.suggest.Suggestion;
-import com.github.uchan_nos.c_helper.util.Util;
 
 public class Analyzer {
     private IFile fileToAnalyze = null;
@@ -50,7 +47,7 @@ public class Analyzer {
 
             if (editorInput instanceof IFileEditorInput) {
                 fileToAnalyze = ((IFileEditorInput) editorInput).getFile();
-                analyze(fileToAnalyze.getFullPath().toString(), documentToAnalyze.get());
+                analyze(fileToAnalyze.getFullPath().toString(), documentToAnalyze);
             } else {
                 throw new RuntimeException("editor input isn't IFileEditorInput");
             }
@@ -60,93 +57,50 @@ public class Analyzer {
         }
     }
 
-    public void analyze(String filePath, String source) {
-
-        String lineDelimiter = "\n";
-
-        // 改行コード推定と改行コード混在警告
-        List<LineDelimiterChecker.DelimiterPosition>
-                delimiterPositions = new LineDelimiterChecker().check(source);
-        if (delimiterPositions.size() >= 0) {
-            // 一番初めに見つけた改行コード
-            final LineDelimiterChecker.Delimiter firstDelimiter =
-                    delimiterPositions.get(0).delimiter();
-
-            // 他の改行コードが firstDelimiter と等しいかチェック
-            for (int i = 1; i < delimiterPositions.size(); ++i) {
-                LineDelimiterChecker.DelimiterPosition delpos =
-                        delimiterPositions.get(i);
-                if (!delpos.delimiter().equals(firstDelimiter)) {
-                    final String lineDelimiterError = "改行コードを混在させてはいけません。解析を中断します。";
-                    if (fileToAnalyze != null) {
-                        try {
-                            fileToAnalyze.deleteMarkers(Activator.PLUGIN_ID + ".suggestionmarker", false, IResource.DEPTH_ZERO);
-                            IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
-                            marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-                            marker.setAttribute(IMarker.LINE_NUMBER, i + 1);
-                            marker.setAttribute(IMarker.MESSAGE, lineDelimiterError);
-                        } catch (CoreException e) {
-                            e.printStackTrace();
-                            return;
-                        }
-                    } else {
-                        System.out.println(filePath + ":" + (i + 1) + ":" + lineDelimiterError);
-                    }
-                    return;
-                }
-            }
-
-            switch (firstDelimiter) {
-            case CR: lineDelimiter = "\r"; break;
-            case LF: lineDelimiter = "\n"; break;
-            case CRLF: lineDelimiter = "\r\n"; break;
-            }
-        }
-
-        Suggester[] suggesters = {
-                new SizeofSuggester(),
-                new IndentationSuggester(),
-                new SemicolonOblivionSuggester()
-        };
-        AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
-        analysisEnvironment.CHAR_BIT = 8;
-        analysisEnvironment.SHORT_BIT = 16;
-        analysisEnvironment.INT_BIT = 32;
-        analysisEnvironment.LONG_BIT = 32;
-        analysisEnvironment.LONG_LONG_BIT = 64;
-        analysisEnvironment.POINTER_BIT = analysisEnvironment.INT_BIT;
-        analysisEnvironment.POINTER_BYTE = analysisEnvironment.POINTER_BIT / analysisEnvironment.CHAR_BIT;
-        analysisEnvironment.LINE_DELIMITER = lineDelimiter;
-
-        AssumptionManager assumptionManager = new AssumptionManager();
-
-        Map<Assumption, String> assumptionDescriptions =
-                new EnumMap<Assumption, String>(Assumption.class);
-        assumptionDescriptions.put(
-                Assumption.CHAR_BIT,
-                "char のサイズを " + analysisEnvironment.CHAR_BIT + " ビットと仮定しています。");
-        assumptionDescriptions.put(
-                Assumption.SHORT_BIT,
-                "short int のサイズを " + analysisEnvironment.SHORT_BIT + " ビットと仮定しています。");
-        assumptionDescriptions.put(
-                Assumption.INT_BIT,
-                "int のサイズを " + analysisEnvironment.INT_BIT + " ビットと仮定しています。");
-        assumptionDescriptions.put(
-                Assumption.LONG_BIT,
-                "long int のサイズを " + analysisEnvironment.LONG_BIT + " ビットと仮定しています。");
-        assumptionDescriptions.put(
-                Assumption.LONG_LONG_BIT,
-                "long long int のサイズを " + analysisEnvironment.LONG_LONG_BIT + " ビットと仮定しています。");
-        assumptionDescriptions.put(
-                Assumption.POINTER_BIT,
-                "ポインタ変数のサイズを " + analysisEnvironment.POINTER_BIT + " ビットと仮定しています。");
-        assumptionDescriptions.put(
-                Assumption.POINTER_BYTE,
-                "ポインタ変数のサイズを " + analysisEnvironment.POINTER_BYTE + " バイトと仮定しています。");
-
+    public void analyze(String filePath, IDocument source) {
         try {
+            Suggester[] suggesters = {
+                    new SizeofSuggester(),
+                    new IndentationSuggester(),
+                    new SemicolonOblivionSuggester()
+            };
+            AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
+            analysisEnvironment.CHAR_BIT = 8;
+            analysisEnvironment.SHORT_BIT = 16;
+            analysisEnvironment.INT_BIT = 32;
+            analysisEnvironment.LONG_BIT = 32;
+            analysisEnvironment.LONG_LONG_BIT = 64;
+            analysisEnvironment.POINTER_BIT = analysisEnvironment.INT_BIT;
+            analysisEnvironment.POINTER_BYTE = analysisEnvironment.POINTER_BIT / analysisEnvironment.CHAR_BIT;
+
+            AssumptionManager assumptionManager = new AssumptionManager();
+
+            Map<Assumption, String> assumptionDescriptions =
+                    new EnumMap<Assumption, String>(Assumption.class);
+            assumptionDescriptions.put(
+                    Assumption.CHAR_BIT,
+                    "char のサイズを " + analysisEnvironment.CHAR_BIT + " ビットと仮定しています。");
+            assumptionDescriptions.put(
+                    Assumption.SHORT_BIT,
+                    "short int のサイズを " + analysisEnvironment.SHORT_BIT + " ビットと仮定しています。");
+            assumptionDescriptions.put(
+                    Assumption.INT_BIT,
+                    "int のサイズを " + analysisEnvironment.INT_BIT + " ビットと仮定しています。");
+            assumptionDescriptions.put(
+                    Assumption.LONG_BIT,
+                    "long int のサイズを " + analysisEnvironment.LONG_BIT + " ビットと仮定しています。");
+            assumptionDescriptions.put(
+                    Assumption.LONG_LONG_BIT,
+                    "long long int のサイズを " + analysisEnvironment.LONG_LONG_BIT + " ビットと仮定しています。");
+            assumptionDescriptions.put(
+                    Assumption.POINTER_BIT,
+                    "ポインタ変数のサイズを " + analysisEnvironment.POINTER_BIT + " ビットと仮定しています。");
+            assumptionDescriptions.put(
+                    Assumption.POINTER_BYTE,
+                    "ポインタ変数のサイズを " + analysisEnvironment.POINTER_BYTE + " バイトと仮定しています。");
+
             IASTTranslationUnit translationUnit =
-                    new Parser(filePath, source).parse();
+                    new Parser(filePath, source.get()).parse();
             Map<String, CFG> procToCFG =
                     new CFGCreator(translationUnit).create();
             Map<String, RD<CFG.Vertex>> procToRD =

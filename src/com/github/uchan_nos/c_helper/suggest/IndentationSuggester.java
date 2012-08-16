@@ -6,6 +6,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.cdt.core.dom.ast.*;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
 
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
 import com.github.uchan_nos.c_helper.util.Util;
@@ -36,11 +38,13 @@ public class IndentationSuggester extends Suggester {
              * @return 行頭から offset-1 までの文字からなる部分文字列
              */
             private String getHeadString(int offset) {
-                final String lineDelimiter = input.getAnalysisEnvironment().LINE_DELIMITER;
-                int prevLF = input.getSource().lastIndexOf(
-                        lineDelimiter, offset);
-                return input.getSource().substring(
-                        prevLF >= 0 ? prevLF + lineDelimiter.length() : 0, offset);
+                IDocument src = input.getSource();
+                try {
+                    final int lineOffset = src.getLineOffset(src.getLineOfOffset(offset));
+                    return src.get(lineOffset, offset - lineOffset);
+                } catch (BadLocationException e) {
+                    throw new RuntimeException("must not be here");
+                }
             }
 
             /**
@@ -161,17 +165,21 @@ public class IndentationSuggester extends Suggester {
             public int visit(IASTDeclaration declaration) {
                 if (declaration instanceof IASTFunctionDefinition) {
                     IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
-                    int columnNumber = Util.calculateColumnNumber(
-                            input.getSource(), fd.getFileLocation().getNodeOffset(),
-                            input.getAnalysisEnvironment().LINE_DELIMITER);
-                    if (columnNumber != 0) {
-                        suggestions.add(new Suggestion(
-                                input.getFilePath(),
-                                fd.getFileLocation().getStartingLineNumber(),
-                                columnNumber,
-                                fd.getFileLocation().getNodeOffset(),
-                                fd.getFileLocation().getNodeLength(),
-                                "関数の定義は行頭から書き始めると綺麗です"));
+                    try {
+                        final int columnNumber = input.getSource().getLineInformationOfOffset(
+                                fd.getFileLocation().getNodeOffset()).getOffset();
+                        if (columnNumber != 0) {
+                            suggestions.add(new Suggestion(
+                                    input.getFilePath(),
+                                    fd.getFileLocation().getStartingLineNumber(),
+                                    columnNumber,
+                                    fd.getFileLocation().getNodeOffset(),
+                                    fd.getFileLocation().getNodeLength(),
+                                    "関数の定義は行頭から書き始めると綺麗です"));
+                        }
+                    } catch (BadLocationException e) {
+                        assert true : "must not be here";
+                        e.printStackTrace();
                     }
                     fd.getBody().accept(this);
                 }

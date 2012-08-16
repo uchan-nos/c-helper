@@ -10,6 +10,9 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.IRegion;
 
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
 import com.github.uchan_nos.c_helper.util.Util;
@@ -44,29 +47,41 @@ public class SemicolonOblivionSuggester extends Suggester {
             @Override
             public int visit(IASTDeclSpecifier declSpec) {
                 if (declSpec instanceof IASTCompositeTypeSpecifier) {
-                    int line = 0, i = 0;
-                    final int endingOffset = declSpec.getFileLocation().getNodeOffset() + declSpec.getFileLocation().getNodeLength() - 1;
-                    final String lineDelimiter = input.getAnalysisEnvironment().LINE_DELIMITER;
-                    while (line < 2) {
-                        if (input.getSource().charAt(endingOffset + i) == ';') {
-                            break;
-                        } else if (input.getSource().substring(
-                                endingOffset + i,
-                                endingOffset + i + lineDelimiter.length())
-                                .equals(lineDelimiter)) {
-                            ++line;
-                            i += lineDelimiter.length();
-                        } else {
-                            ++i;
+                    // 構造体に対する declaration specifier は閉じカッコ}までを指す
+                    try {
+                        final IDocument src = input.getSource();
+                        final int endingLine = declSpec.getFileLocation().getEndingLineNumber();
+
+                        boolean foundSemicolon = false;
+                        for (int line = 0; line < 2; ++line) {
+                            final IRegion lineInfo = src.getLineInformation(endingLine + line);
+                            final String lineString = src.get(lineInfo.getOffset(), lineInfo.getLength());
+                            if (lineString.indexOf(';') >= 0) {
+                                foundSemicolon = true;
+                                break;
+                            }
                         }
-                    }
-                    if (line == 2) {
-                        suggestions.add(new Suggestion(
-                                input.getFilePath(),
-                                declSpec.getFileLocation().getEndingLineNumber(),
-                                0, -1, -1,
-                                "構造体の宣言にはセミコロンが必要です。"
-                                ));
+
+                        final int semicolonOffset = src.get().indexOf(';', src.getLineOffset(endingLine));
+                        if (foundSemicolon == false && semicolonOffset >= 0) {
+                            suggestions.add(new Suggestion(
+                                    input.getFilePath(),
+                                    src.getLineOfOffset(semicolonOffset),
+                                    0,
+                                    semicolonOffset, 1,
+                                    "構造体の宣言のセミコロンは、最後の閉じ括弧 } の直後に書くと見やすくなります。"
+                                    ));
+                        } else if (foundSemicolon == false) {
+                            suggestions.add(new Suggestion(
+                                    input.getFilePath(),
+                                    declSpec.getFileLocation().getEndingLineNumber(),
+                                    0, -1, -1,
+                                    "構造体の宣言にはセミコロンが必要です。"
+                                    ));
+                        }
+                    } catch (BadLocationException e) {
+                        assert true : "must not be here";
+                        e.printStackTrace();
                     }
                 }
                 return super.visit(declSpec);

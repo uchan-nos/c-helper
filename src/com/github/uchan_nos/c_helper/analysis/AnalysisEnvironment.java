@@ -13,5 +13,4 @@ public class AnalysisEnvironment {
     public int LONG_LONG_BIT;
     public int POINTER_BIT;
     public int POINTER_BYTE;
-    public String LINE_DELIMITER;
 }

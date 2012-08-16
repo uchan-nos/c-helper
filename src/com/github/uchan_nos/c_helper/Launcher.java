@@ -16,6 +16,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jface.text.Document;
 
 import com.github.uchan_nos.c_helper.analysis.Analyzer;
 import com.github.uchan_nos.c_helper.analysis.CFG;
@@ -39,7 +40,7 @@ public class Launcher {
                 String fileContent = Util.readFileAll(inputFile, "UTF-8");
                 Analyzer analyzer =
                         new Analyzer();
-                analyzer.analyze(inputFilename, fileContent);
+                analyzer.analyze(inputFilename, new Document(fileContent));
             } catch (IOException e) {
                 e.printStackTrace();
             }
