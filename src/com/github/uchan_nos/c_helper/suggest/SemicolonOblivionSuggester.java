@@ -6,6 +6,7 @@ import java.util.Collection;
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.jface.text.BadLocationException;
@@ -37,8 +38,10 @@ public class SemicolonOblivionSuggester extends Suggester {
 
             @Override
             public int visit(IASTDeclaration declaration) {
-                for (IASTNode node : declaration.getChildren()) {
-                    node.accept(this);
+                if (!(declaration instanceof IASTFunctionDefinition)) {
+                    for (IASTNode node : declaration.getChildren()) {
+                        node.accept(this);
+                    }
                 }
                 return super.visit(declaration);
             }
