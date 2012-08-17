@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -14,6 +15,8 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.cdt.core.dom.ast.IASTComment;
+import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -192,4 +195,109 @@ public class Util {
     public static String getRawSignature(IASTNode node) {
         return node != null ? node.getRawSignature() : "";
     }
+
+    public interface CharPredicate {
+        boolean evaluate(char c);
+    }
+
+    /**
+     * 指定された文字列から指定された述語が成り立つ文字を探し、そのインデックスを返す.
+     * 述語を渡せる String#indexOf と考えればよい.
+     * @param s
+     * @param p
+     * @param fromIndex
+     * @return
+     */
+    public static int indexOf(String s, CharPredicate p, int fromIndex) {
+        for (int i = fromIndex >= 0 ? fromIndex : 0; i < s.length(); ++i) {
+            if (p.evaluate(s.charAt(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * 指定された文字列から指定された述語が成り立つ文字を探し、そのインデックスを返す.
+     * 述語を渡せる String#indexOf と考えればよい.
+     * commentsにnull以外が渡された場合、
+     * commentsに含まれるコメント以外で初めて現れた文字のインデックスを返す.
+     * @param s
+     * @param p
+     * @param fromIndex
+     * @param comments
+     * @param commentOffset
+     * @return
+     */
+    public static int indexOf(String s, CharPredicate p, int fromIndex, IASTComment[] comments, final int commentOffset) {
+        if (comments == null) {
+            return indexOf(s, p, fromIndex);
+        }
+
+        // コメントの位置順にソート
+        Arrays.sort(comments, new Comparator<IASTComment>() {
+            @Override
+            public int compare(IASTComment o1, IASTComment o2) {
+                IASTFileLocation l1 = o1.getFileLocation();
+                IASTFileLocation l2 = o2.getFileLocation();
+                if (l1.getNodeOffset() == l2.getNodeOffset()) {
+                    return l1.getNodeLength() - l2.getNodeLength();
+                } else {
+                    return l1.getNodeOffset() - l2.getNodeOffset();
+                }
+            }
+        });
+
+        final TwoComparator<IASTComment, Integer> comparator = new TwoComparator<IASTComment, Integer>() {
+            @Override
+            public int compare(IASTComment a, Integer b) {
+                final int offset = commentOffset + a.getFileLocation().getNodeOffset();
+                final int length = a.getFileLocation().getNodeLength();
+                if (offset <= b && b < offset + length) {
+                    return 0;
+                } else if (offset + length <= b) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+        };
+
+        while (true) {
+            int pos = indexOf(s, p, fromIndex);
+            if (pos < 0) {
+                return pos;
+            }
+
+            int commentPos = binarySearch(comments, pos, comparator);
+            if (commentPos < 0) {
+                return pos;
+            }
+            fromIndex = pos + 1;
+        }
+    }
+
+    public interface TwoComparator<T, U> {
+        int compare(T a, U b);
+    }
+
+    public static <T,U> int binarySearch(T[] a, U key, TwoComparator<T,U> c) {
+        int low = 0;
+        int high = a.length - 1;
+        int mid = 0;
+
+        while (low <= high) {
+            mid = (high + low) / 2;
+            int res = c.compare(a[mid], key);
+            if (res == 0) {
+                return mid;
+            } else if (res > 0) {
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return -low - 1;
+    }
+
 }
