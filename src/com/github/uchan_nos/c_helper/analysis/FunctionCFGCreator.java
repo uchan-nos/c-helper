@@ -20,6 +20,8 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
+import com.github.uchan_nos.c_helper.util.Util;
+
 public class FunctionCFGCreator {
     private IASTFunctionDefinition functionDefinition;
 
@@ -178,14 +180,22 @@ public class FunctionCFGCreator {
     }
 
     private CFG create(IASTForStatement stmt) {
+        final String initializationStatementSignature =
+                Util.getRawSignature(stmt.getInitializerStatement());
+        final String conditionExpressionSignature =
+                Util.getRawSignature(stmt.getConditionExpression());
+        final String iterationExpressionSignature =
+                Util.getRawSignature(stmt.getInitializerStatement());
         CFG.Vertex entryVertex = new CFG.Vertex(
-                "for (" + stmt.getInitializerStatement().getRawSignature() + " " +
-                stmt.getConditionExpression().getRawSignature() + "; " +
-                stmt.getIterationExpression().getRawSignature() + ")\\l");
+                "for (" + initializationStatementSignature + " " +
+                //stmt.getConditionExpression().getRawSignature() + "; " +
+                conditionExpressionSignature + "; " +
+                //stmt.getIterationExpression().getRawSignature() + ")\\l");
+                iterationExpressionSignature + ")\\l");
         CFG.Vertex exitVertex = new CFG.Vertex();
-        CFG.Vertex initVertex = new CFG.Vertex(stmt.getInitializerStatement().getRawSignature() + "\\l");
-        CFG.Vertex condVertex = new CFG.Vertex(stmt.getConditionExpression().getRawSignature() + "\\l");
-        CFG.Vertex iterVertex = new CFG.Vertex(stmt.getIterationExpression().getRawSignature() + "\\l");
+        CFG.Vertex initVertex = new CFG.Vertex(initializationStatementSignature);
+        CFG.Vertex condVertex = new CFG.Vertex(conditionExpressionSignature);
+        CFG.Vertex iterVertex = new CFG.Vertex(iterationExpressionSignature);
         CFG.Vertex bodyendVertex = new CFG.Vertex();
         entryVertex.setASTNode(stmt);
         initVertex.setASTNode(stmt.getInitializerStatement());

@@ -182,4 +182,14 @@ public class Util {
         }
         return count;
     }
+
+    /**
+     * 指定されたノードの raw signature を返す.
+     * もし指定されたノードがnullなら空文字列""を返す.
+     * @param node raw signature を取得したいノード
+     * @return raw signature
+     */
+    public static String getRawSignature(IASTNode node) {
+        return node != null ? node.getRawSignature() : "";
+    }
 }
