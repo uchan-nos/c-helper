@@ -22,6 +22,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.github.uchan_nos.c_helper.Activator;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
+import com.github.uchan_nos.c_helper.suggest.AssignmentToCharSuggester;
 import com.github.uchan_nos.c_helper.suggest.AssumptionManager;
 import com.github.uchan_nos.c_helper.suggest.Assumption;
 import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
@@ -66,7 +67,8 @@ public class Analyzer {
                     new IndentationSuggester(),
                     new SemicolonOblivionSuggester(),
                     new SemicolonUnnecessarySuggester(),
-                    new ReturnOblivionSuggester()
+                    new ReturnOblivionSuggester(),
+                    new AssignmentToCharSuggester()
             };
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
             analysisEnvironment.CHAR_BIT = 8;

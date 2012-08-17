@@ -1,5 +1,11 @@
 package com.github.uchan_nos.c_helper.suggest;
 
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
+
+import com.github.uchan_nos.c_helper.util.Util;
+
 /**
  * ユーザーに提案する事柄を表すクラス.
  * @author uchan
@@ -32,6 +38,16 @@ public class Suggestion {
         this.columnNumber = columnNumber;
         this.offset = offset;
         this.length = length;
+        this.message = message;
+    }
+
+    public Suggestion(
+            IDocument source, IASTNode node, String message) throws BadLocationException {
+        this.filePath = node.getFileLocation().getFileName();
+        this.lineNumber = node.getFileLocation().getStartingLineNumber() - 1;
+        this.columnNumber = Util.calculateColumnNumbeer(source, node.getFileLocation().getNodeOffset());
+        this.offset = node.getFileLocation().getNodeOffset();
+        this.length = node.getFileLocation().getNodeLength();
         this.message = message;
     }
 
