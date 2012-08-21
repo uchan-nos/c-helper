@@ -12,6 +12,7 @@ import com.github.uchan_nos.c_helper.analysis.CFG;
 import com.github.uchan_nos.c_helper.analysis.DummyAssignExpression;
 import com.github.uchan_nos.c_helper.analysis.RD;
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
+import com.github.uchan_nos.c_helper.util.Util;
 
 public class AssignmentToCharSuggester extends Suggester {
 
@@ -28,16 +29,19 @@ public class AssignmentToCharSuggester extends Suggester {
                     continue;
                 }
 
-                boolean lhsIsCharArrayElement = false;
-                if (ae.getLHS() instanceof IASTArraySubscriptExpression) {
-                    IASTArraySubscriptExpression lhs = (IASTArraySubscriptExpression) ae.getLHS();
-                    if (lhs.getExpressionType() instanceof IBasicType
-                            && ((IBasicType) lhs.getExpressionType()).getKind() == Kind.eChar) {
-                        lhsIsCharArrayElement = true;
+                boolean lhsIsArrayElement = false;
+                boolean lhsIsChar = false;
+                if (ae.getLHS() instanceof IASTExpression) {
+                    IASTExpression lhs = (IASTExpression) ae.getLHS();
+                    if (Util.isIBasicType(lhs.getExpressionType(), Kind.eChar)) {
+                        lhsIsChar = true;
+                    }
+                    if (lhs instanceof IASTArraySubscriptExpression) {
+                        lhsIsArrayElement = true;
                     }
                 }
 
-                class Visitor extends DoNothingASTVisitor {
+                class RHSVisitor extends DoNothingASTVisitor {
                     public boolean rhsIsString = false;
                     @Override
                     public int visit(IASTExpression expression) {
@@ -61,39 +65,28 @@ public class AssignmentToCharSuggester extends Suggester {
                     }
                 }
 
-                Visitor visitor = new Visitor();
+                RHSVisitor visitor = new RHSVisitor();
                 ae.getRHS().accept(visitor);
 
-                /*
-                boolean rhsIsString = false;
-                if (ae.getRHS() instanceof IASTLiteralExpression
-                        && ((IASTLiteralExpression) ae.getRHS()).getKind()
-                            == IASTLiteralExpression.lk_string_literal) {
-                    rhsIsString = true;
-                } else if (ae.getRHS() instanceof IASTExpression
-                        && ((IASTExpression) ae.getRHS()).getExpressionType() instanceof IPointerType) {
-                    IPointerType type = (IPointerType) ((IASTExpression) ae.getRHS()).getExpressionType();
-                    if (type.getType() instanceof IBasicType
-                            && ((IBasicType) type.getType()).getKind() == Kind.eChar) {
-                        rhsIsString = true;
-                    }
-                }
-                */
-                boolean rhsIsString = visitor.rhsIsString;
-
-                if (lhsIsCharArrayElement && rhsIsString) {
-                    try {
+                try {
+                    if (lhsIsChar && lhsIsArrayElement && visitor.rhsIsString) {
                         suggestions.add(new Suggestion(
                                 input.getSource(),
                                 ae.getAST(),
                                 "char型配列の1つの要素に文字列を格納できません。"
                                 + " strcpy を使うことを検討してください。"
                                         ));
-                    } catch (BadLocationException e) {
-                        assert false : "must not be here";
-                        e.printStackTrace();
+                    } else if (lhsIsChar && !lhsIsArrayElement && visitor.rhsIsString) {
+                        suggestions.add(new Suggestion(
+                                input.getSource(),
+                                ae.getAST(),
+                                "char型変数に文字列を格納できません。"
+                                + " char型配列を検討してください。"
+                                        ));
                     }
-
+                } catch (BadLocationException e) {
+                    assert false : "must not be here";
+                    e.printStackTrace();
                 }
             }
         }

@@ -20,6 +20,8 @@ import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IBasicType;
+import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 
@@ -298,6 +300,11 @@ public class Util {
             }
         }
         return -low - 1;
+    }
+
+    public static boolean isIBasicType(IType type, IBasicType.Kind kind) {
+        return type instanceof IBasicType
+                && ((IBasicType) type).getKind() == kind;
     }
 
 }
