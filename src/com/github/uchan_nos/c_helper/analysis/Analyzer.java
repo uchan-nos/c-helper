@@ -27,6 +27,7 @@ import com.github.uchan_nos.c_helper.suggest.AssumptionManager;
 import com.github.uchan_nos.c_helper.suggest.Assumption;
 import com.github.uchan_nos.c_helper.suggest.CastSuppressingErrorSuggester;
 import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
+import com.github.uchan_nos.c_helper.suggest.PrintfParameterSuggester;
 import com.github.uchan_nos.c_helper.suggest.ReturnOblivionSuggester;
 import com.github.uchan_nos.c_helper.suggest.SemicolonOblivionSuggester;
 import com.github.uchan_nos.c_helper.suggest.SemicolonUnnecessarySuggester;
@@ -64,7 +65,7 @@ public class Analyzer {
     public void analyze(String filePath, IDocument source) {
         try {
             Suggester[] suggesters = {
-                    new CastSuppressingErrorSuggester()
+                    new PrintfParameterSuggester()
             };
             /*
             Suggester[] suggesters = {
@@ -73,7 +74,8 @@ public class Analyzer {
                     new SemicolonOblivionSuggester(),
                     new SemicolonUnnecessarySuggester(),
                     new ReturnOblivionSuggester(),
-                    new AssignmentToCharSuggester()
+                    new AssignmentToCharSuggester(),
+                    new CastSuppressingErrorSuggester()
             };
             */
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
