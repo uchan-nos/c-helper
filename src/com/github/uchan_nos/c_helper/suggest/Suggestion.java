@@ -18,6 +18,7 @@ public class Suggestion {
     private final int offset;
     private final int length;
     private final String message;
+    private final String suggestion;
 
     /**
      * ユーザーへの提案（警告）を表す.
@@ -32,23 +33,26 @@ public class Suggestion {
      */
     public Suggestion(
             String filePath, int lineNumber, int columnNumber,
-            int offset, int length, String message) {
+            int offset, int length, String message, String suggestion) {
         this.filePath = filePath;
         this.lineNumber = lineNumber;
         this.columnNumber = columnNumber;
         this.offset = offset;
         this.length = length;
         this.message = message;
+        this.suggestion = suggestion;
     }
 
     public Suggestion(
-            IDocument source, IASTNode node, String message) throws BadLocationException {
+            IDocument source, IASTNode node,
+            String message, String suggestion) throws BadLocationException {
         this.filePath = node.getFileLocation().getFileName();
         this.lineNumber = node.getFileLocation().getStartingLineNumber() - 1;
         this.columnNumber = Util.calculateColumnNumbeer(source, node.getFileLocation().getNodeOffset());
         this.offset = node.getFileLocation().getNodeOffset();
         this.length = node.getFileLocation().getNodeLength();
         this.message = message;
+        this.suggestion = suggestion;
     }
 
     public String getFilePath() {
@@ -73,5 +77,9 @@ public class Suggestion {
 
     public String getMessage() {
         return message;
+    }
+
+    public String getSuggestion() {
+        return suggestion;
     }
 }
