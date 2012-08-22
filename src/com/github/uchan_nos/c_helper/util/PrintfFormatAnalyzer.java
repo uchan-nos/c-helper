@@ -1,5 +1,7 @@
-package com.github.uchan_nos.c_helper.suggest;
+package com.github.uchan_nos.c_helper.util;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class PrintfFormatAnalyzer {
@@ -48,6 +50,34 @@ public class PrintfFormatAnalyzer {
         }
     }
 
+    public static enum Type {
+        INT, UINT, DOUBLE, CHAR, STRING, VOIDPTR, INTPTR
+    }
+
+    public static final Map<Character, Type> EXPECTED_TYPE;
+
+    static {
+        Map<Character, Type> expectedType =
+                new HashMap<Character, Type>();
+        expectedType.put('d', Type.INT);
+        expectedType.put('i', Type.INT);
+        expectedType.put('u', Type.UINT);
+        expectedType.put('f', Type.DOUBLE);
+        expectedType.put('F', Type.DOUBLE);
+        expectedType.put('e', Type.DOUBLE);
+        expectedType.put('E', Type.DOUBLE);
+        expectedType.put('g', Type.DOUBLE);
+        expectedType.put('G', Type.DOUBLE);
+        expectedType.put('x', Type.UINT);
+        expectedType.put('X', Type.UINT);
+        expectedType.put('o', Type.UINT);
+        expectedType.put('s', Type.STRING);
+        expectedType.put('c', Type.CHAR);
+        expectedType.put('p', Type.VOIDPTR);
+        expectedType.put('n', Type.INTPTR);
+        EXPECTED_TYPE = expectedType;
+    }
+
     /**
      * 指定された書式文字列に存在する書式指定子をすべて抽出して返す.
      * @param formatString 書式文字列
@@ -68,6 +98,11 @@ public class PrintfFormatAnalyzer {
         return formatSpecifiers.toArray(new FormatSpecifier[] {});
     }
 
+    /**
+     * 指定された書式指定子の配列から %% を取り除いた配列を返す.
+     * @param specifiers %%を含むかもしれない書式指定子の配列
+     * @return %%を含まない書式指定子の配列
+     */
     public static FormatSpecifier[] removePercentSpecifier(FormatSpecifier[] specifiers) {
         ArrayList<FormatSpecifier> filtered =
                 new ArrayList<PrintfFormatAnalyzer.FormatSpecifier>();

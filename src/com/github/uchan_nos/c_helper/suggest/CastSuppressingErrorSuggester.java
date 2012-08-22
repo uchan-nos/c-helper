@@ -8,6 +8,7 @@ import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.jface.text.BadLocationException;
 
 import com.github.uchan_nos.c_helper.util.ASTFilter;
+import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class CastSuppressingErrorSuggester extends Suggester {
