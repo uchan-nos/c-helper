@@ -76,14 +76,16 @@ public class SemicolonOblivionSuggester extends Suggester {
                                     src.getLineOfOffset(semicolonOffset),
                                     Util.calculateColumnNumbeer(src, semicolonOffset),
                                     semicolonOffset, 1,
-                                    "構造体の宣言のセミコロンは、最後の閉じ括弧 } の直後に書くと見やすくなります。"
+                                    "構造体の宣言のセミコロンは、最後の閉じ括弧 } の直後に書くと見やすくなります。",
+                                    ""
                                     ));
                         } else if (parentIsSimpleDeclaration && semicolonOffset == -1) {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
                                     declSpec.getFileLocation().getEndingLineNumber() - 1,
                                     0, -1, -1,
-                                    "構造体の宣言にはセミコロンが必要です。"
+                                    "構造体の宣言にはセミコロンが必要です。",
+                                    ""
                                     ));
                         }
                     } catch (BadLocationException e) {

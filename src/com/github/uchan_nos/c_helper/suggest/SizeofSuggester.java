@@ -106,7 +106,8 @@ public class SizeofSuggester extends Suggester {
                                         input.getSource().getLineInformationOfOffset(node.getFileLocation().getNodeOffset()).getOffset(),
                                         node.getFileLocation().getNodeOffset(),
                                         node.getFileLocation().getNodeLength(),
-                                        message.toString()));
+                                        message.toString(),
+                                        ""));
                             } catch (BadLocationException e) {
                                 // TODO Auto-generated catch block
                                 e.printStackTrace();

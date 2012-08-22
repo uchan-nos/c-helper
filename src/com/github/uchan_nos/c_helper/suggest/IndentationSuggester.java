@@ -78,7 +78,8 @@ public class IndentationSuggester extends Suggester {
                                     -1,
                                     -1,
                                     "行頭から書き始めるのは分かりにくいため、スペース "
-                                    + (4 * nestDepth) + " 個分インデントすべきです。"
+                                    + (4 * nestDepth) + " 個分インデントすべきです。",
+                                    ""
                                     ));
                             shiftWidth = 4;
                         }
@@ -91,7 +92,9 @@ public class IndentationSuggester extends Suggester {
                                 indentation.length(),
                                 "インデントが乱れています。スペース "
                                 + (shiftWidth * nestDepth)
-                                + " 個分インデントすべきです。"));
+                                + " 個分インデントすべきです。",
+                                ""
+                                ));
                     } else {
                         int pos = head.indexOf(indentChar == ' ' ? '\t' : ' ');
                         if (pos != -1) {
@@ -105,7 +108,8 @@ public class IndentationSuggester extends Suggester {
                                     + (indentChar == ' ' ? "スペース" : "タブ")
                                     + "が、ここでは"
                                     + (indentChar == ' ' ?  "タブ" : "スペース")
-                                    + "が用いられています。"
+                                    + "が用いられています。",
+                                    ""
                                     ));
                         }
                     }
@@ -188,7 +192,9 @@ public class IndentationSuggester extends Suggester {
                                     columnNumber,
                                     fd.getFileLocation().getNodeOffset(),
                                     fd.getFileLocation().getNodeLength(),
-                                    "関数の定義は行頭から書き始めると綺麗です"));
+                                    "関数の定義は行頭から書き始めると綺麗です",
+                                    ""
+                                    ));
                         }
                     } catch (BadLocationException e) {
                         assert false : "must not be here";

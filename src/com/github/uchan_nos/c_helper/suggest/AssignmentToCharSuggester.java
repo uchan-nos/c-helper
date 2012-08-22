@@ -74,14 +74,16 @@ public class AssignmentToCharSuggester extends Suggester {
                                 input.getSource(),
                                 ae.getAST(),
                                 "char型配列の1つの要素に文字列を格納できません。"
-                                + " strcpy を使うことを検討してください。"
+                                + " strcpy を使うことを検討してください。",
+                                ""
                                         ));
                     } else if (lhsIsChar && !lhsIsArrayElement && visitor.rhsIsString) {
                         suggestions.add(new Suggestion(
                                 input.getSource(),
                                 ae.getAST(),
                                 "char型変数に文字列を格納できません。"
-                                + " char型配列を検討してください。"
+                                + " char型配列を検討してください。",
+                                ""
                                         ));
                     }
                 } catch (BadLocationException e) {

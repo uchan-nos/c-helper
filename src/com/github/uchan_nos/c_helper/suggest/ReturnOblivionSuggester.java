@@ -47,7 +47,8 @@ public class ReturnOblivionSuggester extends Suggester {
                                 Util.calculateColumnNumbeer(input.getSource(), fd.getFileLocation().getNodeOffset()),
                                 fd.getFileLocation().getNodeOffset(),
                                 fd.getFileLocation().getNodeLength(),
-                                "return文がありません。"
+                                "return文がありません。",
+                                ""
                                 ));
                     } else {
 
@@ -66,7 +67,8 @@ public class ReturnOblivionSuggester extends Suggester {
                                     Util.calculateColumnNumbeer(input.getSource(), ret.getFileLocation().getNodeOffset()),
                                     ret.getFileLocation().getNodeOffset(),
                                     ret.getFileLocation().getNodeLength(),
-                                    "戻り値がある関数では、return文に引数を指定してください。"
+                                    "戻り値がある関数では、return文に引数を指定してください。",
+                                    ""
                                     ));
                         }
                     }

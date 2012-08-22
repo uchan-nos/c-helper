@@ -25,6 +25,7 @@ import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 import com.github.uchan_nos.c_helper.suggest.AssignmentToCharSuggester;
 import com.github.uchan_nos.c_helper.suggest.AssumptionManager;
 import com.github.uchan_nos.c_helper.suggest.Assumption;
+import com.github.uchan_nos.c_helper.suggest.CastSuppressingErrorSuggester;
 import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
 import com.github.uchan_nos.c_helper.suggest.ReturnOblivionSuggester;
 import com.github.uchan_nos.c_helper.suggest.SemicolonOblivionSuggester;
@@ -63,6 +64,10 @@ public class Analyzer {
     public void analyze(String filePath, IDocument source) {
         try {
             Suggester[] suggesters = {
+                    new CastSuppressingErrorSuggester()
+            };
+            /*
+            Suggester[] suggesters = {
                     new SizeofSuggester(),
                     new IndentationSuggester(),
                     new SemicolonOblivionSuggester(),
@@ -70,6 +75,7 @@ public class Analyzer {
                     new ReturnOblivionSuggester(),
                     new AssignmentToCharSuggester()
             };
+            */
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
             analysisEnvironment.CHAR_BIT = 8;
             analysisEnvironment.SHORT_BIT = 16;

@@ -307,4 +307,26 @@ public class Util {
                 && ((IBasicType) type).getKind() == kind;
     }
 
+    /**
+     * 与えられたノードから IASTName を探して返す.
+     * 与えられたノードが IASTIdExpression または IASTName 以外なら null を返す.
+     * @param node 検索対象のノード
+     * @return 検索された IASTName. ヒットしなければ null.
+     */
+    public static IASTName getName(IASTNode node) {
+        if (node instanceof IASTIdExpression) {
+            return ((IASTIdExpression) node).getName();
+        } else if (node instanceof IASTName) {
+            return (IASTName) node;
+        }
+        return null;
+    }
+
+    public static boolean equals(char[] s1, String s2) {
+        return String.valueOf(s1).equals(s2);
+    }
+
+    public static boolean equals(String s1, char[] s2) {
+        return equals(s2, s1);
+    }
 }

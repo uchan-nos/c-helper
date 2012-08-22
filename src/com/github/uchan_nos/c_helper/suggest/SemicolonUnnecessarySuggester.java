@@ -57,7 +57,8 @@ public class SemicolonUnnecessarySuggester extends Suggester {
                                             endingOffset - src.getLineOffset(src.getLineOfOffset(endingOffset)),
                                             endingOffset,
                                             1,
-                                            "関数定義にはセミコロン ; を付けません。"
+                                            "関数定義にはセミコロン ; を付けません。",
+                                            ""
                                             ));
                                 } else if (!Character.isWhitespace(c)) {
                                     break;
