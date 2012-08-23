@@ -208,11 +208,21 @@ public class PrintfParameterSuggester extends Suggester {
         final boolean typeIsUnsigned = typeIsBasicType ?
                 basicType.isUnsigned() : false;
 
+        final boolean typeIsValid =
+                (typeIsInteger && specTypeIsInteger && typeIsUnsigned == (specType == Type.UINT))
+                || (typeIsFloating && specTypeIsFloating)
+                || (pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eChar && specType == Type.STRING)
+                || (typeIsPointer && typeIsVoidPointer && specType == Type.VOIDPTR);
+
+        /*
         if ((typeIsInteger && !specTypeIsInteger)
                 || (typeIsFloating && !specTypeIsFloating)
                 || (typeIsIntegerPointer && specType != Type.INTPTR)
+                || (pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eChar && specType != Type.STRING)
                 || (typeIsPointer && !typeIsIntegerPointer && specType != Type.VOIDPTR)
                 || (typeIsUnsigned && specType != Type.UINT)) {
+                */
+        if (!typeIsValid) {
             // 型が合わない場合
             String suggestion = "";
             if (typeIsInteger) {
@@ -238,7 +248,11 @@ public class PrintfParameterSuggester extends Suggester {
                     suggestion = "浮動小数点数の表示には %f, %e, %g などが使えます。";
                 }
             } else if (typeIsPointer) {
-                suggestion = "ポインタ値は %p で表示できます。";
+                if (pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eChar) {
+                    suggestion = "文字列は %s で表示できます。";
+                } else {
+                    suggestion = "ポインタ値は %p で表示できます。";
+                }
             }
             if (specTypeIsFloating) {
                 return new MessageSuggestion("引数は整数型ですが %" + spec.type + " は浮動小数点数型を期待しています。", suggestion);
