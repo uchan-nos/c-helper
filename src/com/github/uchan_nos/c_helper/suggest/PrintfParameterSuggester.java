@@ -9,6 +9,7 @@ import org.eclipse.jface.text.BadLocationException;
 
 import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer;
+import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer.Type;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class PrintfParameterSuggester extends Suggester {
@@ -129,7 +130,7 @@ public class PrintfParameterSuggester extends Suggester {
 
         try {
             for (int i = 0; i < formatSpecifiers.length; ++i) {
-                IASTInitializerClause arg = printfCall.getArguments()[i];
+                IASTInitializerClause arg = printfCall.getArguments()[i + 1];
                 if (!(arg instanceof IASTExpression)) {
                     suggestions.add(new Suggestion(
                             input.getSource(), arg,
@@ -155,43 +156,102 @@ public class PrintfParameterSuggester extends Suggester {
     private MessageSuggestion suggest(IType type, PrintfFormatAnalyzer.FormatSpecifier spec) {
         PrintfFormatAnalyzer.Type specType =
                 PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type);
+
+        type = Util.removeQualifier(type);
+
         final boolean typeIsBasicType = type instanceof IBasicType;
-        final boolean typeIsShort = typeIsBasicType ?
-                ((IBasicType) type).isShort() : false;
-        final boolean typeIsLong = typeIsBasicType ?
-                ((IBasicType) type).isLong() : false;
-        final boolean typeIsLongLong = typeIsBasicType ?
-                ((IBasicType) type).isLongLong() : false;
-        final boolean typeIsUnsigned = typeIsBasicType ?
-                ((IBasicType) type).isUnsigned() : false;
+        final boolean typeIsPointer = type instanceof IPointerType;
         final IBasicType basicType = typeIsBasicType ?
                 (IBasicType) type : null;
-        switch (specType) {
-        case INT:
-            if (typeIsBasicType && !typeIsUnsigned && !typeIsLong && !typeIsLongLong) {
-                return null;
-            } break;
-        case DOUBLE:
-            if (typeIsBasicType
-                    && (basicType.getKind() == Kind.eFloat
-                    || basicType.getKind() == Kind.eDouble)) {
-                return null;
-            } break;
-        case CHAR:
-            if (typeIsBasicType && basicType.getKind() == Kind.eChar) {
-                return null;
-            } break;
-        case UINT:
-            if (typeIsBasicType && typeIsUnsigned && !typeIsLong && !typeIsLong) {
-                return null;
-            } break;
-        case STRING:
-            return null;
-        case VOIDPTR:
-            return null;
-        case INTPTR:
-            return null;
+
+        // type が指す先の型
+        final IType pointerToType = typeIsPointer ?
+                Util.removeQualifier(((IPointerType) type).getType()) : null;
+        // type が指す先の型が基本型かどうか
+        final boolean pointerToTypeIsBasicType = pointerToType instanceof IBasicType;
+        // type が指す先の型が基本型の場合はその型
+        final IBasicType pointerToBasicType = pointerToTypeIsBasicType ?
+                (IBasicType) pointerToType : null;
+
+        final boolean typeIsInteger = typeIsBasicType ?
+                (basicType.getKind() == Kind.eChar
+                || basicType.getKind() == Kind.eInt) : false;
+        final boolean typeIsFloating = typeIsBasicType ?
+                (basicType.getKind() == Kind.eFloat
+                || basicType.getKind() == Kind.eDouble) : false;
+        final boolean typeIsIntegerPointer =
+                typeIsPointer
+                && pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eInt
+                && !pointerToBasicType.isShort()
+                && !pointerToBasicType.isLong()
+                && !pointerToBasicType.isLongLong();
+        final boolean typeIsVoidPointer =
+                typeIsPointer
+                && pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eVoid;
+
+        final boolean specTypeIsInteger =
+                PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.INT
+                || PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.UINT
+                || PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.CHAR;
+        final boolean specTypeIsFloating =
+                PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.DOUBLE;
+
+        final boolean typeIsShort = typeIsBasicType ?
+                basicType.isShort() : false;
+        final boolean typeIsLong = typeIsBasicType ?
+                basicType.isLong() : false;
+        final boolean typeIsLongLong = typeIsBasicType ?
+                basicType.isLongLong() : false;
+        final boolean typeIsNormalLength =
+                !typeIsShort && !typeIsLong && !typeIsLongLong;
+
+        final boolean typeIsUnsigned = typeIsBasicType ?
+                basicType.isUnsigned() : false;
+
+        if ((typeIsInteger && !specTypeIsInteger)
+                || (typeIsFloating && !specTypeIsFloating)
+                || (typeIsIntegerPointer && specType != Type.INTPTR)
+                || (typeIsPointer && !typeIsIntegerPointer && specType != Type.VOIDPTR)
+                || (typeIsUnsigned && specType != Type.UINT)) {
+            // 型が合わない場合
+            String suggestion = "";
+            if (typeIsInteger) {
+                if (typeIsUnsigned) {
+                    if (typeIsShort || typeIsNormalLength) {
+                        suggestion = "符号なし整数の表示には %u, %x などが使えます。";
+                    } else if (typeIsLong) {
+                        suggestion = "long 符号なし整数の表示には %lu, %lx などが使えます。";
+                    } else if (typeIsLongLong) {
+                        suggestion = "long long 符号なし整数の表示には %llu, %llx などが使えます。";
+                    }
+                } else {
+                    if (typeIsShort || typeIsNormalLength) {
+                        suggestion = "符号付き整数の表示には %d が使えます。";
+                    } else if (typeIsLong) {
+                        suggestion = "long 符号付き整数の表示には %ld が使えます。";
+                    } else if (typeIsLongLong) {
+                        suggestion = "long long 符号付き整数の表示には %lld が使えます。";
+                    }
+                }
+            } else if (typeIsFloating) {
+                if (typeIsNormalLength) {
+                    suggestion = "浮動小数点数の表示には %f, %e, %g などが使えます。";
+                }
+            } else if (typeIsPointer) {
+                suggestion = "ポインタ値は %p で表示できます。";
+            }
+            if (specTypeIsFloating) {
+                return new MessageSuggestion("引数は整数型ですが %" + spec.type + " は浮動小数点数型を期待しています。", suggestion);
+            } else {
+                return new MessageSuggestion("引数と %変換の型が合いません。", suggestion);
+            }
+        } else if ( (typeIsShort || typeIsNormalLength)
+                && !(spec.length.equals("") || spec.length.equals("h") || spec.length.equals("hh"))
+                || (typeIsLong && !spec.length.equals("l"))
+                || (typeIsLongLong && !spec.length.equals("ll"))) {
+            String suggestion = "";
+            return new MessageSuggestion("引数の型のサイズと %変換の型のサイズが合いません。", suggestion);
         }
-        return new MessageSuggestion("%変換と引数は互換性がありません", "");
+        return null;
     }
 }

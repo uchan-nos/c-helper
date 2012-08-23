@@ -184,6 +184,9 @@ public class Analyzer {
                     System.out.print(suggestion.getColumnNumber() + 1);
                     System.out.print(":");
                     System.out.print(suggestion.getMessage());
+                    System.out.print("（");
+                    System.out.print(suggestion.getSuggestion());
+                    System.out.print("）");
                     System.out.println();
                 }
 
