@@ -166,7 +166,14 @@ public class Analyzer {
                     } else {
                         marker.setAttribute(IMarker.LINE_NUMBER, suggestion.getLineNumber());
                     }
-                    marker.setAttribute(IMarker.MESSAGE, suggestion.getMessage());
+                    if (suggestion.getSuggestion() == null ||
+                            suggestion.getSuggestion().length() == 0) {
+                        marker.setAttribute(IMarker.MESSAGE, suggestion.getMessage());
+                    } else {
+                        marker.setAttribute(IMarker.MESSAGE,
+                                suggestion.getMessage() + "（"
+                                + suggestion.getSuggestion() + "）");
+                    }
                 }
 
                 for (Assumption ass : assumptionManager.getReferredAssumptions()) {
