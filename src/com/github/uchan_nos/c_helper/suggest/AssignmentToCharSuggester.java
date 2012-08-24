@@ -11,6 +11,8 @@ import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.analysis.CFG;
 import com.github.uchan_nos.c_helper.analysis.DummyAssignExpression;
 import com.github.uchan_nos.c_helper.analysis.RD;
+
+import com.github.uchan_nos.c_helper.resource.StringResource;
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
 import com.github.uchan_nos.c_helper.util.Util;
 
@@ -73,18 +75,18 @@ public class AssignmentToCharSuggester extends Suggester {
                         suggestions.add(new Suggestion(
                                 input.getSource(),
                                 ae.getAST(),
-                                "char型配列の1つの要素に文字列を格納できません。"
-                                + " strcpy を使うことを検討してください。",
+                                StringResource.get(
+                                    "char型配列の1つの要素に文字列を格納できない。"),
                                 ""
-                                        ));
+                                ));
                     } else if (lhsIsChar && !lhsIsArrayElement && visitor.rhsIsString) {
                         suggestions.add(new Suggestion(
                                 input.getSource(),
                                 ae.getAST(),
-                                "char型変数に文字列を格納できません。"
-                                + " char型配列を検討してください。",
+                                StringResource.get(
+                                    "char型変数に文字列を格納できない。"),
                                 ""
-                                        ));
+                                ));
                     }
                 } catch (BadLocationException e) {
                     assert false : "must not be here";

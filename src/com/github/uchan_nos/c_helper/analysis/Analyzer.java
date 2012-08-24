@@ -64,10 +64,11 @@ public class Analyzer {
 
     public void analyze(String filePath, IDocument source) {
         try {
+            /*
             Suggester[] suggesters = {
                     new PrintfParameterSuggester()
             };
-            /*
+            */
             Suggester[] suggesters = {
                     new SizeofSuggester(),
                     new IndentationSuggester(),
@@ -75,9 +76,9 @@ public class Analyzer {
                     new SemicolonUnnecessarySuggester(),
                     new ReturnOblivionSuggester(),
                     new AssignmentToCharSuggester(),
-                    new CastSuppressingErrorSuggester()
+                    new CastSuppressingErrorSuggester(),
+                    new PrintfParameterSuggester()
             };
-            */
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
             analysisEnvironment.CHAR_BIT = 8;
             analysisEnvironment.SHORT_BIT = 16;
