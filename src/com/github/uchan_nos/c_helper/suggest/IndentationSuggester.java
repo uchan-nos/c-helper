@@ -9,6 +9,8 @@ import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 
+import com.github.uchan_nos.c_helper.resource.StringResource;
+
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
 
 public class IndentationSuggester extends Suggester {
@@ -77,8 +79,10 @@ public class IndentationSuggester extends Suggester {
                                     0,
                                     -1,
                                     -1,
+                                    StringResource.getInstance().getString("%d 個分インデントすべき", 4 * nestDepth)
+                                    /*
                                     "行頭から書き始めるのは分かりにくいため、スペース "
-                                    + (4 * nestDepth) + " 個分インデントすべきです。",
+                                    + (4 * nestDepth) + " 個分インデントすべきです。"*/,
                                     ""
                                     ));
                             shiftWidth = 4;
