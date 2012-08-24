@@ -79,10 +79,9 @@ public class IndentationSuggester extends Suggester {
                                     0,
                                     -1,
                                     -1,
-                                    StringResource.getInstance().getString("%d 個分インデントすべき", 4 * nestDepth)
-                                    /*
-                                    "行頭から書き始めるのは分かりにくいため、スペース "
-                                    + (4 * nestDepth) + " 個分インデントすべきです。"*/,
+                                    StringResource.getInstance().getString(
+                                        "行頭から書き始めるのは分かりにくい。%d個分インデントすべき。",
+                                        4 * nestDepth),
                                     ""
                                     ));
                             shiftWidth = 4;
@@ -94,9 +93,9 @@ public class IndentationSuggester extends Suggester {
                                 0,
                                 offset - head.length(),
                                 indentation.length(),
-                                "インデントが乱れています。スペース "
-                                + (shiftWidth * nestDepth)
-                                + " 個分インデントすべきです。",
+                                StringResource.get(
+                                    "インデントが乱れている。%d個分インデントすべき。",
+                                    shiftWidth * nestDepth),
                                 ""
                                 ));
                     } else {
@@ -108,11 +107,10 @@ public class IndentationSuggester extends Suggester {
                                     pos,
                                     offset - head.length() + pos,
                                     1,
-                                    "インデントに用いる文字は統一すべきです。前方では"
-                                    + (indentChar == ' ' ? "スペース" : "タブ")
-                                    + "が、ここでは"
-                                    + (indentChar == ' ' ?  "タブ" : "スペース")
-                                    + "が用いられています。",
+                                    StringResource.get(
+                                        "インデントに用いる文字は統一すべき。前方では%sここでは%sが用いられている。",
+                                        (indentChar == ' ' ? "スペース" : "タブ"),
+                                        (indentChar == ' ' ?  "タブ" : "スペース")),
                                     ""
                                     ));
                         }
@@ -196,7 +194,8 @@ public class IndentationSuggester extends Suggester {
                                     columnNumber,
                                     fd.getFileLocation().getNodeOffset(),
                                     fd.getFileLocation().getNodeLength(),
-                                    "関数の定義は行頭から書き始めると綺麗です",
+                                    StringResource.get(
+                                        "関数の定義は行頭から書き始めると綺麗"),
                                     ""
                                     ));
                         }

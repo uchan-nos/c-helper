@@ -33,12 +33,24 @@ public class StringResource {
     /**
      * リソースから指定されたキーの文字列を取得して返す.
      * キーがない場合、そのキー自身を返す.
+     * getInstance().getString(key, formatArgs) と等価.
+     * @param key 文字列のキー
+     * @param formatArgs 文字列に埋め込むデータ（String#format の引数として使用される）
+     * @return キーに対応した文字列またはそのキー自身.
+     */
+    public static String get(String key, Object... formatArgs) {
+        return getInstance().getString(key, formatArgs);
+    }
+
+    /**
+     * リソースから指定されたキーの文字列を取得して返す.
+     * キーがない場合、そのキー自身を返す.
      * @param key 文字列のキー
      * @param formatArgs 文字列に埋め込むデータ（String#format の引数として使用される）
      * @return キーに対応した文字列またはそのキー自身.
      */
     public String getString(String key, Object... formatArgs) {
-        String value = this.stringProperties.getProperty(key, key);
+        String value = this.stringProperties.getProperty(key, "!" + key);
         return String.format(value, formatArgs);
     }
 }

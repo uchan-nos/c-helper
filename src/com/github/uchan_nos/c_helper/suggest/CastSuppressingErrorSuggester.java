@@ -7,6 +7,8 @@ import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.jface.text.BadLocationException;
 
+import com.github.uchan_nos.c_helper.resource.StringResource;
+
 import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer;
 import com.github.uchan_nos.c_helper.util.Util;
@@ -81,9 +83,9 @@ public class CastSuppressingErrorSuggester extends Suggester {
                             PrintfFormatAnalyzer.FormatSpecifier spec =
                                     formatSpecifiers[indexOfCastExpression - 1];
                             if (spec.type == 's') {
-                                suggestion =
-                                        "式 " + castExpression.getOperand().getRawSignature()
-                                        + " が1つの文字を表しているなら %c を使えば表示可能です。";
+                                suggestion = StringResource.get(
+                                        "式%sが1文字を表しているなら%%cで表示可能。",
+                                        castExpression.getOperand().getRawSignature());
                             }
                         }
                     }
@@ -91,7 +93,8 @@ public class CastSuppressingErrorSuggester extends Suggester {
             }
 
             if (suggestion.length() == 0 && message.length() == 0) {
-                suggestion = "整数からポインタ型へのキャストは危険です。";
+                suggestion = StringResource.get(
+                        "整数からポインタ型へのキャストは危険。");
             }
 
             if (suggestion.length() > 0) {

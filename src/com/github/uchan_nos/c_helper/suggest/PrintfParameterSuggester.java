@@ -7,6 +7,8 @@ import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.jface.text.BadLocationException;
 
+import com.github.uchan_nos.c_helper.resource.StringResource;
+
 import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer.Type;
@@ -55,8 +57,11 @@ public class PrintfParameterSuggester extends Suggester {
                 if (argc == 0) {
                     suggestions.add(new Suggestion(
                             input.getSource(), printfCall,
-                            "printf 関数に引数が1つも指定されていません。",
-                            "printf(\"hello, world\\n\") などと書きます。"));
+                            StringResource.get(
+                                "printfに引数が1つも指定されていない。"),
+                            StringResource.get(
+                                "printf(hello)などと書く。")
+                            ));
                     continue;
                 }
                 IASTInitializerClause arg0 = printfCall.getArguments()[0];
@@ -82,14 +87,18 @@ public class PrintfParameterSuggester extends Suggester {
                                 == IASTLiteralExpression.lk_string_literal)) {
                     suggestions.add(new Suggestion(
                             input.getSource(), arg0,
-                            "printf 関数の第一引数に渡す文字列は、変数ではなく文字列定数であることが推奨されます。",
+                            StringResource.get(
+                                "printfの第一引数は文字列定数であるべき。"),
                             ""));
                     continue;
                 } else if (!arg0TypeIsValid) {
                     suggestions.add(new Suggestion(
                             input.getSource(), arg0,
-                            "printf 関数の第一引数には書式指定文字列を渡します。",
-                            "printf(\"hello, world\\n\") などと書きます。"));
+                            StringResource.get(
+                                "printfの第一引数には書式文字列を渡す。"),
+                            StringResource.get(
+                                "printf(hello)などと書く。")
+                            ));
                     continue;
                 }
 
@@ -100,13 +109,15 @@ public class PrintfParameterSuggester extends Suggester {
                 if (specs.length > argc - 1) {
                     suggestions.add(new Suggestion(
                             input.getSource(), arg0,
-                            "printf 関数の書式指定文字列の%変換に用いる引数の数が足りません。",
+                            StringResource.get(
+                                "printfの引数が足りない。"),
                             ""));
                     continue;
                 } else if (specs.length < argc - 1) {
                     suggestions.add(new Suggestion(
                             input.getSource(), arg0,
-                            "printf 関数の書式指定文字列の%変換に対し、引数が多すぎます。",
+                            StringResource.get(
+                                "printfの引数が多すぎる。"),
                             ""));
                     continue;
                 } else {
@@ -134,7 +145,8 @@ public class PrintfParameterSuggester extends Suggester {
                 if (!(arg instanceof IASTExpression)) {
                     suggestions.add(new Suggestion(
                             input.getSource(), arg,
-                            "C89 (ANSI-C) では関数の引数は「式」でなければなりません。",
+                            StringResource.get(
+                                "関数の引数は式でなければならない。"),
                             ""));
                     continue;
                 }
@@ -228,36 +240,40 @@ public class PrintfParameterSuggester extends Suggester {
             if (typeIsInteger) {
                 if (typeIsUnsigned) {
                     if (typeIsShort || typeIsNormalLength) {
-                        suggestion = "符号なし整数の表示には %u, %x などが使えます。";
+                        suggestion = "符号なし整数の表示は%%u,%%xなど。";
                     } else if (typeIsLong) {
-                        suggestion = "long 符号なし整数の表示には %lu, %lx などが使えます。";
+                        suggestion = "long符号なし整数の表示は%%lu,%%lxなど。";
                     } else if (typeIsLongLong) {
-                        suggestion = "long long 符号なし整数の表示には %llu, %llx などが使えます。";
+                        suggestion = "longlong符号なし整数の表示は%%llu,%%llxなど。";
                     }
                 } else {
                     if (typeIsShort || typeIsNormalLength) {
-                        suggestion = "符号付き整数の表示には %d が使えます。";
+                        suggestion = "符号付き整数の表示は%%d";
                     } else if (typeIsLong) {
-                        suggestion = "long 符号付き整数の表示には %ld が使えます。";
+                        suggestion = "long符号付き整数の表示は%%ld";
                     } else if (typeIsLongLong) {
-                        suggestion = "long long 符号付き整数の表示には %lld が使えます。";
+                        suggestion = "longlong符号付き整数の表示は%%lld";
                     }
                 }
             } else if (typeIsFloating) {
                 if (typeIsNormalLength) {
-                    suggestion = "浮動小数点数の表示には %f, %e, %g などが使えます。";
+                    suggestion = "浮動小数点数の表示は%%fなど";
                 }
             } else if (typeIsPointer) {
                 if (pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eChar) {
-                    suggestion = "文字列は %s で表示できます。";
+                    suggestion = "文字列の表示は%%s";
                 } else {
-                    suggestion = "ポインタ値は %p で表示できます。";
+                    suggestion = "ポインタ値の表示は%%p";
                 }
             }
             if (specTypeIsFloating) {
-                return new MessageSuggestion("引数は整数型ですが %" + spec.type + " は浮動小数点数型を期待しています。", suggestion);
+                return new MessageSuggestion(
+                        "引数は整数型ですが %" + spec.type + " は浮動小数点数型を期待しています。", // TODO: StringResource化する
+                        StringResource.get(suggestion));
             } else {
-                return new MessageSuggestion("引数と %変換の型が合いません。", suggestion);
+                return new MessageSuggestion(
+                        "引数と %変換の型が合いません。",
+                        StringResource.get(suggestion));
             }
         } else if ( (typeIsShort || typeIsNormalLength)
                 && !(spec.length.equals("") || spec.length.equals("h") || spec.length.equals("hh"))
