@@ -137,21 +137,13 @@ public class PrintfParameterSuggester extends Suggester {
         ArrayList<Suggestion> suggestions = new ArrayList<Suggestion>();
 
         try {
+            IASTExpression[] args = Util.getArguments(printfCall);
             for (int i = 0; i < formatSpecifiers.length; ++i) {
-                IASTInitializerClause arg = printfCall.getArguments()[i + 1];
-                if (!(arg instanceof IASTExpression)) {
-                    suggestions.add(new Suggestion(
-                            input.getSource(), arg,
-                            StringResource.get(
-                                "関数の引数は式でなければならない。"),
-                            ""));
-                    continue;
-                }
-                IASTExpression arg_ = (IASTExpression) arg;
-                IType type = TypeUtil.removeQualifiers(arg_.getExpressionType());
+                IASTExpression arg = args[i + 1];
+                IType type = TypeUtil.removeQualifiers(arg.getExpressionType());
                 MessageSuggestion ms = suggest(type, formatSpecifiers[i]);
                 if (ms != null) {
-                    suggestions.add(new Suggestion(input.getSource(), arg_, ms.message, ms.suggestion));
+                    suggestions.add(new Suggestion(input.getSource(), arg, ms.message, ms.suggestion));
                 }
             }
         } catch (BadLocationException e) {
