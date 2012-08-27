@@ -15,14 +15,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.cdt.core.dom.ast.IASTComment;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTName;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IQualifierType;
-import org.eclipse.cdt.core.dom.ast.IType;
+import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 
@@ -303,11 +296,6 @@ public class Util {
         return -low - 1;
     }
 
-    public static boolean isIBasicType(IType type, IBasicType.Kind kind) {
-        return type instanceof IBasicType
-                && ((IBasicType) type).getKind() == kind;
-    }
-
     /**
      * 与えられたノードから IASTName を探して返す.
      * 与えられたノードが IASTIdExpression または IASTName 以外なら null を返す.
@@ -332,14 +320,33 @@ public class Util {
     }
 
     /**
-     * 指定された型から型修飾子 IQualifierType を取り除いた型を返す.
-     * @param type 取り除く対象の型
-     * @return 型修飾子を取り除いた型
+     * 関数の引数を Expression の配列として取得.
+     * @param fce 関数呼び出し式
+     * @return 引数の配列
      */
-    public static IType removeQualifier(IType type) {
-        while (type instanceof IQualifierType) {
-            type = ((IQualifierType) type).getType();
+    public static IASTExpression[] getArguments(IASTFunctionCallExpression fce)
+    {
+        IASTExpression[] args = new IASTExpression[fce.getArguments().length];
+        for (int i = 0; i < args.length; ++i) {
+            IASTInitializerClause arg = fce.getArguments()[i];
+            args[i] = (IASTExpression) arg;
         }
-        return type;
+        return args;
+    }
+
+    public static <T> int indexOf(T value, T[] collection) {
+        if (collection == null) {
+            return -1;
+        }
+        for (int i = 0; i < collection.length; ++i) {
+            if (value.equals(collection[i])) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static <T> boolean contains(T value, T[] collection) {
+        return indexOf(value, collection) >= 0;
     }
 }

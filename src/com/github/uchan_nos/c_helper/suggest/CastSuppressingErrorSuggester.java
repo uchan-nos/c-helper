@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.eclipse.cdt.core.dom.ast.*;
-import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.jface.text.BadLocationException;
 
 import com.github.uchan_nos.c_helper.resource.StringResource;
 
 import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer;
+import com.github.uchan_nos.c_helper.util.TypeUtil;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class CastSuppressingErrorSuggester extends Suggester {
@@ -53,23 +53,22 @@ public class CastSuppressingErrorSuggester extends Suggester {
                     getParentFunctionCallExpression(castExpression);
             if (fce != null) {
                 IASTName name = Util.getName(fce.getFunctionNameExpression());
+                IASTExpression[] args = Util.getArguments(fce);
                 if (name != null && Util.equals(name.getSimpleID(), "printf")) {
                     String formatString = null;
 
                     // 書式指定文字列を取得する
-                    IASTInitializerClause formatStringClause = fce.getArguments()[0];
-                    if (formatStringClause instanceof IASTLiteralExpression) {
-                        IASTLiteralExpression e = (IASTLiteralExpression) formatStringClause;
-                        if (e.getKind() == IASTLiteralExpression.lk_string_literal) {
-                            formatString = String.valueOf(e.getValue());
-                        }
+                    IASTLiteralExpression le;
+                    if ((le = TypeUtil.asIASTLiteralExpression(args[0],
+                                IASTLiteralExpression.lk_string_literal)) != null) {
+                        formatString = String.valueOf(le.getValue());
                     }
 
                     if (formatString != null) {
                         // castExpression が何番目の引数か検索
                         int indexOfCastExpression = -1;
-                        for (int i = 1; i < fce.getArguments().length; ++i) {
-                            if (fce.getArguments()[i].contains(castExpression)) {
+                        for (int i = 1; i < args.length; ++i) {
+                            if (args[i].contains(castExpression)) {
                                 indexOfCastExpression = i;
                                 break;
                             }
