@@ -268,11 +268,13 @@ public class PrintfParameterSuggester extends Suggester {
             }
             if (specTypeIsFloating) {
                 return new MessageSuggestion(
-                        "引数は整数型ですが %" + spec.type + " は浮動小数点数型を期待しています。", // TODO: StringResource化する
+                        StringResource.get(
+                            "引数は整数型だが%%%cは浮動小数点数型を期待している。", spec.type),
                         StringResource.get(suggestion));
             } else {
                 return new MessageSuggestion(
-                        "引数と %変換の型が合いません。",
+                        StringResource.get(
+                            "引数と%%変換の型が合わない。"),
                         StringResource.get(suggestion));
             }
         } else if ( (typeIsShort || typeIsNormalLength)
@@ -280,7 +282,9 @@ public class PrintfParameterSuggester extends Suggester {
                 || (typeIsLong && !spec.length.equals("l"))
                 || (typeIsLongLong && !spec.length.equals("ll"))) {
             String suggestion = "";
-            return new MessageSuggestion("引数の型のサイズと %変換の型のサイズが合いません。", suggestion);
+            return new MessageSuggestion(
+                    StringResource.get("引数型と%%変換のサイズが合わない。"),
+                    StringResource.get(suggestion));
         }
         return null;
     }
