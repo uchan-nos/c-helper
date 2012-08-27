@@ -15,14 +15,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.cdt.core.dom.ast.IASTComment;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTName;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IQualifierType;
-import org.eclipse.cdt.core.dom.ast.IType;
+import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 
@@ -329,17 +322,5 @@ public class Util {
 
     public static boolean equals(String s1, char[] s2) {
         return equals(s2, s1);
-    }
-
-    /**
-     * 指定された型から型修飾子 IQualifierType を取り除いた型を返す.
-     * @param type 取り除く対象の型
-     * @return 型修飾子を取り除いた型
-     */
-    public static IType removeQualifier(IType type) {
-        while (type instanceof IQualifierType) {
-            type = ((IQualifierType) type).getType();
-        }
-        return type;
     }
 }

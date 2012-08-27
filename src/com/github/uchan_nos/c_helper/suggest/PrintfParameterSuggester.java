@@ -12,6 +12,7 @@ import com.github.uchan_nos.c_helper.resource.StringResource;
 import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer.Type;
+import com.github.uchan_nos.c_helper.util.TypeUtil;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class PrintfParameterSuggester extends Suggester {
@@ -70,11 +71,8 @@ public class PrintfParameterSuggester extends Suggester {
                     IASTExpression e = (IASTExpression) arg0;
                     IType arg0Type = e.getExpressionType();
                     if (arg0Type instanceof IPointerType) {
-                        IPointerType ptr = (IPointerType) e.getExpressionType();
-                        IType ptrToType = ptr.getType();
-                        while (ptrToType instanceof IQualifierType) {
-                            ptrToType = ((IQualifierType) ptrToType).getType();
-                        }
+                        IPointerType ptr = (IPointerType) arg0Type;
+                        IType ptrToType = TypeUtil.removeQualifiers(ptr.getType());
                         if (ptrToType instanceof IBasicType
                                 && ((IBasicType) ptrToType).getKind() == Kind.eChar) {
                             arg0TypeIsValid = true;
@@ -151,7 +149,7 @@ public class PrintfParameterSuggester extends Suggester {
                     continue;
                 }
                 IASTExpression arg_ = (IASTExpression) arg;
-                IType type = Util.removeQualifier(arg_.getExpressionType());
+                IType type = TypeUtil.removeQualifiers(arg_.getExpressionType());
                 MessageSuggestion ms = suggest(type, formatSpecifiers[i]);
                 if (ms != null) {
                     suggestions.add(new Suggestion(input.getSource(), arg_, ms.message, ms.suggestion));
@@ -169,7 +167,7 @@ public class PrintfParameterSuggester extends Suggester {
         PrintfFormatAnalyzer.Type specType =
                 PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type);
 
-        type = Util.removeQualifier(type);
+        type = TypeUtil.removeQualifiers(type);
 
         final boolean typeIsBasicType = type instanceof IBasicType;
         final boolean typeIsPointer = type instanceof IPointerType;
@@ -178,7 +176,7 @@ public class PrintfParameterSuggester extends Suggester {
 
         // type が指す先の型
         final IType pointerToType = typeIsPointer ?
-                Util.removeQualifier(((IPointerType) type).getType()) : null;
+                TypeUtil.removeQualifiers(((IPointerType) type).getType()) : null;
         // type が指す先の型が基本型かどうか
         final boolean pointerToTypeIsBasicType = pointerToType instanceof IBasicType;
         // type が指す先の型が基本型の場合はその型
