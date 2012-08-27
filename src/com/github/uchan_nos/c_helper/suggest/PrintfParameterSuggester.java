@@ -240,17 +240,36 @@ public class PrintfParameterSuggester extends Suggester {
                 }
             }
 
-            if (typeIsInteger && specTypeIsFloating) {
-                return new MessageSuggestion(
-                        StringResource.get(
-                            "引数は整数型だが%%%cは浮動小数点数型を期待している。", spec.type),
-                        StringResource.get(suggestion));
-            } else {
-                return new MessageSuggestion(
-                        StringResource.get(
-                            "引数と%%変換の型が合わない。"),
-                        StringResource.get(suggestion));
+            String typeName = "", specTypeName = "";
+            if (typeIsInteger) {
+                typeName = typeIsUnsigned ? "符号なし整数型" : "符号付き整数型";
+            } else if (typeIsFloating) {
+                typeName = "浮動小数点数型";
+            } else if (typeIsIntegerPointer) {
+                typeName = "整数型へのポインタ";
+            } else if (typeIsVoidPointer) {
+                typeName = "voidポインタ";
+            } else if (pointerToTypeAsBasic != null && pointerToTypeAsBasic.getKind() == Kind.eChar) {
+                typeName = "文字列へのポインタ";
             }
+
+            if (specTypeIsInteger) {
+                specTypeName = PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.UINT ?
+                    "符号なし整数型" : "符号付き整数型";
+            } else if (specTypeIsFloating) {
+                specTypeName = "浮動小数点数型";
+            } else if (PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.INTPTR) {
+                specTypeName = "整数型へのポインタ";
+            } else if (PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.VOIDPTR) {
+                specTypeName = "voidポインタ";
+            }
+
+            return new MessageSuggestion(
+                    StringResource.get("引数は%sだが%%%cは%sを期待している。",
+                        StringResource.get(typeName),
+                        spec.type,
+                        StringResource.get(specTypeName)),
+                    StringResource.get(suggestion));
         } else if ( (typeIsShort || typeIsNormalLength)
                 && !(spec.length.equals("") || spec.length.equals("h") || spec.length.equals("hh"))
                 || (typeIsLong && !spec.length.equals("l"))
