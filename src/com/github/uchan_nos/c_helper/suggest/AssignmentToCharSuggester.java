@@ -14,7 +14,7 @@ import com.github.uchan_nos.c_helper.analysis.RD;
 
 import com.github.uchan_nos.c_helper.resource.StringResource;
 import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
-import com.github.uchan_nos.c_helper.util.Util;
+import com.github.uchan_nos.c_helper.util.TypeUtil;
 
 public class AssignmentToCharSuggester extends Suggester {
 
@@ -35,7 +35,7 @@ public class AssignmentToCharSuggester extends Suggester {
                 boolean lhsIsChar = false;
                 if (ae.getLHS() instanceof IASTExpression) {
                     IASTExpression lhs = (IASTExpression) ae.getLHS();
-                    if (Util.isIBasicType(lhs.getExpressionType(), Kind.eChar)) {
+                    if (TypeUtil.isIBasicType(lhs.getExpressionType(), Kind.eChar)) {
                         lhsIsChar = true;
                     }
                     if (lhs instanceof IASTArraySubscriptExpression) {

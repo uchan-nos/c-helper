@@ -296,11 +296,6 @@ public class Util {
         return -low - 1;
     }
 
-    public static boolean isIBasicType(IType type, IBasicType.Kind kind) {
-        return type instanceof IBasicType
-                && ((IBasicType) type).getKind() == kind;
-    }
-
     /**
      * 与えられたノードから IASTName を探して返す.
      * 与えられたノードが IASTIdExpression または IASTName 以外なら null を返す.
@@ -334,7 +329,7 @@ public class Util {
         IASTExpression[] args = new IASTExpression[fce.getArguments().length];
         for (int i = 0; i < args.length; ++i) {
             IASTInitializerClause arg = fce.getArguments()[i];
-            args[i] = (IASTExpression) fce.getArguments()[i];
+            args[i] = (IASTExpression) arg;
         }
         return args;
     }

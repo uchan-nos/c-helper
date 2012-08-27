@@ -74,7 +74,7 @@ public class PrintfParameterSuggester extends Suggester {
                 if (arg0Type instanceof IPointerType) {
                     IPointerType ptr = (IPointerType) arg0Type;
                     IType ptrToType = TypeUtil.removeQualifiers(ptr.getType());
-                    if (Util.isIBasicType(ptrToType, Kind.eChar)) {
+                    if (TypeUtil.isIBasicType(ptrToType, Kind.eChar)) {
                         arg0TypeIsValid = true;
                     }
                 }
