@@ -51,14 +51,19 @@ public class TypeUtil {
     /**
      * 指定された型が指定された種類の基本型なら、指定された型をキャストして返す.
      * @param type 調べる型
-     * @param kind 基本型の種類
+     * @param kinds 基本型の種類（OR結合）
      * @return 指定された型が指定された種類の基本型なら type、そうでなければ null
      */
-    public static IBasicType asIBasicType(IType type, IBasicType.Kind kind) {
+    public static IBasicType asIBasicType(IType type, IBasicType.Kind... kinds) {
         if (type instanceof IBasicType) {
             IBasicType t = (IBasicType) type;
-            if (t.getKind() == kind) {
+            if (kinds.length == 0) {
                 return t;
+            }
+            for (int i = 0; i < kinds.length; ++i) {
+                if (t.getKind() == kinds[i]) {
+                    return t;
+                }
             }
         }
         return null;
@@ -67,14 +72,19 @@ public class TypeUtil {
     /**
      * 指定されたASTノードが指定された種類のリテラル式なら、指定されたASTノードをキャストして返す.
      * @param node ASTノード
-     * @param kind リテラル式の種類
+     * @param kinds リテラル式の種類
      * @return 指定されたASTノードが指定された種類のリテラル式なら node、そうでなければ null
      */
-    public static IASTLiteralExpression asIASTLiteralExpression(IASTNode node, int kind) {
+    public static IASTLiteralExpression asIASTLiteralExpression(IASTNode node, int... kinds) {
         if (node instanceof IASTLiteralExpression) {
             IASTLiteralExpression e = (IASTLiteralExpression) node;
-            if (e.getKind() == kind) {
+            if (kinds.length == 0) {
                 return e;
+            }
+            for (int i = 0; i < kinds.length; ++i) {
+                if (e.getKind() == kinds[i]) {
+                    return e;
+                }
             }
         }
         return null;

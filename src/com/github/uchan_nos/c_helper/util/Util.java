@@ -334,7 +334,7 @@ public class Util {
         return args;
     }
 
-    public static <T> int indexOf(T value, T[] collection) {
+    public static <T> int indexOf(T value, T... collection) {
         if (collection == null) {
             return -1;
         }
@@ -346,7 +346,7 @@ public class Util {
         return -1;
     }
 
-    public static <T> boolean contains(T value, T[] collection) {
+    public static <T> boolean contains(T value, T... collection) {
         return indexOf(value, collection) >= 0;
     }
 }
