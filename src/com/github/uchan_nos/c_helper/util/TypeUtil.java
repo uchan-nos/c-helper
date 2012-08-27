@@ -49,6 +49,22 @@ public class TypeUtil {
     }
 
     /**
+     * 指定された型が指定された種類の基本型なら、指定された型をキャストして返す.
+     * @param type 調べる型
+     * @param kind 基本型の種類
+     * @return 指定された型が指定された種類の基本型なら type、そうでなければ null
+     */
+    public static IBasicType asIBasicType(IType type, IBasicType.Kind kind) {
+        if (type instanceof IBasicType) {
+            IBasicType t = (IBasicType) type;
+            if (t.getKind() == kind) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 指定されたASTノードが指定された種類のリテラル式なら、指定されたASTノードをキャストして返す.
      * @param node ASTノード
      * @param kind リテラル式の種類

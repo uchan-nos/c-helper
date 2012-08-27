@@ -333,4 +333,20 @@ public class Util {
         }
         return args;
     }
+
+    public static <T> int indexOf(T value, T[] collection) {
+        if (collection == null) {
+            return -1;
+        }
+        for (int i = 0; i < collection.length; ++i) {
+            if (value.equals(collection[i])) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static <T> boolean contains(T value, T[] collection) {
+        return indexOf(value, collection) >= 0;
+    }
 }

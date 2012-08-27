@@ -154,41 +154,38 @@ public class PrintfParameterSuggester extends Suggester {
         return suggestions;
     }
 
+    private static final IBasicType.Kind[] INTEGER_TYPE_KINDS =
+        new IBasicType.Kind[] { Kind.eChar, Kind.eInt };
+    private static final IBasicType.Kind[] FLOATING_TYPE_KINDS =
+        new IBasicType.Kind[] { Kind.eFloat, Kind.eDouble };
     private MessageSuggestion suggest(IType type, PrintfFormatAnalyzer.FormatSpecifier spec) {
         PrintfFormatAnalyzer.Type specType =
                 PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type);
 
         type = TypeUtil.removeQualifiers(type);
 
-        final boolean typeIsBasicType = type instanceof IBasicType;
-        final boolean typeIsPointer = type instanceof IPointerType;
-        final IBasicType basicType = typeIsBasicType ?
-                (IBasicType) type : null;
+        final IBasicType typeAsBasic = type instanceof IBasicType ?
+            (IBasicType) type : null;
+        final IPointerType typeAsPointer = type instanceof IPointerType ?
+            (IPointerType) type : null;
+        final IType pointerToType = typeAsPointer != null ?
+            TypeUtil.removeQualifiers(typeAsPointer.getType()) : null;
+        final IBasicType pointerToTypeAsBasic = pointerToType instanceof IBasicType ?
+            (IBasicType) pointerToType : null;
 
-        // type が指す先の型
-        final IType pointerToType = typeIsPointer ?
-                TypeUtil.removeQualifiers(((IPointerType) type).getType()) : null;
-        // type が指す先の型が基本型かどうか
-        final boolean pointerToTypeIsBasicType = pointerToType instanceof IBasicType;
-        // type が指す先の型が基本型の場合はその型
-        final IBasicType pointerToBasicType = pointerToTypeIsBasicType ?
-                (IBasicType) pointerToType : null;
-
-        final boolean typeIsInteger = typeIsBasicType ?
-                (basicType.getKind() == Kind.eChar
-                || basicType.getKind() == Kind.eInt) : false;
-        final boolean typeIsFloating = typeIsBasicType ?
-                (basicType.getKind() == Kind.eFloat
-                || basicType.getKind() == Kind.eDouble) : false;
+        final boolean typeIsInteger = typeAsBasic != null
+            && Util.contains(typeAsBasic.getKind(), INTEGER_TYPE_KINDS);
+        final boolean typeIsFloating = typeAsBasic != null
+            && Util.contains(typeAsBasic.getKind(), FLOATING_TYPE_KINDS);
         final boolean typeIsIntegerPointer =
-                typeIsPointer
-                && pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eInt
-                && !pointerToBasicType.isShort()
-                && !pointerToBasicType.isLong()
-                && !pointerToBasicType.isLongLong();
+            typeAsPointer != null
+            && pointerToTypeAsBasic != null && pointerToTypeAsBasic.getKind() == Kind.eInt
+            && !pointerToTypeAsBasic.isShort()
+            && !pointerToTypeAsBasic.isLong()
+            && !pointerToTypeAsBasic.isLongLong();
         final boolean typeIsVoidPointer =
-                typeIsPointer
-                && pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eVoid;
+            typeAsPointer != null
+            && pointerToTypeAsBasic != null && pointerToTypeAsBasic.getKind() == Kind.eVoid;
 
         final boolean specTypeIsInteger =
                 PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.INT
@@ -197,32 +194,19 @@ public class PrintfParameterSuggester extends Suggester {
         final boolean specTypeIsFloating =
                 PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.DOUBLE;
 
-        final boolean typeIsShort = typeIsBasicType ?
-                basicType.isShort() : false;
-        final boolean typeIsLong = typeIsBasicType ?
-                basicType.isLong() : false;
-        final boolean typeIsLongLong = typeIsBasicType ?
-                basicType.isLongLong() : false;
-        final boolean typeIsNormalLength =
-                !typeIsShort && !typeIsLong && !typeIsLongLong;
+        final boolean typeIsShort = typeAsBasic != null && typeAsBasic.isShort();
+        final boolean typeIsLong = typeAsBasic != null && typeAsBasic.isLong();
+        final boolean typeIsLongLong = typeAsBasic != null && typeAsBasic.isLongLong();
+        final boolean typeIsNormalLength = !typeIsShort && !typeIsLong && !typeIsLongLong;
 
-        final boolean typeIsUnsigned = typeIsBasicType ?
-                basicType.isUnsigned() : false;
+        final boolean typeIsUnsigned = typeAsBasic != null && typeAsBasic.isUnsigned();
 
         final boolean typeIsValid =
                 (typeIsInteger && specTypeIsInteger && typeIsUnsigned == (specType == Type.UINT))
                 || (typeIsFloating && specTypeIsFloating)
-                || (pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eChar && specType == Type.STRING)
-                || (typeIsPointer && typeIsVoidPointer && specType == Type.VOIDPTR);
+                || (pointerToTypeAsBasic != null && pointerToTypeAsBasic.getKind() == Kind.eChar && specType == Type.STRING)
+                || (typeAsPointer != null && typeIsVoidPointer && specType == Type.VOIDPTR);
 
-        /*
-        if ((typeIsInteger && !specTypeIsInteger)
-                || (typeIsFloating && !specTypeIsFloating)
-                || (typeIsIntegerPointer && specType != Type.INTPTR)
-                || (pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eChar && specType != Type.STRING)
-                || (typeIsPointer && !typeIsIntegerPointer && specType != Type.VOIDPTR)
-                || (typeIsUnsigned && specType != Type.UINT)) {
-                */
         if (!typeIsValid) {
             // 型が合わない場合
             String suggestion = "";
@@ -248,14 +232,15 @@ public class PrintfParameterSuggester extends Suggester {
                 if (typeIsNormalLength) {
                     suggestion = "浮動小数点数の表示は%%fなど";
                 }
-            } else if (typeIsPointer) {
-                if (pointerToTypeIsBasicType && pointerToBasicType.getKind() == Kind.eChar) {
+            } else if (typeAsPointer != null) {
+                if (pointerToTypeAsBasic != null && pointerToTypeAsBasic.getKind() == Kind.eChar) {
                     suggestion = "文字列の表示は%%s";
                 } else {
                     suggestion = "ポインタ値の表示は%%p";
                 }
             }
-            if (specTypeIsFloating) {
+
+            if (typeIsInteger && specTypeIsFloating) {
                 return new MessageSuggestion(
                         StringResource.get(
                             "引数は整数型だが%%%cは浮動小数点数型を期待している。", spec.type),
