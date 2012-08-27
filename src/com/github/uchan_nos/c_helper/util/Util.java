@@ -323,4 +323,19 @@ public class Util {
     public static boolean equals(String s1, char[] s2) {
         return equals(s2, s1);
     }
+
+    /**
+     * 関数の引数を Expression の配列として取得.
+     * @param fce 関数呼び出し式
+     * @return 引数の配列
+     */
+    public static IASTExpression[] getArguments(IASTFunctionCallExpression fce)
+    {
+        IASTExpression[] args = new IASTExpression[fce.getArguments().length];
+        for (int i = 0; i < args.length; ++i) {
+            IASTInitializerClause arg = fce.getArguments()[i];
+            args[i] = (IASTExpression) fce.getArguments()[i];
+        }
+        return args;
+    }
 }

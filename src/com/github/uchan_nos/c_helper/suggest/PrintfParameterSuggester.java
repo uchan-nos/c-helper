@@ -65,20 +65,20 @@ public class PrintfParameterSuggester extends Suggester {
                             ));
                     continue;
                 }
-                IASTInitializerClause arg0 = printfCall.getArguments()[0];
+
                 boolean arg0TypeIsValid = false;
-                if (arg0 instanceof IASTExpression) {
-                    IASTExpression e = (IASTExpression) arg0;
-                    IType arg0Type = e.getExpressionType();
-                    if (arg0Type instanceof IPointerType) {
-                        IPointerType ptr = (IPointerType) arg0Type;
-                        IType ptrToType = TypeUtil.removeQualifiers(ptr.getType());
-                        if (ptrToType instanceof IBasicType
-                                && ((IBasicType) ptrToType).getKind() == Kind.eChar) {
-                            arg0TypeIsValid = true;
-                        }
+                IASTExpression[] args = Util.getArguments(printfCall);
+                IASTExpression arg0 = args[0];
+
+                IType arg0Type = arg0.getExpressionType();
+                if (arg0Type instanceof IPointerType) {
+                    IPointerType ptr = (IPointerType) arg0Type;
+                    IType ptrToType = TypeUtil.removeQualifiers(ptr.getType());
+                    if (Util.isIBasicType(ptrToType, Kind.eChar)) {
+                        arg0TypeIsValid = true;
                     }
                 }
+
                 if (arg0TypeIsValid
                         && !(arg0 instanceof IASTLiteralExpression
                                 && ((IASTLiteralExpression) arg0).getKind()
