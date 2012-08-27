@@ -47,4 +47,20 @@ public class TypeUtil {
         return type instanceof IBasicType
             && ((IBasicType) type).getKind() == kind;
     }
+
+    /**
+     * 指定されたASTノードが指定された種類のリテラル式なら、指定されたASTノードをキャストして返す.
+     * @param node ASTノード
+     * @param kind リテラル式の種類
+     * @return 指定されたASTノードが指定された種類のリテラル式なら node、そうでなければ null
+     */
+    public static IASTLiteralExpression asIASTLiteralExpression(IASTNode node, int kind) {
+        if (node instanceof IASTLiteralExpression) {
+            IASTLiteralExpression e = (IASTLiteralExpression) node;
+            if (e.getKind() == kind) {
+                return e;
+            }
+        }
+        return null;
+    }
 }

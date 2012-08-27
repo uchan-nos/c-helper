@@ -80,9 +80,8 @@ public class PrintfParameterSuggester extends Suggester {
                 }
 
                 if (arg0TypeIsValid
-                        && !(arg0 instanceof IASTLiteralExpression
-                                && ((IASTLiteralExpression) arg0).getKind()
-                                == IASTLiteralExpression.lk_string_literal)) {
+                        && TypeUtil.asIASTLiteralExpression(arg0,
+                            IASTLiteralExpression.lk_string_literal) == null) {
                     suggestions.add(new Suggestion(
                             input.getSource(), arg0,
                             StringResource.get(

@@ -11,6 +11,7 @@ import com.github.uchan_nos.c_helper.resource.StringResource;
 
 import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.PrintfFormatAnalyzer;
+import com.github.uchan_nos.c_helper.util.TypeUtil;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class CastSuppressingErrorSuggester extends Suggester {
@@ -58,11 +59,10 @@ public class CastSuppressingErrorSuggester extends Suggester {
 
                     // 書式指定文字列を取得する
                     IASTInitializerClause formatStringClause = fce.getArguments()[0];
-                    if (formatStringClause instanceof IASTLiteralExpression) {
-                        IASTLiteralExpression e = (IASTLiteralExpression) formatStringClause;
-                        if (e.getKind() == IASTLiteralExpression.lk_string_literal) {
-                            formatString = String.valueOf(e.getValue());
-                        }
+                    IASTLiteralExpression le;
+                    if ((le = TypeUtil.asIASTLiteralExpression(formatStringClause,
+                                IASTLiteralExpression.lk_string_literal)) != null) {
+                        formatString = String.valueOf(le.getValue());
                     }
 
                     if (formatString != null) {

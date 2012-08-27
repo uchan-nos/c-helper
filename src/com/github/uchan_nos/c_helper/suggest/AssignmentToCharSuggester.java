@@ -47,11 +47,9 @@ public class AssignmentToCharSuggester extends Suggester {
                     public boolean rhsIsString = false;
                     @Override
                     public int visit(IASTExpression expression) {
-                        if (expression instanceof IASTLiteralExpression) {
-                            IASTLiteralExpression le = (IASTLiteralExpression) expression;
-                            if (le.getKind() == IASTLiteralExpression.lk_string_literal) {
-                                rhsIsString = true;
-                            }
+                        if (TypeUtil.asIASTLiteralExpression(expression,
+                                    IASTLiteralExpression.lk_string_literal) != null) {
+                            rhsIsString = true;
                         } else if (expression.getExpressionType() instanceof IPointerType) {
                             IPointerType type = (IPointerType) expression.getExpressionType();
                             IType typePointTo = type.getType();
