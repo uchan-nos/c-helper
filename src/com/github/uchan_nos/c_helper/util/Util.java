@@ -6,10 +6,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -348,5 +350,36 @@ public class Util {
 
     public static <T> boolean contains(T value, T... collection) {
         return indexOf(value, collection) >= 0;
+    }
+
+    /**
+     * 指定されたASTノードが属しているスコープを返す.
+     * @param node ASTノード
+     * @return nodeが属しているスコープ
+     */
+    public static IScope getScope(IASTNode node) {
+        while (node != null && !(node instanceof IASTCompoundStatement)) {
+            node = node.getParent();
+        }
+        if (node != null) {
+            return ((IASTCompoundStatement) node).getScope();
+        }
+        return null;
+    }
+
+    /**
+     * 指定されたASTノードが属しているスコープを、グローバルスコープまでさかのぼってすべて取得する.
+     * @param node ASTノード
+     * @return nodeが属する一番深いスコープが先頭要素となったスコープのリスト
+     */
+    public static List<IScope> getAllScopes(IASTNode node) {
+        ArrayList<IScope> scopes = new ArrayList<IScope>();
+        while (node != null) {
+            if (node instanceof IASTCompoundStatement) {
+                scopes.add(((IASTCompoundStatement) node).getScope());
+            }
+            node = node.getParent();
+        }
+        return scopes;
     }
 }

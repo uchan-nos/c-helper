@@ -3,18 +3,19 @@ package com.github.uchan_nos.c_helper.analysis;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
+import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
@@ -26,7 +27,9 @@ import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.IBinding;
 import org.eclipse.cdt.core.dom.ast.IFunctionType;
+import org.eclipse.cdt.core.dom.ast.IScope;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.core.runtime.CoreException;
 
@@ -255,16 +258,18 @@ public class RDAnalyzer {
      */
     private ArrayList<AssignExpression> getAssignExpressionsOfName(IASTName name) {
         ArrayList<AssignExpression> result = new ArrayList<AssignExpression>();
+        IBinding nameBinding = name.resolveBinding();
+
         for (int i = 0; i < assignList.size(); ++i) {
             IASTNode lhs = assignList.get(i).getLHS();
             if (lhs instanceof IASTName) {
                 IASTName n = (IASTName)lhs;
-                if (Arrays.equals(n.getSimpleID(), name.getSimpleID())) {
+                if (n.resolveBinding().equals(nameBinding)) {
                     result.add(assignList.get(i));
                 }
             } else if (lhs instanceof IASTIdExpression) {
                 IASTIdExpression e = (IASTIdExpression)lhs;
-                if (Arrays.equals(e.getName().getSimpleID(), name.getSimpleID())) {
+                if (e.getName().resolveBinding().equals(nameBinding)) {
                     result.add(assignList.get(i));
                 }
             }
@@ -364,13 +369,33 @@ public class RDAnalyzer {
                     RD<CFG.Vertex> rd =
                             new RDAnalyzer(translationUnit, cfg).analyze();
                     for (CFG.Vertex vertex : Util.sort(cfg.getVertices())) {
+                        IASTNode node = vertex.getASTNode();
+                        IScope[] nodeScopes = Util.getAllScopes(node).toArray(new IScope[] {});
+
                         ArrayList<RDEntry> rdTemp = new ArrayList<RDEntry>();
                         BitSet exitSet = rd.getExitSets().get(vertex);
                         for (int assid = 0; assid < rd.getAssigns().length; ++assid) {
                             if (exitSet.get(assid)) {
                                 AssignExpression assign = rd.getAssigns()[assid];
-                                rdTemp.add(new RDEntry(assign.getLHS().getRawSignature(),
-                                        assign.getRHS() == null ? -1 : assid));
+                                IASTName name = Util.getName(assign.getLHS());
+
+                                try {
+                                    if (Util.contains(name.resolveBinding().getScope(), nodeScopes)) {
+                                        /*
+                                        System.out.println(
+                                                name.toString() + ":"
+                                                + name.getFileLocation().getStartingLineNumber() + " scope in "
+                                                + node.getFileLocation().getStartingLineNumber() + " node scopes");
+                                                */
+                                        rdTemp.add(new RDEntry(
+                                                    assign.getLHS().getRawSignature()
+                                                    + ":"
+                                                    + assign.getLHS().getFileLocation().getStartingLineNumber(),
+                                                    assign.getRHS() == null ? -1 : assid));
+                                    }
+                                } catch (DOMException e) {
+                                    e.printStackTrace();
+                                }
                             }
                         }
                         Collections.sort(rdTemp, new Comparator<RDEntry>() {
