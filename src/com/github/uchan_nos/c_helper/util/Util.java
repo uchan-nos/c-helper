@@ -94,19 +94,14 @@ public class Util {
     /**
      * 指定された名前の到達定義を取得する.
      */
-    public static Set<AssignExpression> getAssigns(AssignExpression[] assigns, BitSet rd, String name) {
+    public static Set<AssignExpression> getAssigns(AssignExpression[] assigns, BitSet rd, IASTName name) {
         Set<AssignExpression> result = new HashSet<AssignExpression>();
         for (AssignExpression ae : assigns) {
             if (rd.get(ae.getId())) {
                 IASTNode lhs = ae.getLHS();
-                String nameOfLhs = null;
-                if (lhs instanceof IASTIdExpression) {
-                    nameOfLhs = ((IASTIdExpression)lhs).getName().toString();
-                } else if (lhs instanceof IASTName) {
-                    nameOfLhs = ((IASTName)lhs).toString();
-                }
+                IASTName nameOfLhs = Util.getName(lhs);
 
-                if (name.equals(nameOfLhs)) {
+                if (name.resolveBinding().equals(nameOfLhs.resolveBinding())) {
                     result.add(ae);
                 }
             }

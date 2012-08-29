@@ -58,7 +58,7 @@ public class SizeofSuggester extends Suggester {
                                 Util.getAssigns(
                                         rd.getAssigns(),
                                         rd.getEntrySets().get(v),
-                                        id.getName().toString());
+                                        id.getName());
 
                         ArrayList<String> beginnerExpectingValues =
                                 new ArrayList<String>();
@@ -109,7 +109,6 @@ public class SizeofSuggester extends Suggester {
                                         message.toString(),
                                         ""));
                             } catch (BadLocationException e) {
-                                // TODO Auto-generated catch block
                                 e.printStackTrace();
                             }
                         }
