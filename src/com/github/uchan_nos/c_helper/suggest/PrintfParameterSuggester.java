@@ -154,10 +154,6 @@ public class PrintfParameterSuggester extends Suggester {
         return suggestions;
     }
 
-    private static final IBasicType.Kind[] INTEGER_TYPE_KINDS =
-        new IBasicType.Kind[] { Kind.eChar, Kind.eInt };
-    private static final IBasicType.Kind[] FLOATING_TYPE_KINDS =
-        new IBasicType.Kind[] { Kind.eFloat, Kind.eDouble };
     private MessageSuggestion suggest(IType type, PrintfFormatAnalyzer.FormatSpecifier spec) {
         PrintfFormatAnalyzer.Type specType =
                 PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type);
@@ -174,9 +170,9 @@ public class PrintfParameterSuggester extends Suggester {
             (IBasicType) pointerToType : null;
 
         final boolean typeIsInteger = typeAsBasic != null
-            && Util.contains(typeAsBasic.getKind(), INTEGER_TYPE_KINDS);
+            && Util.contains(typeAsBasic.getKind(), Kind.eChar, Kind.eInt);
         final boolean typeIsFloating = typeAsBasic != null
-            && Util.contains(typeAsBasic.getKind(), FLOATING_TYPE_KINDS);
+            && Util.contains(typeAsBasic.getKind(), Kind.eFloat, Kind.eDouble);
         final boolean typeIsIntegerPointer =
             typeAsPointer != null
             && pointerToTypeAsBasic != null && pointerToTypeAsBasic.getKind() == Kind.eInt
