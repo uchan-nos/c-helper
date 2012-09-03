@@ -258,6 +258,8 @@ public class PrintfParameterSuggester extends Suggester {
                 specTypeName = "整数型へのポインタ";
             } else if (PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.VOIDPTR) {
                 specTypeName = "voidポインタ";
+            } else if (PrintfFormatAnalyzer.EXPECTED_TYPE.get(spec.type) == Type.STRING) {
+                specTypeName = "文字列へのポインタ";
             }
 
             return new MessageSuggestion(
