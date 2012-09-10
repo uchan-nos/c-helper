@@ -26,6 +26,7 @@ import com.github.uchan_nos.c_helper.suggest.AssignmentToCharSuggester;
 import com.github.uchan_nos.c_helper.suggest.AssumptionManager;
 import com.github.uchan_nos.c_helper.suggest.Assumption;
 import com.github.uchan_nos.c_helper.suggest.CastSuppressingErrorSuggester;
+import com.github.uchan_nos.c_helper.suggest.FileOpenCloseSuggester;
 import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
 import com.github.uchan_nos.c_helper.suggest.PrintfParameterSuggester;
 import com.github.uchan_nos.c_helper.suggest.ReturnOblivionSuggester;
@@ -64,11 +65,10 @@ public class Analyzer {
 
     public void analyze(String filePath, IDocument source) {
         try {
-            /*
             Suggester[] suggesters = {
-                    new PrintfParameterSuggester()
+                    new FileOpenCloseSuggester()
             };
-            */
+            /*
             Suggester[] suggesters = {
                     new SizeofSuggester(),
                     new IndentationSuggester(),
@@ -79,6 +79,8 @@ public class Analyzer {
                     new CastSuppressingErrorSuggester(),
                     new PrintfParameterSuggester()
             };
+            */
+
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
             analysisEnvironment.CHAR_BIT = 8;
             analysisEnvironment.SHORT_BIT = 16;
