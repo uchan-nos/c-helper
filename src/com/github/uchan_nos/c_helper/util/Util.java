@@ -377,4 +377,15 @@ public class Util {
         }
         return scopes;
     }
+
+    /**
+     * 指定されたASTノードが指定された二項演算子を使った二項式かどうかを調べる.
+     * @param node ASTノード
+     * @param operator 期待する二項演算子
+     * @return node が operator を使った二項式なら true
+     */
+    public static boolean isIASTBinaryExpression(IASTNode node, int operator) {
+        return node instanceof IASTBinaryExpression
+            && ((IASTBinaryExpression) node).getOperator() == operator;
+    }
 }
