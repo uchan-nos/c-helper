@@ -57,7 +57,7 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
         }
     }
 
-    public Set<AssignExpression> getInitValue(CFG.Vertex v) {
+    protected Set<AssignExpression> getInitValue(CFG.Vertex v) {
         if (v == getEntryVertex()) {
             Set<AssignExpression> s = new HashSet<AssignExpression>(
                     this.dummyAssignList);
@@ -66,14 +66,14 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
         return new HashSet<AssignExpression>();
     }
 
-    public Set<AssignExpression> transfer(CFG.Vertex v, Set<AssignExpression> set) {
+    protected Set<AssignExpression> transfer(CFG.Vertex v, Set<AssignExpression> set) {
         Set<AssignExpression> exit = new HashSet<AssignExpression>(set);
         exit.removeAll(genkill.get(v).kill);
         exit.addAll(genkill.get(v).gen);
         return exit;
     }
 
-    public Set<AssignExpression> join(Collection<Set<AssignExpression>> sets) {
+    protected Set<AssignExpression> join(Collection<Set<AssignExpression>> sets) {
         Set<AssignExpression> entry = new HashSet<AssignExpression>();
         for (Set<AssignExpression> set : sets) {
             entry.addAll(set);

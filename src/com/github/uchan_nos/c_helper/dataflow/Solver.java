@@ -45,15 +45,15 @@ public abstract class Solver<Vertex, Value> {
     /**
      * 初期値を返す.
      */
-    public abstract Set<Value> getInitValue(Vertex v);
+    protected abstract Set<Value> getInitValue(Vertex v);
 
     /**
      * 遷移関数.
      */
-    public abstract Set<Value> transfer(Vertex v, Set<Value> set);
+    protected abstract Set<Value> transfer(Vertex v, Set<Value> set);
 
     /**
      * join演算子.
      */
-    public abstract Set<Value> join(Collection<Set<Value>> sets);
+    protected abstract Set<Value> join(Collection<Set<Value>> sets);
 }
