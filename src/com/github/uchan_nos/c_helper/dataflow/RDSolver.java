@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -28,21 +27,10 @@ import com.github.uchan_nos.c_helper.analysis.Parser;
 
 import com.github.uchan_nos.c_helper.util.Util;
 
-public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
-    // gen, kill集合を保持する構造体
-    private static class GenKill {
-        final public Set<AssignExpression> gen;
-        final public Set<AssignExpression> kill;
-        public GenKill(Set<AssignExpression> gen, Set<AssignExpression> kill) {
-            this.gen = gen;
-            this.kill = kill;
-        }
-    }
-
+public class RDSolver extends GenKillForwardSolver<CFG.Vertex, AssignExpression> {
     private ArrayList<AssignExpression> assignList; // cfgに含まれる代入文のリスト（DummyAssignExpressionを含む）
     private Set<IASTIdExpression> idExpressionList; // cfgに含まれるID式のリスト
     private ArrayList<DummyAssignExpression> dummyAssignList; // cfgに含まれるダミー変数定義のリスト
-    private Map<CFG.Vertex, GenKill> genkill;
 
     public RDSolver(IGraph<CFG.Vertex> cfg, CFG.Vertex entryVertex, IASTTranslationUnit ast) {
         super(cfg, entryVertex);
@@ -50,11 +38,6 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
         this.idExpressionList = createIdExpressionList(ast);
         this.dummyAssignList = createInitialAssigns(this.assignList.size(), this.idExpressionList);
         this.assignList.addAll(this.dummyAssignList);
-
-        this.genkill = new HashMap<CFG.Vertex, GenKill>();
-        for (CFG.Vertex v : getCFG().getVertices()) {
-            this.genkill.put(v, createGenKill(v));
-        }
     }
 
     protected Set<AssignExpression> getInitValue(CFG.Vertex v) {
@@ -64,13 +47,6 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
             return s;
         }
         return new HashSet<AssignExpression>();
-    }
-
-    protected Set<AssignExpression> transfer(CFG.Vertex v, Set<AssignExpression> set) {
-        Set<AssignExpression> exit = new HashSet<AssignExpression>(set);
-        exit.removeAll(genkill.get(v).kill);
-        exit.addAll(genkill.get(v).gen);
-        return exit;
     }
 
     protected Set<AssignExpression> join(Collection<Set<AssignExpression>> sets) {
@@ -86,19 +62,20 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
      * @param v gen, kill集合を生成したい頂点
      * @return gen, kill集合
      */
-    private GenKill createGenKill(CFG.Vertex v) {
-        GenKill result = null;
+    @Override
+    protected GenKill<AssignExpression> getGenKill(CFG.Vertex v) {
+        GenKill<AssignExpression> result = null;
         if (v.getASTNode() != null) {
             result = createGenKill(v.getASTNode());
         }
         if (result == null) {
-            result = new GenKill(new HashSet<AssignExpression>(), new HashSet<AssignExpression>());
+            result = new GenKill<AssignExpression>(new HashSet<AssignExpression>(), new HashSet<AssignExpression>());
         }
         return result;
     }
 
     // 指定されたASTノードのgen, kill集合を生成する.
-    private GenKill createGenKill(IASTNode ast) {
+    private GenKill<AssignExpression> createGenKill(IASTNode ast) {
         if (ast instanceof IASTExpressionStatement) {
             return createGenKill((IASTExpressionStatement)ast);
         } else if (ast instanceof IASTDeclarationStatement) {
@@ -107,7 +84,7 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
         return null;
     }
 
-    private GenKill createGenKill(IASTExpressionStatement ast) {
+    private GenKill<AssignExpression> createGenKill(IASTExpressionStatement ast) {
         // 代入に対応したgen, kill
         AssignExpression assign = getAssignExpressionOfNode(ast.getExpression());
         ArrayList<AssignExpression> killedAssigns = null;
@@ -123,13 +100,13 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
             Set<AssignExpression> gen = new HashSet<AssignExpression>();
             Set<AssignExpression> kill = new HashSet<AssignExpression>(killedAssigns);
             gen.add(assign);
-            return new GenKill(gen, kill);
+            return new GenKill<AssignExpression>(gen, kill);
         }
         return null;
 
     }
 
-    private GenKill createGenKill(IASTDeclarationStatement ast) {
+    private GenKill<AssignExpression> createGenKill(IASTDeclarationStatement ast) {
         // 初期化付き変数定義に対応したgen, kill
         if (ast.getDeclaration() instanceof IASTSimpleDeclaration) {
             IASTDeclarator[] declarators =
@@ -155,7 +132,7 @@ public class RDSolver extends ForwardSolver<CFG.Vertex, AssignExpression> {
                 }
             }
 
-            return new GenKill(gen, kill);
+            return new GenKill<AssignExpression>(gen, kill);
         }
         return null;
     }
