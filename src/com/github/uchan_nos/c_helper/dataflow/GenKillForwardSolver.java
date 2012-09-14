@@ -1,10 +1,7 @@
 package com.github.uchan_nos.c_helper.dataflow;
 
-import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 import com.github.uchan_nos.c_helper.analysis.IGraph;
@@ -14,67 +11,39 @@ public abstract class GenKillForwardSolver<Vertex, Value> extends ForwardSolver<
         super(cfg, entryVertex);
     }
 
+    private Map<Vertex, GenKill<Value>> genkill = null;
+
     /**
      * データフロー解析を行い、結果を返す.
      */
     @Override
-    public Result<Vertex,Value> solve() {
-        Result<Vertex, Value> sets = new Result<Vertex, Value>(
-                new HashMap<Vertex, Set<Value>>(),
-                new HashMap<Vertex, Set<Value>>());
-
-        Map<Vertex, GenKill<Value>> genkill = new HashMap<Vertex, GenKill<Value>>();
-
-        // 集合を初期化する
+    public Result<Vertex, Value> solve() {
+        // gen/kill集合を生成
+        this.genkill = new HashMap<Vertex, GenKill<Value>>();
         for (Vertex v : getCFG().getVertices()) {
-            sets.entrySet.put(v, getInitValue(v));
             genkill.put(v, getGenKill(v));
         }
 
-        // forward 解析する
-        solveForward(sets, genkill);
-        return sets;
-    }
+        // 解析実行
+        Result<Vertex, Value> result = super.solve();
 
-    private void solveForward(Result<Vertex, Value> sets, Map<Vertex, GenKill<Value>> genkill) {
-        Queue<Vertex> remainVertices = new ArrayDeque<Vertex>();
-        Set<Vertex> visitedVertices = new HashSet<Vertex>();
-
-        Map<Vertex, Set<Value>> prevExitSet = new HashMap<Vertex, Set<Value>>();
-        final Set<Value> entryOfEntryVertex = sets.entrySet.get(getEntryVertex());
-
-        Vertex v;
-        do {
-            prevExitSet.putAll(sets.exitSet);
-            visitedVertices.clear();
-            remainVertices.add(getEntryVertex());
-
-            while ((v = remainVertices.poll()) != null && !visitedVertices.contains(v)) {
-                visitedVertices.add(v);
-                Set<Vertex> connectedVertices = getCFG().getConnectedVerticesFrom(v);
-                for (Vertex nextVisit : connectedVertices) {
-                    remainVertices.add(nextVisit);
-                }
-
-                // 頂点 v の入口値を取得
-                Set<Value> entrySet = getEntrySet(v, entryOfEntryVertex, sets);
-                sets.entrySet.put(v, entrySet);
-
-                // 頂点 v の入口値を基に、gen/killで 出口値 を計算する
-                Set<Value> exitSet = new HashSet<Value>(entrySet);
-                exitSet.removeAll(genkill.get(v).kill);
-                exitSet.addAll(genkill.get(v).gen);
-                sets.exitSet.put(v, exitSet);
-            }
-        } while (!sets.exitSet.equals(prevExitSet));
+        // 後片付け
+        this.genkill = null;
+        return result;
     }
 
     /**
      * 遷移関数.
-     * gen/kill形式では使わないので封印.
      */
-    protected final Set<Value> transfer(Vertex v, Set<Value> set) {
-        return null;
+    protected boolean transfer(Vertex v, Set<Value> entry, Set<Value> result) {
+        Set<Value> oldResult = clone(result);
+
+        final GenKill<Value> gk = genkill.get(v);
+        result.addAll(entry);
+        result.removeAll(gk.kill);
+        result.addAll(gk.gen);
+
+        return !result.equals(oldResult);
     }
 
     /**

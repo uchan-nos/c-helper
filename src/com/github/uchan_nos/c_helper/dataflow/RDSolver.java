@@ -40,21 +40,25 @@ public class RDSolver extends GenKillForwardSolver<CFG.Vertex, AssignExpression>
         this.assignList.addAll(this.dummyAssignList);
     }
 
-    protected Set<AssignExpression> getInitValue(CFG.Vertex v) {
-        if (v == getEntryVertex()) {
-            Set<AssignExpression> s = new HashSet<AssignExpression>(
-                    this.dummyAssignList);
-            return s;
-        }
+    @Override
+    protected Set<AssignExpression> getInitValue() {
+        return new HashSet<AssignExpression>(this.dummyAssignList);
+    }
+
+    @Override
+    protected Set<AssignExpression> createDefaultSet() {
         return new HashSet<AssignExpression>();
     }
 
-    protected Set<AssignExpression> join(Collection<Set<AssignExpression>> sets) {
-        Set<AssignExpression> entry = new HashSet<AssignExpression>();
-        for (Set<AssignExpression> set : sets) {
-            entry.addAll(set);
-        }
-        return entry;
+    @Override
+    protected boolean join(Set<AssignExpression> result,
+            Set<AssignExpression> set) {
+        return result.addAll(set);
+    }
+
+    @Override
+    protected Set<AssignExpression> clone(Set<AssignExpression> set) {
+        return new HashSet<AssignExpression>(set);
     }
 
     /**
@@ -269,14 +273,19 @@ public class RDSolver extends GenKillForwardSolver<CFG.Vertex, AssignExpression>
                 for (Entry<String, CFG> entry : procToCFG.entrySet()) {
                     CFG cfg = entry.getValue();
                     System.out.println("function " + entry.getKey());
+
+                    long start = System.currentTimeMillis();
                     Solver.Result<CFG.Vertex, AssignExpression> rd =
                         new RDSolver(cfg, cfg.entryVertex(), translationUnit).solve();
+                    long end = System.currentTimeMillis();
+                    System.out.println("time ellapsed: " + (end - start) + "ms");
+
                     for (CFG.Vertex vertex : Util.sort(cfg.getVertices())) {
                         IASTNode node = vertex.getASTNode();
                         IScope[] nodeScopes = Util.getAllScopes(node).toArray(new IScope[] {});
 
                         ArrayList<RDEntry> rdTemp = new ArrayList<RDEntry>();
-                        Set<AssignExpression> exitSet = rd.exitSet.get(vertex);
+                        Set<AssignExpression> exitSet = rd.analysisValue.get(vertex).exit();
                         for (AssignExpression assign : exitSet) {
                             IASTName name = Util.getName(assign.getLHS());
 
@@ -323,5 +332,6 @@ public class RDSolver extends GenKillForwardSolver<CFG.Vertex, AssignExpression>
             }
         }
     }
+
 }
 

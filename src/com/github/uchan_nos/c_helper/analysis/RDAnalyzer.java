@@ -366,8 +366,13 @@ public class RDAnalyzer {
                 for (Entry<String, CFG> entry : procToCFG.entrySet()) {
                     CFG cfg = entry.getValue();
                     System.out.println("function " + entry.getKey());
+
+                    long start = System.currentTimeMillis();
                     RD<CFG.Vertex> rd =
                             new RDAnalyzer(translationUnit, cfg).analyze();
+                    long end = System.currentTimeMillis();
+                    System.out.println("time ellapsed: " + (end - start) + "ms");
+
                     for (CFG.Vertex vertex : Util.sort(cfg.getVertices())) {
                         IASTNode node = vertex.getASTNode();
                         IScope[] nodeScopes = Util.getAllScopes(node).toArray(new IScope[] {});
