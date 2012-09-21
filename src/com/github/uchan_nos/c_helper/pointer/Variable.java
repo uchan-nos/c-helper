@@ -2,6 +2,8 @@ package com.github.uchan_nos.c_helper.pointer;
 
 import org.eclipse.cdt.core.dom.ast.IASTName;
 
+import com.github.uchan_nos.c_helper.util.Util;
+
 /**
  * 1つの変数を表す不変オブジェクト.
  */
@@ -28,17 +30,17 @@ public class Variable {
             return false;
         }
         Variable v = (Variable) o;
-        return this.name.equals(v.name)
+        return Util.equalsOrBothNull(this.name, v.name)
             && this.status == v.status
-            && this.value.equals(v.value);
+            && Util.equalsOrBothNull(this.value, v.value);
     }
 
     @Override
     public final int hashCode() {
         int result = 17;
-        result = 31 * result + name.hashCode();
+        result = 31 * result + (name == null ? 0 : name.hashCode());
         result = 31 * result + status.ordinal();
-        result = 31 * result + value.hashCode();
+        result = 31 * result + (value == null ? 0 : value.hashCode());
         return result;
     }
 

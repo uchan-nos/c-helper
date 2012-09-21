@@ -388,4 +388,13 @@ public class Util {
         return node instanceof IASTBinaryExpression
             && ((IASTBinaryExpression) node).getOperator() == operator;
     }
+
+    /**
+     * 指定された2つのオブジェクトが等しいか調べる.
+     * 2つのオブジェクトが共にnullなら true.
+     * そうでなければequalsを呼び出す.
+     */
+    public static boolean equalsOrBothNull(Object a, Object b) {
+        return (a == null ? b == null : a.equals(b));
+    }
 }
