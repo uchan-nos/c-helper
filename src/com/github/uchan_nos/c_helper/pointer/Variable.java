@@ -22,16 +22,24 @@ public class Variable {
         this.value = value;
     }
 
-    public IASTName name() {
-        return name;
+    @Override
+    public final boolean equals(Object o) {
+        if (!(o instanceof Variable)) {
+            return false;
+        }
+        Variable v = (Variable) o;
+        return this.name.equals(v.name)
+            && this.status == v.status
+            && this.value.equals(v.value);
     }
 
-    public States status() {
-        return status;
-    }
-
-    public Address value() {
-        return value;
+    @Override
+    public final int hashCode() {
+        int result = 17;
+        result = 31 * result + name.hashCode();
+        result = 31 * result + status.ordinal();
+        result = 31 * result + value.hashCode();
+        return result;
     }
 
     @Override
@@ -45,5 +53,17 @@ public class Variable {
         sb.append(value.toString());
         sb.append(')');
         return sb.toString();
+    }
+
+    public IASTName name() {
+        return name;
+    }
+
+    public States status() {
+        return status;
+    }
+
+    public Address value() {
+        return value;
     }
 }
