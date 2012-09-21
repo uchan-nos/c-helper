@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ILinkage;
 import org.eclipse.cdt.core.dom.ast.ASTNodeProperty;
@@ -35,7 +37,7 @@ public class MemoryStatusTest {
     }
 
     @Test
-    public void test() {
+    public void equalityTest() {
         ArrayList<IASTName> names = new ArrayList<IASTName>();
         map(
                 Arrays.asList("p", "q"),
@@ -62,6 +64,39 @@ public class MemoryStatusTest {
         s0.update(new Variable(new VarName("p"), Variable.States.POINTING, new DummyAddress(12)));
         assertEquals(s0, s1);
         assertEquals(s1, s0);
+    }
+
+    @Test
+    public void collectionTest() {
+        ArrayList<IASTName> names = new ArrayList<IASTName>();
+        map(
+                Arrays.asList("p", "q"),
+                new Function<IASTName, String>() {
+                    @Override
+                    public IASTName calc(String arg) {
+                        return new VarName(arg);
+                    }
+                },
+                names
+            );
+
+        MemoryStatus ms0 = new MemoryStatus(names);
+        ms0.update(
+                new Variable(new VarName("p"), Variable.States.POINTING, new DummyAddress(1)),
+                new Variable(new VarName("q"), Variable.States.POINTING, new DummyAddress(2))
+                );
+        MemoryStatus ms1 = new MemoryStatus(ms0);
+
+        assertEquals(1, (new HashSet<MemoryStatus>(Arrays.asList(ms0, ms1))).size());
+
+        ms1.update(new Variable(new VarName("p"), Variable.States.NULL, null));
+        assertEquals(2, (new HashSet<MemoryStatus>(Arrays.asList(ms0, ms1))).size());
+
+        ms1.update(new Variable(new VarName("p"), Variable.States.POINTING, new DummyAddress(3)));
+        assertEquals(2, (new HashSet<MemoryStatus>(Arrays.asList(ms0, ms1))).size());
+
+        ms0.update(new Variable(new VarName("p"), Variable.States.POINTING, new DummyAddress(3)));
+        assertEquals(1, (new HashSet<MemoryStatus>(Arrays.asList(ms0, ms1))).size());
     }
 
     private static <Ret, Arg> void map(Collection<Arg> arg, Function<Ret, Arg> f, Collection<Ret> ret) {
