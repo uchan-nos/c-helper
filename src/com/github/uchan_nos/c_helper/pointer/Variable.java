@@ -33,4 +33,17 @@ public class Variable {
     public Address value() {
         return value;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append('(');
+        sb.append(name.getSimpleID());
+        sb.append(',');
+        sb.append(status.toString());
+        sb.append(',');
+        sb.append(value.toString());
+        sb.append(')');
+        return sb.toString();
+    }
 }
