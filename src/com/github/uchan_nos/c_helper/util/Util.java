@@ -9,6 +9,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -396,5 +397,70 @@ public class Util {
      */
     public static boolean equalsOrBothNull(Object a, Object b) {
         return (a == null ? b == null : a.equals(b));
+    }
+
+    /**
+     * 指定されたASTノードに含まれるすべての変数名を取得する.
+     * すべてのIASTNameのうち、resolveBinding() instanceof IVariable
+     * であるIASTNameのコレクションを返す.
+     */
+    public static Collection<IASTName> getAllVariableNames(IASTNode node) {
+        ASTFilter filter = new ASTFilter(node);
+        Collection<IASTNode> names = filter.filter(
+                new ASTFilter.Predicate() {
+                    @Override
+                    public boolean pass(IASTNode n) {
+                        return n instanceof IASTName;
+                    }
+                });
+
+        Set<IASTName> variableNames = new HashSet<IASTName>();
+        for (IASTNode n : names) {
+            IASTName name = (IASTName) n;
+            IBinding binding = name.resolveBinding();
+            if (binding instanceof IVariable) {
+                variableNames.add(name);
+            }
+        }
+
+        return variableNames;
+    }
+
+    /**
+     * 汎用の関数インターフェース.
+     */
+    public interface Function<Ret, Arg> {
+        Ret calc(Arg arg);
+    }
+
+    /**
+     * 汎用の述語インターフェース.
+     */
+    public interface Predicate<T> {
+        boolean calc(T arg);
+    }
+
+    /**
+     * arg の要素すべてに f を適用した結果を ret に格納する.
+     */
+    public static <Ret, Arg> Collection<Ret> map(Collection<Arg> arg, Function<Ret, Arg> f, Collection<Ret> ret) {
+        ret.clear();
+        for (Arg elem : arg) {
+            ret.add(f.calc(elem));
+        }
+        return ret;
+    }
+
+    /**
+     * arg の要素のうち p が成り立つ要素のみ ret に格納する.
+     */
+    public static <T> Collection<T> filter(Collection<T> arg, Predicate<T> p, Collection<T> ret) {
+        ret.clear();
+        for (T elem : arg) {
+            if (p.calc(elem)) {
+                ret.add(elem);
+            }
+        }
+        return ret;
     }
 }
