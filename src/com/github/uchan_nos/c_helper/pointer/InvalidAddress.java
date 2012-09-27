@@ -6,4 +6,7 @@ package com.github.uchan_nos.c_helper.pointer;
  * （アドレスではない整数をキャストしたアドレスなど）
  */
 public class InvalidAddress extends Address {
+
+    public static final InvalidAddress NULL = new InvalidAddress();
+
 }
