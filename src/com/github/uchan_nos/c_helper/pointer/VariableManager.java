@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IVariable;
 
+import com.github.uchan_nos.c_helper.util.Util;
+
 /**
  * 変数の状態を管理する.
  * 変数は明示的に割り当てられない限り Undefined を示す.
@@ -20,6 +22,20 @@ public class VariableManager {
     public VariableManager(VariableManager o) {
         // Variable が不変オブジェクトなので，シャローコピーする
         this.variables = new HashMap<IVariable, Variable>(o.variables);
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (!(o instanceof VariableManager)) {
+            return false;
+        }
+        VariableManager m = (VariableManager) o;
+        return Util.equalsOrBothNull(this.variables, m.variables);
+    }
+
+    @Override
+    public final int hashCode() {
+        return variables.hashCode();
     }
 
     /**
