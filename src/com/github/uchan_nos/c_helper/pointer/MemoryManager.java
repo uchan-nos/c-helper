@@ -1,6 +1,7 @@
 package com.github.uchan_nos.c_helper.pointer;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class MemoryManager {
@@ -29,6 +30,25 @@ public class MemoryManager {
     @Override
     public int hashCode() {
         return this.memoryBlocks.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        Iterator<MemoryBlock> it = memoryBlocks.iterator();
+        if (it.hasNext()) {
+            sb.append(it.next().toString());
+
+            while (it.hasNext()) {
+                sb.append(',');
+                sb.append(it.next().toString());
+            }
+        } else {
+            sb.append("empty-mem-mgr");
+        }
+
+        return sb.toString();
     }
 
     /**
