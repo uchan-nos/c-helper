@@ -54,6 +54,14 @@ public class VariableManager {
     }
 
     /**
+     * 指定されたバインディングを持つ変数を返す.
+     * 登録されていないなら null を返す.
+     */
+    public Variable get(IVariable v) {
+        return variables.get(v);
+    }
+
+    /**
      * 指定された変数を登録する.
      * もし指定された変数が既にこのマネージャに登録されているなら、上書きする.
      */
