@@ -47,12 +47,12 @@ public class Variable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        sb.append(binding.getName());
+        sb.append("VAR(");
+        sb.append(String.valueOf(binding));
         sb.append(',');
-        sb.append(status.toString());
+        sb.append(String.valueOf(status));
         sb.append(',');
-        sb.append(value.toString());
+        sb.append(String.valueOf(value));
         sb.append(')');
         return sb.toString();
     }

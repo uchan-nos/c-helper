@@ -1,7 +1,12 @@
 package com.github.uchan_nos.c_helper.pointer;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IVariable;
@@ -36,6 +41,45 @@ public class VariableManager {
     @Override
     public final int hashCode() {
         return variables.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        List<IVariable> keys = new ArrayList<IVariable>(variables.keySet());
+
+        Collections.sort(keys,
+                new Comparator<IVariable>() {
+                    @Override public int compare(IVariable o1, IVariable o2) {
+                        String o1_ = o1.getName();
+                        if (o1_ == null) {
+                            return o2.getName() == null ? 0 : -1;
+                        }
+                        return o1_.compareTo(o2.getName());
+                    }
+                });
+
+        /*
+        Util.Function<String, Variable> varToString = new Util.Function<String, Variable>() {
+            @Override public String calc(Variable arg) {
+                return arg.binding().getName() +
+                    ((arg.status() == Variable.States.UNDEFINED) ? "?" : ("->" + arg.value()));
+            }};
+            */
+
+        Iterator<IVariable> it = keys.iterator();
+        if (it.hasNext()) {
+            sb.append(variables.get(it.next()).toString());
+
+            while (it.hasNext()) {
+                sb.append(',');
+                sb.append(variables.get(it.next()).toString());
+            }
+        } else {
+            sb.append("empty-var-mgr");
+        }
+
+        return sb.toString();
     }
 
     /**

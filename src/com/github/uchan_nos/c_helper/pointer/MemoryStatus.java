@@ -34,6 +34,11 @@ public class MemoryStatus {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return "MemoryStatus(" + variableManager.toString() + "," + memoryManager.toString() + ")";
+    }
+
     public void update(Variable... vs) {
         for (Variable v : vs) {
             this.variableManager.put(v);

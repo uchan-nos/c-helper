@@ -77,6 +77,7 @@ public class ASTPrinter {
     }
 
     private void createEdge(IASTNode node) {
+        int i = 0;
         for (IASTNode child : node.getChildren()) {
             this.dotBuilder.append(nodePrefix);
             this.dotBuilder.append('v');
@@ -85,8 +86,12 @@ public class ASTPrinter {
             this.dotBuilder.append(nodePrefix);
             this.dotBuilder.append('v');
             this.dotBuilder.append(nodeIdMap.get(child));
-            this.dotBuilder.append('\n');
+            this.dotBuilder.append(" [label=\"");
+            this.dotBuilder.append(i);
+            this.dotBuilder.append("\"]\n");
             createEdge(child);
+
+            ++i;
         }
     }
 

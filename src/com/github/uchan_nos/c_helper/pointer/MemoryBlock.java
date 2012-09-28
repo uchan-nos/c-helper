@@ -46,6 +46,19 @@ public class MemoryBlock {
         return result;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MB(id=");
+        sb.append(id);
+        sb.append(',');
+        sb.append(allocated);
+        sb.append(',');
+        sb.append(refCount);
+        sb.append(')');
+        return sb.toString();
+    }
+
     /**
      * このメモリブロックの参照カウントを1増加させる.
      */
