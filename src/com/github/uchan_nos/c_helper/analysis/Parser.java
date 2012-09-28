@@ -64,4 +64,19 @@ public class Parser {
                         index, options, log);
         return translationUnit;
    }
+
+    /**
+     * ソースコードをパースし、ASTを返す.
+     * 内部でparse()を呼び出す.
+     * パースに失敗した場合はnullを返す.
+     * @return ソースコード全体のAST, またはnull.
+     */
+    public IASTTranslationUnit parseOrNull() {
+       try {
+           IASTTranslationUnit tu = parse();
+           return tu;
+       } catch (CoreException e) {
+           return null;
+       }
+   }
 }
