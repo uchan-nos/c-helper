@@ -463,4 +463,20 @@ public class Util {
         }
         return ret;
     }
+
+    /**
+     * 指定されたASTノードの子要素を、指定されたインデックスでたどる.
+     * インデックスが複数指定された場合、指定された個数だけ奥に潜っていく.
+     * nodeが持つ子要素の階層より指定されたインデックスの個数が多いならnullを返す.
+     */
+    public static IASTNode getChildNode(IASTNode node, int... indices) {
+        for (int i : indices) {
+            if (node == null) {
+                return null;
+            } else {
+                node = node.getChildren()[i];
+            }
+        }
+        return node;
+    }
 }
