@@ -22,6 +22,7 @@ import com.github.uchan_nos.c_helper.analysis.Parser;
 
 import com.github.uchan_nos.c_helper.dataflow.ForwardSolver;
 
+import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
@@ -67,12 +68,22 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
     public Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
         // malloc呼び出しへのすべてのパスを取得
-        List<List<IASTNode>> pathToMalloc =
-            MallocCallFinder.findPathToMalloc(ast);
+        ASTFilter.Predicate mallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("malloc");
+        List<List<IASTNode>> pathToMalloc = ASTPathFinder.findPath(ast, mallocCallPredicate);
 
-        if (pathToMalloc.size() == 1) {
-            return analyzeMalloc(pathToMalloc.get(0), entry);
-        } else if (pathToMalloc.size() > 1) {
+        // free呼び出しへのすべてのパスを取得
+        ASTFilter.Predicate freeCallPredicate = ASTPathFinder.createFunctionCallPredicate("free");
+        List<List<IASTNode>> pathToFree = ASTPathFinder.findPath(ast, freeCallPredicate);
+
+        if (pathToMalloc.size() >= 1) {
+            if (pathToMalloc.size() == 1) {
+                return analyzeMalloc(pathToMalloc.get(0), entry);
+            }
+            throw new UnsupportedOperationException();
+        } else if (pathToFree.size() >= 1) {
+            if (pathToFree.size() == 1) {
+                return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
+            }
             throw new UnsupportedOperationException();
         } else {
             return entry;
@@ -251,6 +262,34 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                     result.add(newStatus);
                 }
             }
+        }
+
+        return result;
+    }
+
+    private Set<MemoryStatus> analyzeFree(
+            List<IASTNode> pathToFree, Set<MemoryStatus> entry) {
+
+        // free呼び出しのノードから上方向へトラバース
+        ListIterator<IASTNode> it = pathToFree.listIterator(pathToFree.size());
+        IASTNode node = it.previous();
+
+        // pathToFreeの一番後ろの要素はfree呼び出し式でなければならない
+        assert node instanceof IASTFunctionCallExpression
+            && Util.getName(((IASTFunctionCallExpression) node).getFunctionNameExpression())
+                .resolveBinding().equals("free");
+
+        // free呼び出し後の状態を計算
+        Set<MemoryStatus> afterFreeStatusSet = evalFree(entry, ((IASTFunctionCallExpression) node).getArgument());
+
+        return afterFreeStatusSet;
+    }
+
+    // free(..)
+    private Set<MemoryStatus> evalFree(Set<MemoryStatus> entry) {
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+
+        for (MemoryStatus s : entry) {
         }
 
         return result;
