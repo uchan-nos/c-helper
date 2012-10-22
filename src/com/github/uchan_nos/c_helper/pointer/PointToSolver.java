@@ -69,6 +69,19 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         ASTFilter.Predicate freeCallPredicate = ASTPathFinder.createFunctionCallPredicate("free");
         List<List<IASTNode>> pathToFree = ASTPathFinder.findPath(ast, freeCallPredicate);
 
+        // NULL代入へのすべてのパスを取得
+        ASTFilter.Predicate nullAssignPredicate = new ASTFilter.Predicate() {
+            @Override public boolean pass(IASTNode node) {
+                if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
+                    IASTBinaryExpression be = (IASTBinaryExpression) node;
+                    return be.getOperand2() instanceof IASTIdExpression
+                            && Util.getName(be.getOperand2()).resolveBinding().getName().equals("NULL");
+                }
+                return false;
+            }
+        };
+        List<List<IASTNode>> pathToNullAssign = ASTPathFinder.findPath(ast, nullAssignPredicate);
+
         if (pathToMalloc.size() >= 1) {
             if (pathToMalloc.size() == 1) {
                 return analyzeMalloc(pathToMalloc.get(0), entry);
@@ -78,6 +91,11 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             if (pathToFree.size() == 1) {
                 //return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
                 return entry;
+            }
+            throw new UnsupportedOperationException();
+        } else if (pathToNullAssign.size() >= 1) {
+            if (pathToNullAssign.size() == 1) {
+                return analyzeNullAssign(pathToNullAssign.get(0), entry);
             }
             throw new UnsupportedOperationException();
         } else {
@@ -252,6 +270,36 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         return result;
     }
 
+    // p = NULL
+    private Set<MemoryStatus> evalAssignNullToVariable(
+            IASTBinaryExpression assignNode, Set<MemoryStatus> entry) {
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+
+        if (assignNode.getOperand1() instanceof IASTIdExpression) {
+            IBinding lhsBinding = Util.getName(assignNode.getOperand1()).resolveBinding();
+
+            if (lhsBinding instanceof IVariable) {
+                // 普通の変数への代入
+                IVariable lhs = (IVariable) lhsBinding;
+
+                for (MemoryStatus elem : entry) {
+                    MemoryStatus newStatus = new MemoryStatus(elem);
+
+                    unrefIfPointingToHeapAddress(lhs, newStatus);
+
+                    newStatus.variableManager().put(new Variable(
+                                lhs,
+                                Variable.States.NULL,
+                                null));
+
+                    result.add(newStatus);
+                }
+            }
+        }
+        return result;
+    }
+
+
     /*
     private Set<MemoryStatus> analyzeFree(
             List<IASTNode> pathToFree, Set<MemoryStatus> entry) {
@@ -281,6 +329,59 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         return result;
     }
     */
+
+    private Set<MemoryStatus> analyzeNullAssign(
+            List<IASTNode> pathToNullAssign, Set<MemoryStatus> entry) {
+
+        // NULL代入のノードから上方向へトラバース
+        ListIterator<IASTNode> it = pathToNullAssign.listIterator(pathToNullAssign.size());
+        IASTNode node = it.previous();
+
+        // pathToNullAssignの一番後ろの要素はNULL代入式でなければならない
+        assert node instanceof IASTBinaryExpression
+            && Util.getName(((IASTBinaryExpression) node).getOperand2())
+                .resolveBinding().getName().equals("NULL");
+
+        IASTBinaryExpression be = (IASTBinaryExpression) node;
+        IASTName lhsName = Util.getName(be.getOperand1());
+        IBinding lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+
+        if (lhsBinding instanceof IVariable) {
+            // hoge = NULL
+            Set<MemoryStatus> intermediateStatus = evalAssignNullToVariable(be, entry);
+
+            // a = b = .. = NULL
+            // という形なら=の続く限り解析し、最終的な状態を全体の状態とする
+            IVariable rhsBinding = (IVariable) lhsBinding;
+            while (it.hasPrevious() && rhsBinding != null) {
+                node = it.previous();
+                if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
+                    be = (IASTBinaryExpression) node;
+                    lhsName = Util.getName(be.getOperand1());
+                    lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+
+                    // hoge = foo
+                    intermediateStatus = evalAssignVariableToVariable(
+                            be, rhsBinding, intermediateStatus);
+
+                    rhsBinding = lhsBinding instanceof IVariable ? (IVariable) lhsBinding : null;
+                } else {
+                    break;
+                }
+            }
+
+            if (node == pathToNullAssign.get(0)) {
+                // 最後までトラバースできた場合
+                return intermediateStatus;
+            } else {
+                System.out.println("Not supported syntax");
+                return intermediateStatus;
+            }
+        }
+
+        return entry;
+    }
+
 
     private static void refIfPointingToHeapAddress(
             IVariable var, MemoryStatus status) {
