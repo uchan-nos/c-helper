@@ -95,7 +95,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         // pathToMallocの一番後ろの要素はmalloc呼び出し式でなければならない
         assert node instanceof IASTFunctionCallExpression
             && Util.getName(((IASTFunctionCallExpression) node).getFunctionNameExpression())
-                .resolveBinding().equals("malloc");
+                .resolveBinding().getName().equals("malloc");
 
         // malloc呼び出し後の状態を計算
         Set<MallocEvalElement> afterMallocStatusSet = evalMalloc(entry);
