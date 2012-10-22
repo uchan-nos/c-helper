@@ -12,11 +12,12 @@ import org.junit.Test;
 
 import com.github.uchan_nos.c_helper.analysis.Parser;
 
-import com.github.uchan_nos.c_helper.pointer.MallocCallFinder;
+import com.github.uchan_nos.c_helper.pointer.ASTPathFinder;
 
+import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.Util;
 
-public class MallocCallFinderTest {
+public class ASTPathFinderTest {
     @Test
     public void findPathTest1() {
         final String src =
@@ -33,8 +34,10 @@ public class MallocCallFinderTest {
 
         List<List<IASTNode>> pathToMalloc = null;
 
+        ASTFilter.Predicate mallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("malloc");
+
         // char *p = malloc(10), *q;
-        pathToMalloc = MallocCallFinder.findPathToMalloc(Util.getChildNode(decls.get(0), 2, 0));
+        pathToMalloc = ASTPathFinder.findPath(Util.getChildNode(decls.get(0), 2, 0), mallocCallPredicate);
         assertEquals(1, pathToMalloc.size());
         assertEquals(5, pathToMalloc.get(0).size());
         assertTrue(isSameOrder(pathToMalloc.get(0),
@@ -46,11 +49,11 @@ public class MallocCallFinderTest {
                     ));
 
         // q = NULL;
-        pathToMalloc = MallocCallFinder.findPathToMalloc(Util.getChildNode(decls.get(0), 2, 1));
+        pathToMalloc = ASTPathFinder.findPath(Util.getChildNode(decls.get(0), 2, 1), mallocCallPredicate);
         assertEquals(0, pathToMalloc.size());
 
         // p = q = malloc(30);
-        pathToMalloc = MallocCallFinder.findPathToMalloc(Util.getChildNode(decls.get(0), 2, 3));
+        pathToMalloc = ASTPathFinder.findPath(Util.getChildNode(decls.get(0), 2, 3), mallocCallPredicate);
         assertEquals(1, pathToMalloc.size());
         assertEquals(4, pathToMalloc.get(0).size());
         assertTrue(isSameOrder(pathToMalloc.get(0),
@@ -60,7 +63,7 @@ public class MallocCallFinderTest {
                     IASTFunctionCallExpression.class
                     ));
 
-        pathToMalloc = MallocCallFinder.findPathToMalloc(Util.getChildNode(decls.get(0), 2));
+        pathToMalloc = ASTPathFinder.findPath(Util.getChildNode(decls.get(0), 2), mallocCallPredicate);
         assertEquals(3, pathToMalloc.size());
     }
 
