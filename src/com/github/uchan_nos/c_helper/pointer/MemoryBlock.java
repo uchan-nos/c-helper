@@ -52,8 +52,8 @@ public class MemoryBlock {
         sb.append("MB(id=");
         sb.append(id);
         sb.append(',');
-        sb.append(allocated);
-        sb.append(',');
+        sb.append(allocated ? "allocated" : "released");
+        sb.append(",rc=");
         sb.append(refCount);
         sb.append(')');
         return sb.toString();

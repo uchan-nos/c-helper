@@ -20,8 +20,10 @@ import com.github.uchan_nos.c_helper.analysis.CFGCreator;
 import com.github.uchan_nos.c_helper.analysis.IGraph;
 import com.github.uchan_nos.c_helper.analysis.Parser;
 
+import com.github.uchan_nos.c_helper.dataflow.EntryExitPair;
 import com.github.uchan_nos.c_helper.dataflow.ForwardSolver;
 
+import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
@@ -50,29 +52,54 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
     @Override
     protected boolean join(Set<MemoryStatus> result, Set<MemoryStatus> set) {
-        // TODO Auto-generated method stub
-        return false;
+        return result.addAll(set);
     }
 
     @Override
     protected Set<MemoryStatus> clone(Set<MemoryStatus> set) {
-        // TODO Auto-generated method stub
-        return null;
+        return new HashSet<MemoryStatus>(set);
     }
 
-    private boolean transfer(IASTNode ast, Set<MemoryStatus> entry,
-            Set<MemoryStatus> result) {
-        return false;
-    }
+    private Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
+        if (!(ast instanceof IASTExpressionStatement)) {
+            return entry;
+        }
 
-    public Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
         // malloc呼び出しへのすべてのパスを取得
-        List<List<IASTNode>> pathToMalloc =
-            MallocCallFinder.findPathToMalloc(ast);
+        ASTFilter.Predicate mallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("malloc");
+        List<List<IASTNode>> pathToMalloc = ASTPathFinder.findPath(ast, mallocCallPredicate);
 
-        if (pathToMalloc.size() == 1) {
-            return analyzeMalloc(pathToMalloc.get(0), entry);
-        } else if (pathToMalloc.size() > 1) {
+        // free呼び出しへのすべてのパスを取得
+        ASTFilter.Predicate freeCallPredicate = ASTPathFinder.createFunctionCallPredicate("free");
+        List<List<IASTNode>> pathToFree = ASTPathFinder.findPath(ast, freeCallPredicate);
+
+        // NULL代入へのすべてのパスを取得
+        ASTFilter.Predicate nullAssignPredicate = new ASTFilter.Predicate() {
+            @Override public boolean pass(IASTNode node) {
+                if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
+                    IASTBinaryExpression be = (IASTBinaryExpression) node;
+                    return be.getOperand2() instanceof IASTIdExpression
+                            && Util.getName(be.getOperand2()).resolveBinding().getName().equals("NULL");
+                }
+                return false;
+            }
+        };
+        List<List<IASTNode>> pathToNullAssign = ASTPathFinder.findPath(ast, nullAssignPredicate);
+
+        if (pathToMalloc.size() >= 1) {
+            if (pathToMalloc.size() == 1) {
+                return analyzeMalloc(pathToMalloc.get(0), entry);
+            }
+            throw new UnsupportedOperationException();
+        } else if (pathToFree.size() >= 1) {
+            if (pathToFree.size() == 1) {
+                return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
+            }
+            throw new UnsupportedOperationException();
+        } else if (pathToNullAssign.size() >= 1) {
+            if (pathToNullAssign.size() == 1) {
+                return analyzeNullAssign(pathToNullAssign.get(0), entry);
+            }
             throw new UnsupportedOperationException();
         } else {
             return entry;
@@ -89,7 +116,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         // pathToMallocの一番後ろの要素はmalloc呼び出し式でなければならない
         assert node instanceof IASTFunctionCallExpression
             && Util.getName(((IASTFunctionCallExpression) node).getFunctionNameExpression())
-                .resolveBinding().equals("malloc");
+                .resolveBinding().getName().equals("malloc");
 
         // malloc呼び出し後の状態を計算
         Set<MallocEvalElement> afterMallocStatusSet = evalMalloc(entry);
@@ -183,11 +210,16 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
             if (lhsBinding instanceof IVariable) {
                 // 普通の変数への代入
+                IVariable lhs = (IVariable) lhsBinding;
+
                 for (MallocEvalElement elem : entry) {
                     MemoryStatus newStatus = new MemoryStatus(elem.afterStatus);
+
+                    unrefIfPointingToHeapAddress(lhs, newStatus);
+
                     if (elem.allocatedAddress == InvalidAddress.NULL) {
                         newStatus.variableManager().put(new Variable(
-                                    (IVariable) lhsBinding,
+                                    lhs,
                                     Variable.States.NULL,
                                     null));
                     } else {
@@ -197,7 +229,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                             b.ref();
                         }
                         newStatus.variableManager().put(new Variable(
-                                    (IVariable) lhsBinding,
+                                    lhs,
                                     Variable.States.POINTING,
                                     elem.allocatedAddress));
                     }
@@ -225,23 +257,8 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                     MemoryStatus newStatus = new MemoryStatus(status);
                     VariableManager vm = newStatus.variableManager();
 
-                    if (vm.getVariableStatus(lhs) == Variable.States.POINTING) {
-                        Address value = vm.get(lhs).value();
-                        if (value instanceof HeapAddress) {
-                            MemoryBlock b = newStatus.memoryManager().find(
-                                    ((HeapAddress) value).memoryBlockId());
-                            b.unref();
-                        }
-                    }
-
-                    if (vm.getVariableStatus(rhs) == Variable.States.POINTING) {
-                        Address value = vm.get(rhs).value();
-                        if (value instanceof HeapAddress) {
-                            MemoryBlock b = newStatus.memoryManager().find(
-                                    ((HeapAddress) value).memoryBlockId());
-                            b.ref();
-                        }
-                    }
+                    unrefIfPointingToHeapAddress(lhs, newStatus);
+                    refIfPointingToHeapAddress(rhs, newStatus);
 
                     newStatus.variableManager().put(new Variable(
                                 (IVariable) lhsBinding,
@@ -256,14 +273,196 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         return result;
     }
 
+    // p = NULL
+    private Set<MemoryStatus> evalAssignNullToVariable(
+            IASTBinaryExpression assignNode, Set<MemoryStatus> entry) {
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+
+        if (assignNode.getOperand1() instanceof IASTIdExpression) {
+            IBinding lhsBinding = Util.getName(assignNode.getOperand1()).resolveBinding();
+
+            if (lhsBinding instanceof IVariable) {
+                // 普通の変数への代入
+                IVariable lhs = (IVariable) lhsBinding;
+
+                for (MemoryStatus elem : entry) {
+                    MemoryStatus newStatus = new MemoryStatus(elem);
+
+                    unrefIfPointingToHeapAddress(lhs, newStatus);
+
+                    newStatus.variableManager().put(new Variable(
+                                lhs,
+                                Variable.States.NULL,
+                                null));
+
+                    result.add(newStatus);
+                }
+            }
+        }
+        return result;
+    }
+
+
+    private Set<MemoryStatus> analyzeFree(
+            List<IASTNode> pathToFree, Set<MemoryStatus> entry) {
+
+        // free呼び出しのノードから上方向へトラバース
+        ListIterator<IASTNode> it = pathToFree.listIterator(pathToFree.size());
+        IASTNode node = it.previous();
+
+        // pathToFreeの一番後ろの要素はfree呼び出し式でなければならない
+        assert node instanceof IASTFunctionCallExpression
+            && Util.getName(((IASTFunctionCallExpression) node).getFunctionNameExpression())
+                .resolveBinding().getName().equals("free");
+
+        // free呼び出し後の状態を計算
+        IASTExpression[] arguments = Util.getArguments((IASTFunctionCallExpression) node);
+        if (arguments.length != 1) {
+            System.out.println("freeの引数の数がおかしい: " + node.getRawSignature());
+            return entry;
+        }
+        IASTName arg0Name = Util.getName(arguments[0]);
+        IBinding arg0Binding;
+        if (arg0Name == null || !((arg0Binding = arg0Name.resolveBinding()) instanceof IVariable)) {
+            System.out.println("freeの引数が変数名ではない");
+            return entry;
+        }
+        Set<MemoryStatus> afterFreeStatusSet = evalFree(entry, (IVariable) arg0Binding);
+
+        return afterFreeStatusSet;
+    }
+
+    // free(..)
+    private Set<MemoryStatus> evalFree(Set<MemoryStatus> entry, IVariable arg) {
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+
+        for (MemoryStatus s : entry) {
+            MemoryStatus newStatus = new MemoryStatus(s);
+
+            switch (s.variableManager().getVariableStatus(arg)) {
+            case POINTING: {
+                Address value = newStatus.variableManager().get(arg).value();
+                if (value instanceof HeapAddress) {
+                    MemoryBlock b = newStatus.memoryManager().find(
+                            ((HeapAddress) value).memoryBlockId());
+                    newStatus.memoryManager().release(b);
+                } else {
+                    System.out.println("freeの引数がヒープメモリを指していない");
+                }
+            } break;
+            case NULL:
+                // do nothing
+                break;
+            case UNDEFINED:
+                System.out.println("未初期化変数の使用");
+                break;
+            }
+
+            result.add(newStatus);
+        }
+
+        return result;
+    }
+
+    private Set<MemoryStatus> analyzeNullAssign(
+            List<IASTNode> pathToNullAssign, Set<MemoryStatus> entry) {
+
+        // NULL代入のノードから上方向へトラバース
+        ListIterator<IASTNode> it = pathToNullAssign.listIterator(pathToNullAssign.size());
+        IASTNode node = it.previous();
+
+        // pathToNullAssignの一番後ろの要素はNULL代入式でなければならない
+        assert node instanceof IASTBinaryExpression
+            && Util.getName(((IASTBinaryExpression) node).getOperand2())
+                .resolveBinding().getName().equals("NULL");
+
+        IASTBinaryExpression be = (IASTBinaryExpression) node;
+        IASTName lhsName = Util.getName(be.getOperand1());
+        IBinding lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+
+        if (lhsBinding instanceof IVariable) {
+            // hoge = NULL
+            Set<MemoryStatus> intermediateStatus = evalAssignNullToVariable(be, entry);
+
+            // a = b = .. = NULL
+            // という形なら=の続く限り解析し、最終的な状態を全体の状態とする
+            IVariable rhsBinding = (IVariable) lhsBinding;
+            while (it.hasPrevious() && rhsBinding != null) {
+                node = it.previous();
+                if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
+                    be = (IASTBinaryExpression) node;
+                    lhsName = Util.getName(be.getOperand1());
+                    lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+
+                    // hoge = foo
+                    intermediateStatus = evalAssignVariableToVariable(
+                            be, rhsBinding, intermediateStatus);
+
+                    rhsBinding = lhsBinding instanceof IVariable ? (IVariable) lhsBinding : null;
+                } else {
+                    break;
+                }
+            }
+
+            if (node == pathToNullAssign.get(0)) {
+                // 最後までトラバースできた場合
+                return intermediateStatus;
+            } else {
+                System.out.println("Not supported syntax");
+                return intermediateStatus;
+            }
+        }
+
+        return entry;
+    }
+
+
+    private static void refIfPointingToHeapAddress(
+            IVariable var, MemoryStatus status) {
+        VariableManager vm = status.variableManager();
+        if (vm.getVariableStatus(var) == Variable.States.POINTING) {
+            Address value = vm.get(var).value();
+            if (value instanceof HeapAddress) {
+                MemoryBlock b = status.memoryManager().find(
+                        ((HeapAddress) value).memoryBlockId());
+                b.ref();
+            }
+        }
+    }
+
+    private static void unrefIfPointingToHeapAddress(
+            IVariable var, MemoryStatus status) {
+        VariableManager vm = status.variableManager();
+        if (vm.getVariableStatus(var) == Variable.States.POINTING) {
+            Address value = vm.get(var).value();
+            if (value instanceof HeapAddress) {
+                MemoryBlock b = status.memoryManager().find(
+                        ((HeapAddress) value).memoryBlockId());
+                b.unref();
+            }
+        }
+    }
+
     public static void main(String[] args) {
         String fileContent =
+                /*
             "#include <stdlib.h>\n" +
             "void f(void) {\n" +
-            "  char *p = malloc(10), *q;\n" +
-            "  q = NULL;\n" +
+            "  char *p, *q;\n" +
+            "  p = malloc(10);\n" +
+            "  p = NULL;\n" +
             "  q = malloc(20);\n" +
+            "  free(p);\n" +
             "  p = q = malloc(30);\n" +
+            "}\n";
+            */
+            "#include <stdlib.h>\n" +
+            "void f(void) {\n" +
+            "  char *p;\n" +
+            "  while (!0) {\n" +
+            "    p = malloc(10);\n" +
+            "    free(p);\n" +
+            "  }\n" +
             "}\n";
 
         IASTTranslationUnit translationUnit =
@@ -271,6 +470,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         Map<String, CFG> procToCFG =
                 new CFGCreator(translationUnit).create();
 
+        /*
         PointToSolver solver = new PointToSolver(null, null);
         Set<MemoryStatus> initialStatus = new HashSet<MemoryStatus>();
         initialStatus.add(new MemoryStatus());
@@ -296,6 +496,29 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                             v.getASTNode(), initialStatus);
                     System.out.println(afterStatus.toString());
                 }
+            }
+        }
+        */
+
+        for (Entry<String, CFG> entry : procToCFG.entrySet()) {
+            PointToSolver solver =
+                    new PointToSolver(entry.getValue(), entry.getValue().entryVertex());
+            Result<CFG.Vertex, MemoryStatus> result = solver.solve();
+
+            for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
+                EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
+                System.out.println(v.label() + ": exit");
+                for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
+                    System.out.println("  " + memoryStatus);
+
+                    for (MemoryBlock b : memoryStatus.memoryManager().memoryBlocks()) {
+                        if (b.allocated() && b.refCount() == 0) {
+                            System.out.println("    メモリリーク検出: " + b);
+                        }
+                    }
+                }
+
+                System.out.println();
             }
         }
     }
