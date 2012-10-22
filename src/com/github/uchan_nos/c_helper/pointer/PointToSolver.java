@@ -89,8 +89,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             throw new UnsupportedOperationException();
         } else if (pathToFree.size() >= 1) {
             if (pathToFree.size() == 1) {
-                //return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
-                return entry;
+                return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
             }
             throw new UnsupportedOperationException();
         } else if (pathToNullAssign.size() >= 1) {
@@ -300,7 +299,6 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
     }
 
 
-    /*
     private Set<MemoryStatus> analyzeFree(
             List<IASTNode> pathToFree, Set<MemoryStatus> entry) {
 
@@ -311,24 +309,56 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         // pathToFreeの一番後ろの要素はfree呼び出し式でなければならない
         assert node instanceof IASTFunctionCallExpression
             && Util.getName(((IASTFunctionCallExpression) node).getFunctionNameExpression())
-                .resolveBinding().equals("free");
+                .resolveBinding().getName().equals("free");
 
         // free呼び出し後の状態を計算
-        Set<MemoryStatus> afterFreeStatusSet = evalFree(entry, ((IASTFunctionCallExpression) node).getArgument());
+        IASTExpression[] arguments = Util.getArguments((IASTFunctionCallExpression) node);
+        if (arguments.length != 1) {
+            System.out.println("freeの引数の数がおかしい: " + node.getRawSignature());
+            return entry;
+        }
+        IASTName arg0Name = Util.getName(arguments[0]);
+        IBinding arg0Binding;
+        if (arg0Name == null || !((arg0Binding = arg0Name.resolveBinding()) instanceof IVariable)) {
+            System.out.println("freeの引数が変数名ではない");
+            return entry;
+        }
+        Set<MemoryStatus> afterFreeStatusSet = evalFree(entry, (IVariable) arg0Binding);
 
         return afterFreeStatusSet;
     }
 
     // free(..)
-    private Set<MemoryStatus> evalFree(Set<MemoryStatus> entry) {
+    private Set<MemoryStatus> evalFree(Set<MemoryStatus> entry, IVariable arg) {
         Set<MemoryStatus> result = new HashSet<MemoryStatus>();
 
         for (MemoryStatus s : entry) {
+            MemoryStatus newStatus = new MemoryStatus(s);
+
+            switch (s.variableManager().getVariableStatus(arg)) {
+            case POINTING: {
+                Address value = newStatus.variableManager().get(arg).value();
+                if (value instanceof HeapAddress) {
+                    MemoryBlock b = newStatus.memoryManager().find(
+                            ((HeapAddress) value).memoryBlockId());
+                    newStatus.memoryManager().release(b);
+                } else {
+                    System.out.println("freeの引数がヒープメモリを指していない");
+                }
+            } break;
+            case NULL:
+                // do nothing
+                break;
+            case UNDEFINED:
+                System.out.println("未初期化変数の使用");
+                break;
+            }
+
+            result.add(newStatus);
         }
 
         return result;
     }
-    */
 
     private Set<MemoryStatus> analyzeNullAssign(
             List<IASTNode> pathToNullAssign, Set<MemoryStatus> entry) {
@@ -417,6 +447,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             "  p = malloc(10);\n" +
             "  q = NULL;\n" +
             "  q = malloc(20);\n" +
+            "  free(p);\n" +
             "  p = q = malloc(30);\n" +
             "}\n";
 
