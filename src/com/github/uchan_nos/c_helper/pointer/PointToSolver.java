@@ -189,11 +189,16 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
             if (lhsBinding instanceof IVariable) {
                 // 普通の変数への代入
+                IVariable lhs = (IVariable) lhsBinding;
+
                 for (MallocEvalElement elem : entry) {
                     MemoryStatus newStatus = new MemoryStatus(elem.afterStatus);
+
+                    unrefIfPointingToHeapAddress(lhs, newStatus);
+
                     if (elem.allocatedAddress == InvalidAddress.NULL) {
                         newStatus.variableManager().put(new Variable(
-                                    (IVariable) lhsBinding,
+                                    lhs,
                                     Variable.States.NULL,
                                     null));
                     } else {
@@ -203,7 +208,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                             b.ref();
                         }
                         newStatus.variableManager().put(new Variable(
-                                    (IVariable) lhsBinding,
+                                    lhs,
                                     Variable.States.POINTING,
                                     elem.allocatedAddress));
                     }
@@ -231,23 +236,8 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                     MemoryStatus newStatus = new MemoryStatus(status);
                     VariableManager vm = newStatus.variableManager();
 
-                    if (vm.getVariableStatus(lhs) == Variable.States.POINTING) {
-                        Address value = vm.get(lhs).value();
-                        if (value instanceof HeapAddress) {
-                            MemoryBlock b = newStatus.memoryManager().find(
-                                    ((HeapAddress) value).memoryBlockId());
-                            b.unref();
-                        }
-                    }
-
-                    if (vm.getVariableStatus(rhs) == Variable.States.POINTING) {
-                        Address value = vm.get(rhs).value();
-                        if (value instanceof HeapAddress) {
-                            MemoryBlock b = newStatus.memoryManager().find(
-                                    ((HeapAddress) value).memoryBlockId());
-                            b.ref();
-                        }
-                    }
+                    unrefIfPointingToHeapAddress(lhs, newStatus);
+                    refIfPointingToHeapAddress(rhs, newStatus);
 
                     newStatus.variableManager().put(new Variable(
                                 (IVariable) lhsBinding,
@@ -292,11 +282,38 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
     }
     */
 
+    private static void refIfPointingToHeapAddress(
+            IVariable var, MemoryStatus status) {
+        VariableManager vm = status.variableManager();
+        if (vm.getVariableStatus(var) == Variable.States.POINTING) {
+            Address value = vm.get(var).value();
+            if (value instanceof HeapAddress) {
+                MemoryBlock b = status.memoryManager().find(
+                        ((HeapAddress) value).memoryBlockId());
+                b.ref();
+            }
+        }
+    }
+
+    private static void unrefIfPointingToHeapAddress(
+            IVariable var, MemoryStatus status) {
+        VariableManager vm = status.variableManager();
+        if (vm.getVariableStatus(var) == Variable.States.POINTING) {
+            Address value = vm.get(var).value();
+            if (value instanceof HeapAddress) {
+                MemoryBlock b = status.memoryManager().find(
+                        ((HeapAddress) value).memoryBlockId());
+                b.unref();
+            }
+        }
+    }
+
     public static void main(String[] args) {
         String fileContent =
             "#include <stdlib.h>\n" +
             "void f(void) {\n" +
-            "  char *p = malloc(10), *q;\n" +
+            "  char *p, *q;\n" +
+            "  p = malloc(10);\n" +
             "  q = NULL;\n" +
             "  q = malloc(20);\n" +
             "  p = q = malloc(30);\n" +
