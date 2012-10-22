@@ -20,6 +20,7 @@ import com.github.uchan_nos.c_helper.analysis.CFGCreator;
 import com.github.uchan_nos.c_helper.analysis.IGraph;
 import com.github.uchan_nos.c_helper.analysis.Parser;
 
+import com.github.uchan_nos.c_helper.dataflow.EntryExitPair;
 import com.github.uchan_nos.c_helper.dataflow.ForwardSolver;
 
 import com.github.uchan_nos.c_helper.util.ASTFilter;
@@ -51,22 +52,15 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
     @Override
     protected boolean join(Set<MemoryStatus> result, Set<MemoryStatus> set) {
-        // TODO Auto-generated method stub
-        return false;
+        return result.addAll(set);
     }
 
     @Override
     protected Set<MemoryStatus> clone(Set<MemoryStatus> set) {
-        // TODO Auto-generated method stub
-        return null;
+        return new HashSet<MemoryStatus>(set);
     }
 
-    private boolean transfer(IASTNode ast, Set<MemoryStatus> entry,
-            Set<MemoryStatus> result) {
-        return false;
-    }
-
-    public Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
+    private Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
         // malloc呼び出しへのすべてのパスを取得
         ASTFilter.Predicate mallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("malloc");
         List<List<IASTNode>> pathToMalloc = ASTPathFinder.findPath(ast, mallocCallPredicate);
@@ -82,7 +76,8 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             throw new UnsupportedOperationException();
         } else if (pathToFree.size() >= 1) {
             if (pathToFree.size() == 1) {
-                return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
+                //return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
+                return entry;
             }
             throw new UnsupportedOperationException();
         } else {
@@ -267,6 +262,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         return result;
     }
 
+    /*
     private Set<MemoryStatus> analyzeFree(
             List<IASTNode> pathToFree, Set<MemoryStatus> entry) {
 
@@ -294,6 +290,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
         return result;
     }
+    */
 
     public static void main(String[] args) {
         String fileContent =
@@ -310,6 +307,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         Map<String, CFG> procToCFG =
                 new CFGCreator(translationUnit).create();
 
+        /*
         PointToSolver solver = new PointToSolver(null, null);
         Set<MemoryStatus> initialStatus = new HashSet<MemoryStatus>();
         initialStatus.add(new MemoryStatus());
@@ -335,6 +333,22 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                             v.getASTNode(), initialStatus);
                     System.out.println(afterStatus.toString());
                 }
+            }
+        }
+        */
+
+        for (Entry<String, CFG> entry : procToCFG.entrySet()) {
+            PointToSolver solver =
+                    new PointToSolver(entry.getValue(), entry.getValue().entryVertex());
+            Result<CFG.Vertex, MemoryStatus> result = solver.solve();
+
+            for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
+                EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
+                System.out.println(v.label() + ": exit");
+                for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
+                    System.out.println("  " + memoryStatus);
+                }
+                System.out.println();
             }
         }
     }
