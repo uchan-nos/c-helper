@@ -445,7 +445,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             "void f(void) {\n" +
             "  char *p, *q;\n" +
             "  p = malloc(10);\n" +
-            "  q = NULL;\n" +
+            "  p = NULL;\n" +
             "  q = malloc(20);\n" +
             "  free(p);\n" +
             "  p = q = malloc(30);\n" +
@@ -496,7 +496,14 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                 System.out.println(v.label() + ": exit");
                 for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
                     System.out.println("  " + memoryStatus);
+
+                    for (MemoryBlock b : memoryStatus.memoryManager().memoryBlocks()) {
+                        if (b.allocated() && b.refCount() == 0) {
+                            System.out.println("    メモリリーク検出: " + b);
+                        }
+                    }
                 }
+
                 System.out.println();
             }
         }

@@ -89,4 +89,11 @@ public class MemoryManager {
         }
         return null;
     }
+
+    /**
+     * メモリブロックの一覧を返す.
+     */
+    public List<MemoryBlock> memoryBlocks() {
+        return memoryBlocks;
+    }
 }
