@@ -61,6 +61,10 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
     }
 
     private Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
+        if (!(ast instanceof IASTExpressionStatement)) {
+            return entry;
+        }
+
         // malloc呼び出しへのすべてのパスを取得
         ASTFilter.Predicate mallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("malloc");
         List<List<IASTNode>> pathToMalloc = ASTPathFinder.findPath(ast, mallocCallPredicate);
@@ -441,6 +445,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
     public static void main(String[] args) {
         String fileContent =
+                /*
             "#include <stdlib.h>\n" +
             "void f(void) {\n" +
             "  char *p, *q;\n" +
@@ -449,6 +454,15 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             "  q = malloc(20);\n" +
             "  free(p);\n" +
             "  p = q = malloc(30);\n" +
+            "}\n";
+            */
+            "#include <stdlib.h>\n" +
+            "void f(void) {\n" +
+            "  char *p;\n" +
+            "  while (!0) {\n" +
+            "    p = malloc(10);\n" +
+            "    free(p);\n" +
+            "  }\n" +
             "}\n";
 
         IASTTranslationUnit translationUnit =
