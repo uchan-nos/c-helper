@@ -97,7 +97,8 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             @Override public boolean pass(IASTNode node) {
                 if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
                     IASTBinaryExpression be = (IASTBinaryExpression) node;
-                    return be.getOperand2() instanceof IASTIdExpression;
+                    return be.getOperand2() instanceof IASTIdExpression ||
+                        be.getOperand2().getRawSignature().equals("NULL");
                 }
                 return false;
             }
@@ -519,24 +520,30 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
         // pathToVariableAssignの一番後ろの要素は識別子でなければならない
         assert node instanceof IASTBinaryExpression
-            && ((IASTBinaryExpression) node).getOperand2() instanceof IASTIdExpression;
+            && (((IASTBinaryExpression) node).getOperand2() instanceof IASTIdExpression
+                    || ((IASTBinaryExpression) node).getOperand2().getRawSignature().equals("NULL"));
 
         IASTBinaryExpression be = (IASTBinaryExpression) node;
         IASTName lhsName = Util.getName(be.getOperand1());
         IBinding lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
 
         if (lhsBinding instanceof IVariable) {
-            IBinding rhsBinding = Util.getName(be.getOperand2()).resolveBinding();
+            IASTName rhsName = Util.getName(be.getOperand2());
+            IBinding rhsBinding = rhsName == null ? null : rhsName.resolveBinding();
             Set<MemoryStatus> intermediateStatus = null;
-            if (rhsBinding == null) {
-                System.out.println("Not supported syntax: the most right expression is not a ID expression");
-                return entry;
-            } else if (rhsBinding.getName().equals("NULL")) {
+
+            System.out.println(be.getRawSignature());
+            if (be.getOperand2().getRawSignature().equals("NULL")) {
                 // hoge = NULL
+                System.out.println("hoge = NULL");
                 intermediateStatus = evalAssignNullToVariable(be, entry);
             } else if (rhsBinding instanceof IVariable) {
                 // hoge = variable
+                System.out.println("hoge = variable");
                 intermediateStatus = evalAssignVariableToVariable(be, (IVariable) rhsBinding, entry);
+            } else {
+                System.out.println("Not supported syntax: the most right expression is not a ID expression");
+                return entry;
             }
 
             // a = b = .. = foo
