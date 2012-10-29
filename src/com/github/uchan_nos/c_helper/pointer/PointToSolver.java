@@ -92,18 +92,17 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         ASTFilter.Predicate reallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("realloc");
         List<List<IASTNode>> pathToRealloc = ASTPathFinder.findPath(ast, reallocCallPredicate);
 
-        // NULL代入へのすべてのパスを取得
-        ASTFilter.Predicate nullAssignPredicate = new ASTFilter.Predicate() {
+        // 変数代入へのすべてのパスを取得
+        ASTFilter.Predicate variableAssignPredicate = new ASTFilter.Predicate() {
             @Override public boolean pass(IASTNode node) {
                 if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
                     IASTBinaryExpression be = (IASTBinaryExpression) node;
-                    return be.getOperand2() instanceof IASTIdExpression
-                            && Util.getName(be.getOperand2()).resolveBinding().getName().equals("NULL");
+                    return be.getOperand2() instanceof IASTIdExpression;
                 }
                 return false;
             }
         };
-        List<List<IASTNode>> pathToNullAssign = ASTPathFinder.findPath(ast, nullAssignPredicate);
+        List<List<IASTNode>> pathToVariableAssign = ASTPathFinder.findPath(ast, variableAssignPredicate);
 
         if (pathToMalloc.size() >= 1) {
             if (pathToMalloc.size() == 1) {
@@ -120,9 +119,9 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                 return analyzeRealloc(pathToRealloc.get(0), entry);
             }
             throw new UnsupportedOperationException();
-        } else if (pathToNullAssign.size() >= 1) {
-            if (pathToNullAssign.size() == 1) {
-                return analyzeNullAssign(pathToNullAssign.get(0), entry);
+        } else if (pathToVariableAssign.size() >= 1) {
+            if (pathToVariableAssign.size() == 1) {
+                return analyzeVariableAssign(pathToVariableAssign.get(0), entry);
             }
             throw new UnsupportedOperationException();
         } else {
@@ -511,29 +510,38 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         return result;
     }
 
-    private Set<MemoryStatus> analyzeNullAssign(
-            List<IASTNode> pathToNullAssign, Set<MemoryStatus> entry) {
+    private Set<MemoryStatus> analyzeVariableAssign(
+            List<IASTNode> pathToVariableAssign, Set<MemoryStatus> entry) {
 
-        // NULL代入のノードから上方向へトラバース
-        ListIterator<IASTNode> it = pathToNullAssign.listIterator(pathToNullAssign.size());
+        // 変数代入のノードから上方向へトラバース
+        ListIterator<IASTNode> it = pathToVariableAssign.listIterator(pathToVariableAssign.size());
         IASTNode node = it.previous();
 
-        // pathToNullAssignの一番後ろの要素はNULL代入式でなければならない
+        // pathToVariableAssignの一番後ろの要素は識別子でなければならない
         assert node instanceof IASTBinaryExpression
-            && Util.getName(((IASTBinaryExpression) node).getOperand2())
-                .resolveBinding().getName().equals("NULL");
+            && ((IASTBinaryExpression) node).getOperand2() instanceof IASTIdExpression;
 
         IASTBinaryExpression be = (IASTBinaryExpression) node;
         IASTName lhsName = Util.getName(be.getOperand1());
         IBinding lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
 
         if (lhsBinding instanceof IVariable) {
-            // hoge = NULL
-            Set<MemoryStatus> intermediateStatus = evalAssignNullToVariable(be, entry);
+            IBinding rhsBinding = Util.getName(be.getOperand2()).resolveBinding();
+            Set<MemoryStatus> intermediateStatus = null;
+            if (rhsBinding == null) {
+                System.out.println("Not supported syntax: the most right expression is not a ID expression");
+                return entry;
+            } else if (rhsBinding.getName().equals("NULL")) {
+                // hoge = NULL
+                intermediateStatus = evalAssignNullToVariable(be, entry);
+            } else if (rhsBinding instanceof IVariable) {
+                // hoge = variable
+                intermediateStatus = evalAssignVariableToVariable(be, (IVariable) rhsBinding, entry);
+            }
 
-            // a = b = .. = NULL
+            // a = b = .. = foo
             // という形なら=の続く限り解析し、最終的な状態を全体の状態とする
-            IVariable rhsBinding = (IVariable) lhsBinding;
+            rhsBinding = lhsBinding;
             while (it.hasPrevious() && rhsBinding != null) {
                 node = it.previous();
                 if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
@@ -543,7 +551,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
                     // hoge = foo
                     intermediateStatus = evalAssignVariableToVariable(
-                            be, rhsBinding, intermediateStatus);
+                            be, (IVariable) rhsBinding, intermediateStatus);
 
                     rhsBinding = lhsBinding instanceof IVariable ? (IVariable) lhsBinding : null;
                 } else {
@@ -551,7 +559,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                 }
             }
 
-            if (node == pathToNullAssign.get(0)) {
+            if (node == pathToVariableAssign.get(0)) {
                 // 最後までトラバースできた場合
                 return intermediateStatus;
             } else {
@@ -562,7 +570,6 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
         return entry;
     }
-
 
     private static void refIfPointingToHeapAddress(
             IVariable var, MemoryStatus status) {
@@ -606,11 +613,9 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             "#include <stdlib.h>\n" +
             "void f(void) {\n" +
             "  char *p, *q;\n" +
-            "  q = NULL;\n" +
             "  p = malloc(10);\n" +
-            "  while (!0) {\n" +
-            "    p = realloc(p, 10);\n" +
-            "  }\n" +
+            "  q = p;\n" +
+            "  p = realloc(p, 10);\n" +
             "  free(p);\n" +
             "}\n";
 
