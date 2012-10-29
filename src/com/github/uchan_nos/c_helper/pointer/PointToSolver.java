@@ -537,14 +537,11 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             IBinding rhsBinding = rhsName == null ? null : rhsName.resolveBinding();
             Set<MemoryStatus> intermediateStatus = null;
 
-            System.out.println(be.getRawSignature());
             if (be.getOperand2().getRawSignature().equals("NULL")) {
                 // hoge = NULL
-                System.out.println("hoge = NULL");
                 intermediateStatus = evalAssignNullToVariable(be, entry);
             } else if (rhsBinding instanceof IVariable) {
                 // hoge = variable
-                System.out.println("hoge = variable");
                 intermediateStatus = evalAssignVariableToVariable(be, (IVariable) rhsBinding, entry);
             } else {
                 System.out.println("Not supported syntax: the most right expression is not a ID expression");
