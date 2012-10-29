@@ -433,7 +433,11 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                 if (value instanceof HeapAddress) {
                     MemoryBlock b = newStatus.memoryManager().find(
                             ((HeapAddress) value).memoryBlockId());
-                    newStatus.memoryManager().release(b);
+                    if (b.allocated()) {
+                        newStatus.memoryManager().release(b);
+                    } else {
+                        problem = "既に開放されている領域をfreeしてはいけない";
+                    }
                 } else {
                     System.out.println("freeの引数がヒープメモリを指していない");
                     problem = "freeの引数はヒープメモリを指している必要がある";
