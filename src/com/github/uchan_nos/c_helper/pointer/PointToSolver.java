@@ -1,5 +1,8 @@
 package com.github.uchan_nos.c_helper.pointer;
 
+import java.io.File;
+import java.io.IOException;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,6 +16,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.*;
+
+import org.eclipse.core.runtime.CoreException;
 
 import com.github.uchan_nos.c_helper.analysis.CFG;
 import com.github.uchan_nos.c_helper.analysis.CFG.Vertex;
@@ -605,82 +610,45 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
     }
 
     public static void main(String[] args) {
-        String fileContent =
-                /*
-            "#include <stdlib.h>\n" +
-            "void f(void) {\n" +
-            "  char *p, *q;\n" +
-            "  p = malloc(10);\n" +
-            "  p = NULL;\n" +
-            "  q = malloc(20);\n" +
-            "  free(p);\n" +
-            "  p = q = malloc(30);\n" +
-            "}\n";
-            */
-            "#include <stdlib.h>\n" +
-            "void f(void) {\n" +
-            "  char *p, *q;\n" +
-            "  p = malloc(10);\n" +
-            "  q = p;\n" +
-            "  p = realloc(p, 10);\n" +
-            "  free(p);\n" +
-            "}\n";
+        if (args.length == 1) {
+            String inputFilename = args[0];
+            File inputFile = new File(inputFilename);
 
-        IASTTranslationUnit translationUnit =
-                new Parser("", fileContent).parseOrNull();
-        Map<String, CFG> procToCFG =
-                new CFGCreator(translationUnit).create();
+            try {
+                String fileContent = Util.readFileAll(inputFile, "UTF-8");
+                IASTTranslationUnit translationUnit =
+                        new Parser(inputFilename, fileContent).parse();
+                Map<String, CFG> procToCFG =
+                        new CFGCreator(translationUnit).create();
 
-        /*
-        PointToSolver solver = new PointToSolver(null, null);
-        Set<MemoryStatus> initialStatus = new HashSet<MemoryStatus>();
-        initialStatus.add(new MemoryStatus());
+                for (Entry<String, CFG> entry : procToCFG.entrySet()) {
+                    PointToSolver solver =
+                            new PointToSolver(entry.getValue(), entry.getValue().entryVertex());
+                    Result<CFG.Vertex, MemoryStatus> result = solver.solve();
 
-        for (Entry<String, CFG> entry : procToCFG.entrySet()) {
-            System.out.println(entry.getKey());
+                    for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
+                        EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
+                        System.out.println(v.label() + ": exit");
+                        for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
+                            System.out.println("  " + memoryStatus);
 
-            Set<CFG.Vertex> visited = new HashSet<CFG.Vertex>();
-            ArrayDeque<CFG.Vertex> visiting = new ArrayDeque<CFG.Vertex>();
-
-            CFG cfg = entry.getValue();
-            visiting.add(cfg.entryVertex());
-
-            CFG.Vertex v = null;
-            while ((v = visiting.poll()) != null) {
-                if (!visited.contains(v)) {
-                    visited.add(v);
-                    for (CFG.Vertex next : cfg.getConnectedVerticesFrom(v)) {
-                        visiting.add(next);
-                    }
-
-                    Set<MemoryStatus> afterStatus = solver.analyze(
-                            v.getASTNode(), initialStatus);
-                    System.out.println(afterStatus.toString());
-                }
-            }
-        }
-        */
-
-        for (Entry<String, CFG> entry : procToCFG.entrySet()) {
-            PointToSolver solver =
-                    new PointToSolver(entry.getValue(), entry.getValue().entryVertex());
-            Result<CFG.Vertex, MemoryStatus> result = solver.solve();
-
-            for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
-                EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
-                System.out.println(v.label() + ": exit");
-                for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
-                    System.out.println("  " + memoryStatus);
-
-                    for (MemoryBlock b : memoryStatus.memoryManager().memoryBlocks()) {
-                        if (b.allocated() && b.refCount() == 0) {
-                            System.out.println("    メモリリーク検出: " + b);
+                            for (MemoryBlock b : memoryStatus.memoryManager().memoryBlocks()) {
+                                if (b.allocated() && b.refCount() == 0) {
+                                    System.out.println("    メモリリーク検出: " + b);
+                                }
+                            }
                         }
+
+                        System.out.println();
                     }
                 }
 
-                System.out.println();
+            } catch (CoreException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
+
     }
 }
