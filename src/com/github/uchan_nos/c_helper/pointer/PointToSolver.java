@@ -65,6 +65,21 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             return entry;
         }
 
+        // ヒープメモリブロックの数が変数の数を上回っていたら解析中止
+        for (MemoryStatus s : entry) {
+            int numVariables = s.variableManager().getContainingVariables().size();
+            //if (numVariables > 0 && numVariables < s.memoryManager().memoryBlocks().size()) {
+            int numAllocatedBlocks = 0;
+            for (MemoryBlock b : s.memoryManager().memoryBlocks()) {
+                if (b.allocated()) {
+                    numAllocatedBlocks++;
+                }
+            }
+            if (numVariables > 0 && numVariables < numAllocatedBlocks) {
+                return entry;
+            }
+        }
+
         // malloc呼び出しへのすべてのパスを取得
         ASTFilter.Predicate mallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("malloc");
         List<List<IASTNode>> pathToMalloc = ASTPathFinder.findPath(ast, mallocCallPredicate);
@@ -590,9 +605,12 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             */
             "#include <stdlib.h>\n" +
             "void f(void) {\n" +
-            "  char *p;\n" +
+            "  char *p, *q;\n" +
+            "  q = NULL;\n" +
             "  p = malloc(10);\n" +
-            "  p = realloc(p, 10);\n" +
+            "  while (!0) {\n" +
+            "    p = realloc(p, 10);\n" +
+            "  }\n" +
             "  free(p);\n" +
             "}\n";
 
