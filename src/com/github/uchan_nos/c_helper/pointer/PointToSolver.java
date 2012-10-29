@@ -32,6 +32,39 @@ import com.github.uchan_nos.c_helper.util.ASTFilter;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
+    /**
+     * 解析の途中で検出した問題を表す.
+     * 例えばfreeに未初期化変数を渡しているとか、freeにmallocした以外の値を渡しているなど
+     */
+    public static class Problem {
+        public final IASTNode position;
+        public final String message;
+        public Problem(IASTNode position, String message) {
+            this.position = position;
+            this.message = message;
+        }
+
+        @Override
+        public final boolean equals(Object o) {
+            if (!(o instanceof Problem)) {
+                return false;
+            }
+            Problem p = (Problem) o;
+            return Util.equalsOrBothNull(position, p.position)
+                && Util.equalsOrBothNull(message, p.message);
+        }
+
+        @Override
+        public final int hashCode() {
+            int result = 17;
+            result = 31 * result + (position == null ? 0 : position.hashCode());
+            result = 31 * result + (message == null ? 0 : message.hashCode());
+            return result;
+        }
+    }
+
+    private Set<Problem> problems = new HashSet<Problem>();
+
     public PointToSolver(IGraph<CFG.Vertex> cfg, CFG.Vertex entryVertex) {
         super(cfg, entryVertex);
     }
@@ -63,6 +96,14 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
     @Override
     protected Set<MemoryStatus> clone(Set<MemoryStatus> set) {
         return new HashSet<MemoryStatus>(set);
+    }
+
+    /**
+     * 解析の途中で検出した問題を返す.
+     * 例えばfreeに未初期化変数を渡しているとか、freeにmallocした以外の値を渡しているなど
+     */
+    public Set<Problem> problems() {
+        return this.problems;
     }
 
     private Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
@@ -356,17 +397,35 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             System.out.println("freeの引数が変数名ではない");
             return entry;
         }
-        Set<MemoryStatus> afterFreeStatusSet = evalFree(entry, (IVariable) arg0Binding);
+        Set<FreeEvalElement> afterFreeStatusSet = evalFree(entry, (IVariable) arg0Binding);
 
-        return afterFreeStatusSet;
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+        for (FreeEvalElement elem : afterFreeStatusSet) {
+            if (elem.problem != null) {
+                this.problems.add(new Problem(node, elem.problem));
+            }
+            result.add(elem.afterStatus);
+        }
+
+        return result;
+    }
+
+    private static class FreeEvalElement {
+        public final MemoryStatus afterStatus; // free呼び出しにより変化したメモリ状態
+        public final String problem; // free呼び出しで発見された問題
+        public FreeEvalElement(MemoryStatus afterStatus, String problem) {
+            this.afterStatus = afterStatus;
+            this.problem = problem;
+        }
     }
 
     // free(..)
-    private Set<MemoryStatus> evalFree(Set<MemoryStatus> entry, IVariable arg) {
-        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+    private Set<FreeEvalElement> evalFree(Set<MemoryStatus> entry, IVariable arg) {
+        Set<FreeEvalElement> result = new HashSet<FreeEvalElement>();
 
         for (MemoryStatus s : entry) {
             MemoryStatus newStatus = new MemoryStatus(s);
+            String problem = null;
 
             switch (s.variableManager().getVariableStatus(arg)) {
             case POINTING: {
@@ -377,6 +436,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                     newStatus.memoryManager().release(b);
                 } else {
                     System.out.println("freeの引数がヒープメモリを指していない");
+                    problem = "freeの引数はヒープメモリを指している必要がある";
                 }
             } break;
             case NULL:
@@ -384,10 +444,11 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                 break;
             case UNDEFINED:
                 System.out.println("未初期化変数の使用");
+                problem = "未初期化変数をfreeしてはいけない";
                 break;
             }
 
-            result.add(newStatus);
+            result.add(new FreeEvalElement(newStatus, problem));
         }
 
         return result;
@@ -622,6 +683,7 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                     PointToSolver solver =
                             new PointToSolver(entry.getValue(), entry.getValue().entryVertex());
                     Result<CFG.Vertex, MemoryStatus> result = solver.solve();
+                    Set<PointToSolver.Problem> problems = solver.problems();
 
                     for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
                         EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
@@ -633,6 +695,12 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                                 if (b.allocated() && b.refCount() == 0) {
                                     System.out.println("    メモリリーク検出: " + b);
                                 }
+                            }
+                        }
+
+                        for (PointToSolver.Problem p : problems) {
+                            if (v.getASTNode().contains(p.position)) {
+                                System.out.println("    " + p.message);
                             }
                         }
 
