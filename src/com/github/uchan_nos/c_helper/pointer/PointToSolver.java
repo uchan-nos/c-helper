@@ -73,6 +73,10 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         ASTFilter.Predicate freeCallPredicate = ASTPathFinder.createFunctionCallPredicate("free");
         List<List<IASTNode>> pathToFree = ASTPathFinder.findPath(ast, freeCallPredicate);
 
+        // realloc呼び出しへのすべてのパスを取得
+        ASTFilter.Predicate reallocCallPredicate = ASTPathFinder.createFunctionCallPredicate("realloc");
+        List<List<IASTNode>> pathToRealloc = ASTPathFinder.findPath(ast, reallocCallPredicate);
+
         // NULL代入へのすべてのパスを取得
         ASTFilter.Predicate nullAssignPredicate = new ASTFilter.Predicate() {
             @Override public boolean pass(IASTNode node) {
@@ -93,7 +97,12 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             throw new UnsupportedOperationException();
         } else if (pathToFree.size() >= 1) {
             if (pathToFree.size() == 1) {
-                return analyzeFree(pathToFree.get(0), entry); // TODO: write analyzeFree function
+                return analyzeFree(pathToFree.get(0), entry);
+            }
+            throw new UnsupportedOperationException();
+        } else if (pathToRealloc.size() >= 1) {
+            if (pathToRealloc.size() == 1) {
+                return analyzeRealloc(pathToRealloc.get(0), entry);
             }
             throw new UnsupportedOperationException();
         } else if (pathToNullAssign.size() >= 1) {
@@ -364,6 +373,129 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         return result;
     }
 
+    private Set<MemoryStatus> analyzeRealloc(
+            List<IASTNode> pathToRealloc, Set<MemoryStatus> entry) {
+
+        // malloc呼び出しのノードから上方向へトラバース
+        ListIterator<IASTNode> it = pathToRealloc.listIterator(pathToRealloc.size());
+        IASTNode node = it.previous();
+
+        // pathToReallocの一番後ろの要素はrealloc呼び出し式でなければならない
+        assert node instanceof IASTFunctionCallExpression
+            && Util.getName(((IASTFunctionCallExpression) node).getFunctionNameExpression())
+                .resolveBinding().getName().equals("realloc");
+
+        // realloc呼び出し後の状態を計算
+        IASTExpression[] arguments = Util.getArguments((IASTFunctionCallExpression) node);
+        if (arguments.length != 2) {
+            System.out.println("reallocの引数の数がおかしい: " + node.getRawSignature());
+            return entry;
+        }
+        IASTName arg0Name = Util.getName(arguments[0]);
+        String arg1Signature = arguments[1].getRawSignature();
+
+        Set<MallocEvalElement> afterReallocStatusSet = null;
+        if (Util.equals(arg0Name.getSimpleID(), "NULL")) {
+            afterReallocStatusSet = evalMalloc(entry);
+        } else {
+            IBinding arg0Binding;
+            if (arg0Name == null || !((arg0Binding = arg0Name.resolveBinding()) instanceof IVariable)) {
+                System.out.println("reallocの第1引数が変数名ではない");
+                return entry;
+            }
+            if (arg1Signature.equals("0")) {
+            } else {
+                afterReallocStatusSet = evalRealloc(entry, (IVariable) arg0Binding);
+            }
+        }
+
+        // a = b = .. = realloc(..)
+        // という形なら=の続く限り解析し、最終的な状態を全体の状態とする
+        // 他の形の場合、取り敢えずrealloc呼び出し直後の状態を全体の状態とする
+        if (it.hasPrevious()) {
+            node = it.previous();
+
+            if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
+                // pathToReallocの後ろから二番目の要素が代入式である場合
+                IASTBinaryExpression be = (IASTBinaryExpression) node;
+                IASTName lhsName = Util.getName(be.getOperand1());
+                IBinding lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+
+                if (lhsBinding instanceof IVariable) {
+                    // hoge = realloc()
+                    Set<MemoryStatus> intermediateStatus = evalAssignMallocToVariable(be, afterReallocStatusSet);
+
+                    IVariable rhsBinding = (IVariable) lhsBinding;
+                    while (it.hasPrevious() && rhsBinding != null) {
+                        node = it.previous();
+                        if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
+                            be = (IASTBinaryExpression) node;
+                            lhsName = Util.getName(be.getOperand1());
+                            lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+
+                            // hoge = foo
+                            intermediateStatus = evalAssignVariableToVariable(
+                                    be, rhsBinding, intermediateStatus);
+
+                            rhsBinding = lhsBinding instanceof IVariable ? (IVariable) lhsBinding : null;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if (node == pathToRealloc.get(0)) {
+                        // 最後までトラバースできた場合
+                        return intermediateStatus;
+                    } else {
+                        System.out.println("Not supported syntax");
+                        return intermediateStatus;
+                    }
+                }
+
+            }
+        }
+
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+        for (MallocEvalElement elem : afterReallocStatusSet) {
+            result.add(elem.afterStatus);
+        }
+        return result;
+    }
+
+    // realloc(..)
+    // ptr, sizeともに0ではない場合の処理
+    private Set<MallocEvalElement> evalRealloc(Set<MemoryStatus> entry, IVariable arg) {
+        Set<MallocEvalElement> result = new HashSet<MallocEvalElement>();
+
+        for (MemoryStatus s : entry) {
+            // reallocがサイズ変更に失敗した場合
+            result.add(new MallocEvalElement(s, InvalidAddress.NULL));
+
+            // reallocがサイズ変更に成功した場合
+            MemoryStatus newStatus = new MemoryStatus(s);
+            MemoryBlock argPointingBlock = null;
+
+            // argが指しているメモリ領域を探す
+            switch (s.variableManager().getVariableStatus(arg)) {
+            case POINTING:
+                Address value = s.variableManager().get(arg).value();
+                if (value instanceof HeapAddress) {
+                    HeapAddress heapAddress = (HeapAddress) value;
+                    argPointingBlock = newStatus.memoryManager().find(heapAddress.memoryBlockId());
+                }
+                break;
+            }
+
+            MemoryBlock b = newStatus.memoryManager().allocate();
+            result.add(new MallocEvalElement(newStatus, new HeapAddress(b.id())));
+            if (argPointingBlock != null) {
+                newStatus.memoryManager().release(argPointingBlock);
+            }
+        }
+
+        return result;
+    }
+
     private Set<MemoryStatus> analyzeNullAssign(
             List<IASTNode> pathToNullAssign, Set<MemoryStatus> entry) {
 
@@ -459,10 +591,9 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
             "#include <stdlib.h>\n" +
             "void f(void) {\n" +
             "  char *p;\n" +
-            "  while (!0) {\n" +
-            "    p = malloc(10);\n" +
-            "    free(p);\n" +
-            "  }\n" +
+            "  p = malloc(10);\n" +
+            "  p = realloc(p, 10);\n" +
+            "  free(p);\n" +
             "}\n";
 
         IASTTranslationUnit translationUnit =
