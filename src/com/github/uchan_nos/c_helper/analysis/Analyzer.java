@@ -22,20 +22,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.github.uchan_nos.c_helper.Activator;
 import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
-import com.github.uchan_nos.c_helper.suggest.AssignmentToCharSuggester;
-import com.github.uchan_nos.c_helper.suggest.AssumptionManager;
-import com.github.uchan_nos.c_helper.suggest.Assumption;
-import com.github.uchan_nos.c_helper.suggest.CastSuppressingErrorSuggester;
-import com.github.uchan_nos.c_helper.suggest.FileOpenCloseSuggester;
-import com.github.uchan_nos.c_helper.suggest.IndentationSuggester;
-import com.github.uchan_nos.c_helper.suggest.PrintfParameterSuggester;
-import com.github.uchan_nos.c_helper.suggest.ReturnOblivionSuggester;
-import com.github.uchan_nos.c_helper.suggest.SemicolonOblivionSuggester;
-import com.github.uchan_nos.c_helper.suggest.SemicolonUnnecessarySuggester;
-import com.github.uchan_nos.c_helper.suggest.SizeofSuggester;
-import com.github.uchan_nos.c_helper.suggest.Suggester;
-import com.github.uchan_nos.c_helper.suggest.SuggesterInput;
-import com.github.uchan_nos.c_helper.suggest.Suggestion;
+import com.github.uchan_nos.c_helper.suggest.*;
 
 public class Analyzer {
     private IFile fileToAnalyze = null;
@@ -65,10 +52,11 @@ public class Analyzer {
 
     public void analyze(String filePath, IDocument source) {
         try {
+            /*
             Suggester[] suggesters = {
                     new FileOpenCloseSuggester()
             };
-            /*
+            */
             Suggester[] suggesters = {
                     new SizeofSuggester(),
                     new IndentationSuggester(),
@@ -77,9 +65,9 @@ public class Analyzer {
                     new ReturnOblivionSuggester(),
                     new AssignmentToCharSuggester(),
                     new CastSuppressingErrorSuggester(),
-                    new PrintfParameterSuggester()
+                    new PrintfParameterSuggester(),
+                    new MemoryLeakSuggester()
             };
-            */
 
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
             analysisEnvironment.CHAR_BIT = 8;
