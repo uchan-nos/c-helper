@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 
 import org.eclipse.jface.text.BadLocationException;
@@ -14,8 +16,11 @@ import com.github.uchan_nos.c_helper.analysis.CFG;
 import com.github.uchan_nos.c_helper.dataflow.EntryExitPair;
 
 import com.github.uchan_nos.c_helper.pointer.MemoryBlock;
+import com.github.uchan_nos.c_helper.pointer.MemoryProblem;
 import com.github.uchan_nos.c_helper.pointer.MemoryStatus;
 import com.github.uchan_nos.c_helper.pointer.PointToSolver;
+
+import com.github.uchan_nos.c_helper.resource.StringResource;
 
 import com.github.uchan_nos.c_helper.util.Util;
 
@@ -37,7 +42,7 @@ public class MemoryLeakSuggester extends Suggester {
                 PointToSolver solver =
                         new PointToSolver(cfg, cfg.entryVertex());
                 PointToSolver.Result<CFG.Vertex, MemoryStatus> result = solver.solve();
-                Set<PointToSolver.Problem> problems = solver.problems();
+                Set<MemoryProblem> problems = solver.problems();
 
                 for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
                     EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
@@ -61,34 +66,64 @@ public class MemoryLeakSuggester extends Suggester {
                     }
 
                     if (memoryLeakFound > 0) {
-                        suggestions.add(new Suggestion(
-                                    input.getSource(),
-                                    v.getASTNode(),
-                                    memoryLeakFound == memoryStatuses.exit().size() ?
-                                    "メモリリークが発生します" :
-                                    "メモリリークが発生する可能性があります",
-                                    null));
+                        Suggestion s;
+                        String message = memoryLeakFound == memoryStatuses.exit().size() ?
+                            "メモリリークする" :
+                            "メモリリークする可能性がある";
+                        message = StringResource.get(message);
+
+                        if (v.getASTNode() == null) {
+                            int line = -1, column = -1, offset = -1, length = -1;
+                            if (v.equals(cfg.exitVertex())) {
+                                // 関数定義の一番最後の場所を取得
+                                IASTNode node = cfg.entryVertex().getASTNode().getParent();
+                                if (node instanceof IASTCompoundStatement) {
+                                    offset = node.getFileLocation().getNodeOffset()
+                                        + node.getFileLocation().getNodeLength() - 1;
+                                    length = 1;
+                                    line = node.getFileLocation().getEndingLineNumber() - 1;
+                                    column = Util.calculateColumnNumbeer(input.getSource(), offset);
+                                }
+                            }
+                            s = new Suggestion(input.getFilePath(), line, column, offset, length, message, null);
+                        } else {
+                            s = new Suggestion(input.getSource(), v.getASTNode(), message, null);
+                        }
+
+                        suggestions.add(s);
                     }
 
-                    for (PointToSolver.Problem p : problems) {
+                    for (MemoryProblem p : problems) {
                         if (v.getASTNode().contains(p.position)) {
+                            boolean unconditionallyHappen = memoryStatuses.exit().size() == 1;
+
                             String message = null;
-                            if ("未初期化変数をfreeしてはいけない".equals(p.message)) {
-                                message = memoryStatuses.exit().size() == 1 ?
-                                    "未初期化変数をfreeしてはいけません" :
-                                    "未初期化変数をfreeする可能性があります";
-                            } else if ("既に解放されている領域をfreeしてはいけない".equals(p.message)) {
-                                message = memoryStatuses.exit().size() == 1 ?
-                                    "既に解放されている領域を2重にfreeしてはいけません" :
-                                    "既に開放されている領域を2重にfreeする可能性があります";
-                            } else {
-                                message = p.message;
+                            if (p.message != null) {
+                                switch (p.message) {
+                                case DOUBLE_FREE:
+                                    message = unconditionallyHappen
+                                        ? "同じ領域を2重にfreeしてはいけない"
+                                        : "同じ領域を2重にfreeしてしまう可能性がある";
+                                    break;
+                                case UNINITIALIZED_VALUE_FREE:
+                                    message = unconditionallyHappen
+                                        ? "未初期化変数をfreeしてはいけない"
+                                        : "未初期化変数をfreeしてしまう可能性がある";
+                                    break;
+                                case UNKNOWN_VALUE_FREE:
+                                    message = unconditionallyHappen
+                                        ? "mallocやcalloc、reallocで確保した領域以外をfreeしてはいけない"
+                                        : "mallocやcalloc、reallocで確保した領域以外をfreeしてしまう可能性がある";
+                                    break;
+                                default:
+                                    message = "Unknown";
+                                }
                             }
 
                             suggestions.add(new Suggestion(
                                         input.getSource(),
                                         v.getASTNode(),
-                                        message,
+                                        StringResource.get(message),
                                         null));
                             //System.out.println("    " + p.message);
                         }
