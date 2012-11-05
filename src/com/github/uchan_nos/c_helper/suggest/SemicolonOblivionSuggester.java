@@ -74,7 +74,7 @@ public class SemicolonOblivionSuggester extends Suggester {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
                                     src.getLineOfOffset(semicolonOffset),
-                                    Util.calculateColumnNumbeer(src, semicolonOffset),
+                                    Util.calculateColumnNumber(src, semicolonOffset),
                                     semicolonOffset, 1,
                                     "構造体の宣言のセミコロンは、最後の閉じ括弧 } の直後に書くと見やすくなります。",
                                     ""

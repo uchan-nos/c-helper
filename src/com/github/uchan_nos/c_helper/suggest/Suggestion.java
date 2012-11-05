@@ -48,7 +48,7 @@ public class Suggestion {
             String message, String suggestion) throws BadLocationException {
         this.filePath = node.getFileLocation().getFileName();
         this.lineNumber = node.getFileLocation().getStartingLineNumber() - 1;
-        this.columnNumber = Util.calculateColumnNumbeer(source, node.getFileLocation().getNodeOffset());
+        this.columnNumber = Util.calculateColumnNumber(source, node.getFileLocation().getNodeOffset());
         this.offset = node.getFileLocation().getNodeOffset();
         this.length = node.getFileLocation().getNodeLength();
         this.message = message;

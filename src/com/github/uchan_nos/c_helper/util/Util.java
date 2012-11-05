@@ -165,7 +165,7 @@ public class Util {
      * @param offset ソースコード先頭からのオフセット
      * @return 行頭からのオフセット
      */
-    public static int calculateColumnNumbeer(IDocument source, int offset) throws BadLocationException {
+    public static int calculateColumnNumber(IDocument source, int offset) throws BadLocationException {
         return offset - source.getLineOffset(source.getLineOfOffset(offset));
     }
 
