@@ -44,7 +44,7 @@ public class ReturnOblivionSuggester extends Suggester {
                         suggestions.add(new Suggestion(
                                 input.getFilePath(),
                                 fd.getFileLocation().getStartingLineNumber() - 1,
-                                Util.calculateColumnNumbeer(input.getSource(), fd.getFileLocation().getNodeOffset()),
+                                Util.calculateColumnNumber(input.getSource(), fd.getFileLocation().getNodeOffset()),
                                 fd.getFileLocation().getNodeOffset(),
                                 fd.getFileLocation().getNodeLength(),
                                 "return文がありません。",
@@ -64,7 +64,7 @@ public class ReturnOblivionSuggester extends Suggester {
                             suggestions.add(new Suggestion(
                                     input.getFilePath(),
                                     ret.getFileLocation().getStartingLineNumber() - 1,
-                                    Util.calculateColumnNumbeer(input.getSource(), ret.getFileLocation().getNodeOffset()),
+                                    Util.calculateColumnNumber(input.getSource(), ret.getFileLocation().getNodeOffset()),
                                     ret.getFileLocation().getNodeOffset(),
                                     ret.getFileLocation().getNodeLength(),
                                     "戻り値がある関数では、return文に引数を指定してください。",

@@ -82,7 +82,7 @@ public class MemoryLeakSuggester extends Suggester {
                                         + node.getFileLocation().getNodeLength() - 1;
                                     length = 1;
                                     line = node.getFileLocation().getEndingLineNumber() - 1;
-                                    column = Util.calculateColumnNumbeer(input.getSource(), offset);
+                                    column = Util.calculateColumnNumber(input.getSource(), offset);
                                 }
                             }
                             s = new Suggestion(input.getFilePath(), line, column, offset, length, message, null);
