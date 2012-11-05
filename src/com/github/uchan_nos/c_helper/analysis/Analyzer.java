@@ -66,7 +66,8 @@ public class Analyzer {
                     new AssignmentToCharSuggester(),
                     new CastSuppressingErrorSuggester(),
                     new PrintfParameterSuggester(),
-                    new MemoryLeakSuggester()
+                    new MemoryLeakSuggester(),
+                    new CompareCharStringSuggester()
             };
 
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
