@@ -684,19 +684,26 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                         new CFGCreator(translationUnit).create();
 
                 for (Entry<String, CFG> entry : procToCFG.entrySet()) {
+                    CFG cfg = entry.getValue();
+
                     PointToSolver solver =
-                            new PointToSolver(entry.getValue(), entry.getValue().entryVertex());
+                            new PointToSolver(cfg, cfg.entryVertex());
                     Result<CFG.Vertex, MemoryStatus> result = solver.solve();
                     Set<PointToSolver.Problem> problems = solver.problems();
 
                     for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
                         EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
                         System.out.println(v.label() + ": exit");
+
+                        // 関数から抜ける頂点かどうか
+                        boolean leavingNode = v.equals(cfg.exitVertex())
+                            || (v.getASTNode() != null && v.getASTNode() instanceof IASTReturnStatement);
+
                         for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
                             System.out.println("  " + memoryStatus);
 
                             for (MemoryBlock b : memoryStatus.memoryManager().memoryBlocks()) {
-                                if (b.allocated() && b.refCount() == 0) {
+                                if (b.allocated() && (leavingNode || b.refCount() == 0)) {
                                     System.out.println("    メモリリーク検出: " + b);
                                 }
                             }
