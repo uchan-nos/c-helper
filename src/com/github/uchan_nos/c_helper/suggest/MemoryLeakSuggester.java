@@ -47,27 +47,48 @@ public class MemoryLeakSuggester extends Suggester {
                     boolean leavingNode = v.equals(cfg.exitVertex())
                         || (v.getASTNode() != null && v.getASTNode() instanceof IASTReturnStatement);
 
+                    int memoryLeakFound = 0;
                     for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
                         System.out.println("  " + memoryStatus);
 
                         for (MemoryBlock b : memoryStatus.memoryManager().memoryBlocks()) {
                             if (b.allocated() && (leavingNode || b.refCount() == 0)) {
-                                suggestions.add(new Suggestion(
-                                            input.getSource(),
-                                            v.getASTNode(),
-                                            "メモリリークが発生する経路があります",
-                                            null));
+                                memoryLeakFound++;
+                                break;
                                 //System.out.println("    メモリリーク検出: " + b);
                             }
                         }
                     }
 
+                    if (memoryLeakFound > 0) {
+                        suggestions.add(new Suggestion(
+                                    input.getSource(),
+                                    v.getASTNode(),
+                                    memoryLeakFound == memoryStatuses.exit().size() ?
+                                    "メモリリークが発生します" :
+                                    "メモリリークが発生する可能性があります",
+                                    null));
+                    }
+
                     for (PointToSolver.Problem p : problems) {
                         if (v.getASTNode().contains(p.position)) {
+                            String message = null;
+                            if ("未初期化変数をfreeしてはいけない".equals(p.message)) {
+                                message = memoryStatuses.exit().size() == 1 ?
+                                    "未初期化変数をfreeしてはいけません" :
+                                    "未初期化変数をfreeする可能性があります";
+                            } else if ("既に解放されている領域をfreeしてはいけない".equals(p.message)) {
+                                message = memoryStatuses.exit().size() == 1 ?
+                                    "既に解放されている領域を2重にfreeしてはいけません" :
+                                    "既に開放されている領域を2重にfreeする可能性があります";
+                            } else {
+                                message = p.message;
+                            }
+
                             suggestions.add(new Suggestion(
                                         input.getSource(),
                                         v.getASTNode(),
-                                        p.message,
+                                        message,
                                         null));
                             //System.out.println("    " + p.message);
                         }
