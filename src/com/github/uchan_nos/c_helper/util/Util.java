@@ -74,7 +74,11 @@ public class Util {
             @Override
             public int compare(CFG.Vertex o1, CFG.Vertex o2) {
                 if (o1.getASTNode() == null && o2.getASTNode() == null) {
-                    return 0;
+                    if (o1.equals(o2)) {
+                        return 0;
+                    } else {
+                        return -1;
+                    }
                 } else if (o1.getASTNode() == null && o2.getASTNode() != null) {
                     return -1;
                 } else if (o1.getASTNode() != null && o2.getASTNode() == null) {
