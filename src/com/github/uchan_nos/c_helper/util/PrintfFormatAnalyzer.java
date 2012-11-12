@@ -29,7 +29,7 @@ public class PrintfFormatAnalyzer {
         }
     }
 
-    private static class CharReader {
+    public static class CharReader {
         public final String data;
         private int i;
         public CharReader(String data) {
@@ -47,6 +47,9 @@ public class PrintfFormatAnalyzer {
         }
         public boolean eof() {
             return i == data.length();
+        }
+        public int index() {
+            return i;
         }
     }
 
