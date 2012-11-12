@@ -3,9 +3,7 @@ package com.github.uchan_nos.c_helper.resource;
 import java.io.InputStreamReader;
 import java.io.IOException;
 
-import java.util.MissingResourceException;
 import java.util.Properties;
-import java.util.ResourceBundle;
 
 /**
  * 文字列リソースを管理する.
@@ -50,7 +48,11 @@ public class StringResource {
      * @return キーに対応した文字列またはそのキー自身.
      */
     public String getString(String key, Object... formatArgs) {
-        String value = this.stringProperties.getProperty(key, "!" + key);
-        return String.format(value, formatArgs);
+        if (key != null) {
+            String value = this.stringProperties.getProperty(key, "!" + key);
+            return String.format(value, formatArgs);
+        } else {
+            return null;
+        }
     }
 }
