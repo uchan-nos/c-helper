@@ -5,6 +5,13 @@ import java.io.IOException;
 
 import org.eclipse.jface.text.Document;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.PosixParser;
+import org.apache.commons.cli.ParseException;
+
 import com.github.uchan_nos.c_helper.analysis.Analyzer;
 import com.github.uchan_nos.c_helper.util.Util;
 
@@ -14,20 +21,39 @@ public class Launcher {
      * @param args
      */
     public static void main(String[] args) {
-        if (args.length == 1) {
-            String inputFilename = args[0];
+        // コマンドラインオプションの定義
+        Options options = new Options();
+        options
+            .addOption("s", "suggester", true, "A suggester to be executed");
+
+        try {
+            CommandLineParser parser = new PosixParser();
+            CommandLine cmd = parser.parse(options, args);
+
+            Analyzer.RunOption opt = new Analyzer.RunOption();
+
+            for (Option option : cmd.getOptions()) {
+                switch (option.getId()) {
+                case 's':
+                    opt.suggester = option.getValue();
+                    break;
+                }
+            }
+
+            String inputFilename = cmd.getArgs()[0];
             File inputFile = new File(inputFilename);
 
             try {
                 String fileContent = Util.readFileAll(inputFile, "UTF-8");
                 Analyzer analyzer =
                         new Analyzer();
-                analyzer.analyze(inputFilename, new Document(fileContent));
+                analyzer.analyze(inputFilename, new Document(fileContent), opt);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
-
     }
 
 }
