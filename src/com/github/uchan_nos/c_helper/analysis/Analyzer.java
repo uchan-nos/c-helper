@@ -25,12 +25,17 @@ import com.github.uchan_nos.c_helper.exceptions.InvalidEditorPartException;
 import com.github.uchan_nos.c_helper.suggest.*;
 
 public class Analyzer {
+    public static class RunOption {
+        // 実行したいサジェスタ。すべて実行する場合は null
+        public String suggester = null;
+    }
+
     private IFile fileToAnalyze = null;
 
     public Analyzer() {
     }
 
-    public void analyze(IEditorPart activeEditorPart)
+    public void analyze(IEditorPart activeEditorPart, RunOption opt)
             throws InvalidEditorPartException {
         if (activeEditorPart instanceof ITextEditor) {
             ITextEditor textEditorPart = (ITextEditor) activeEditorPart;
@@ -40,7 +45,7 @@ public class Analyzer {
 
             if (editorInput instanceof IFileEditorInput) {
                 fileToAnalyze = ((IFileEditorInput) editorInput).getFile();
-                analyze(fileToAnalyze.getFullPath().toString(), documentToAnalyze);
+                analyze(fileToAnalyze.getFullPath().toString(), documentToAnalyze, opt);
             } else {
                 throw new RuntimeException("editor input isn't IFileEditorInput");
             }
@@ -50,25 +55,46 @@ public class Analyzer {
         }
     }
 
-    public void analyze(String filePath, IDocument source) {
+    public void analyze(String filePath, IDocument source, RunOption opt) {
         try {
-            /*
-            Suggester[] suggesters = {
-                    new FileOpenCloseSuggester()
-            };
-            */
-            Suggester[] suggesters = {
-                    new SizeofSuggester(),
-                    new IndentationSuggester(),
-                    new SemicolonOblivionSuggester(),
-                    new SemicolonUnnecessarySuggester(),
-                    new ReturnOblivionSuggester(),
-                    new AssignmentToCharSuggester(),
-                    new CastSuppressingErrorSuggester(),
-                    new PrintfParameterSuggester(),
-                    new MemoryLeakSuggester(),
-                    new CompareCharStringSuggester()
-            };
+            Suggester[] suggesters;
+            if (opt.suggester == null) {
+                suggesters = new Suggester[] {
+                        new SizeofSuggester(),
+                        new IndentationSuggester(),
+                        new SemicolonOblivionSuggester(),
+                        new SemicolonUnnecessarySuggester(),
+                        new ReturnOblivionSuggester(),
+                        new AssignmentToCharSuggester(),
+                        new CastSuppressingErrorSuggester(),
+                        new PrintfParameterSuggester(),
+                        new MemoryLeakSuggester(),
+                        new CompareCharStringSuggester()
+                };
+            } else {
+                String suggesterName = "com.github.uchan_nos.c_helper.suggest." + opt.suggester;
+                try {
+                    Class<?> suggesterClass = Class.forName(suggesterName);
+                    Object o = suggesterClass.newInstance();
+                    if (o instanceof Suggester) {
+                        suggesters = new Suggester[] {
+                            (Suggester)o
+                        };
+                    } else {
+                        System.err.println(suggesterName + " is not instanceof Suggester.");
+                        return;
+                    }
+                } catch (ClassNotFoundException e) {
+                    System.err.println(e);
+                    return;
+                } catch (InstantiationException e) {
+                    System.err.println(e);
+                    return;
+                } catch (IllegalAccessException e) {
+                    System.err.println(e);
+                    return;
+                }
+            }
 
             AnalysisEnvironment analysisEnvironment = new AnalysisEnvironment();
             analysisEnvironment.CHAR_BIT = 8;

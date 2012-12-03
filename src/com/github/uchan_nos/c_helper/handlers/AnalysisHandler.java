@@ -32,7 +32,7 @@ public class AnalysisHandler extends AbstractHandler {
         Analyzer analyzer = new Analyzer();
         try {
             IEditorPart activeEditorPart = HandlerUtil.getActiveEditorChecked(event);
-            analyzer.analyze(activeEditorPart);
+            analyzer.analyze(activeEditorPart, new Analyzer.RunOption());
         } catch (InvalidEditorPartException e) {
             e.printStackTrace();
             IWorkbenchWindow window = HandlerUtil
