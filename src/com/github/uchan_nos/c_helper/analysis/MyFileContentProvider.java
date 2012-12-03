@@ -1,5 +1,6 @@
 package com.github.uchan_nos.c_helper.analysis;
 
+import java.io.InputStream;
 import java.io.IOException;
 
 import org.eclipse.cdt.core.index.IIndexFileLocation;
@@ -11,6 +12,7 @@ import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
+import com.github.uchan_nos.c_helper.util.FileLoader;
 import com.github.uchan_nos.c_helper.util.Util;
 
 @SuppressWarnings("restriction")
@@ -23,37 +25,57 @@ public class MyFileContentProvider extends InternalFileContentProvider {
     }
 
     @Override
-    public InternalFileContent getContentForInclusion(String filePathString,
+    public InternalFileContent getContentForInclusion(String originalFilePathString,
             IMacroDictionary macroDictionary) {
-        // split file path
-        IPath filePath = new Path(filePathString);
-        String filename = filePath.lastSegment();
+        System.out.println("MyFileContentProvider#getCOntentForInclusion");
 
-        IPath stdPath = new Path(this.stdHeaderDir).append(filename);
-        //if (stdHeaders.containsKey(filename)) {
-        if (stdPath.toFile().exists()) {
-            // filenameが標準ライブラリだったら組み込みのヘッダ内容を返す
-            try {
-                return (InternalFileContent) FileContent.create(
-                        stdPath.toOSString(),
-                        Util.readFileAll(stdPath.toFile()).toCharArray());
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
-        } else if (getInclusionExists(filePathString)) {
-            // filenameは標準ライブラリではないが、filePathStringにはヘッダがあった
-            return SavedFilesProvider.getInstance().getContentForInclusion(
-                    filePathString, macroDictionary);
-        } else {
-            // filenameが標準ライブラリでもなく、filePathStringが見つからないならヘッダが見つからないことにする
-            return null;
+        System.out.println("  splitting file name: " + originalFilePathString);
+        // split file path
+        String filename = new Path(originalFilePathString).lastSegment();
+
+        IPath constructedFilePath = new Path(this.stdHeaderDir).append(filename);
+        String constructedFilePathString = constructedFilePath.toOSString();
+        System.out.println("  constructedFilePath: " + constructedFilePathString);
+
+        //File file = FileLoader.getInstance().load(stdPath.toOSString());
+
+        InputStream inputStream = null;
+        try {
+            System.out.println("  opening stream for " + constructedFilePathString);
+            inputStream = FileLoader.getInstance().openStream(
+                    constructedFilePathString);
+            System.out.println("  input stream was successfully opened");
+            return (InternalFileContent) FileContent.create(
+                    constructedFilePathString,
+                    Util.readInputStreamAll(inputStream).toCharArray());
+        } catch (IOException e) {
+            System.out.println("  failed to open input stream");
+            inputStream = null;
         }
+
+        if (inputStream == null) {
+            try {
+                System.out.println("  opening stream for " + originalFilePathString);
+                inputStream = FileLoader.getInstance().openStream(
+                        originalFilePathString);
+                System.out.println("  input stream was successfully opened");
+            return (InternalFileContent) FileContent.create(
+                    originalFilePathString,
+                    Util.readInputStreamAll(inputStream).toCharArray());
+            } catch (IOException e) {
+                System.out.println("  failed to open input stream");
+                inputStream = null;
+            }
+        }
+
+        return null;
+
     }
 
     @Override
     public InternalFileContent getContentForInclusion(IIndexFileLocation ifl,
             String astPath) {
+        System.err.println("handle it to SavedFilesProvider: " + astPath);
         return SavedFilesProvider.getInstance().getContentForInclusion(ifl, astPath);
     }
 

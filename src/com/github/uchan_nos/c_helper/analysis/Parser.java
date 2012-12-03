@@ -40,6 +40,8 @@ public class Parser {
      * @throws CoreException
      */
     public IASTTranslationUnit parse() throws CoreException {
+        System.out.println("Parser#parse()");
+
         ILanguage language = GCCLanguage.getDefault();
 
         FileContent reader = FileContent.create(filePath, sourceCode.toCharArray());
@@ -47,17 +49,29 @@ public class Parser {
         Map<String, String> macroDefinitions = new HashMap<String, String>();
         macroDefinitions.put("__STDC__", "100");
 
-        String[] includeSearchPath = new String[] { "/Users/uchan/git/c-helper/stdheaders" };
-        IScannerInfo scanInfo = new ScannerInfo(macroDefinitions,
-                includeSearchPath);
+        String stdheaderDirPath = "";
+
+        System.out.println("  setting include search path: " + stdheaderDirPath);
+
+        /*
+         * includeSearchPathに指定したディレクトリにヘッダファイル名を付加したパス名が
+         * MyFileContentProvider#getContentForInclusionに渡される
+         */
+        String[] includeSearchPath = new String[] { stdheaderDirPath };
+        IScannerInfo scanInfo = new ScannerInfo(macroDefinitions, includeSearchPath);
+
+        System.out.println("  creating include file content provider");
 
         IncludeFileContentProvider fileCreator =
                 //IncludeFileContentProvider.getSavedFilesProvider();
                 //IncludeFileContentProvider.getEmptyFilesProvider();
-                new MyFileContentProvider("/Users/uchan/git/c-helper/stdheaders");
+                //new MyFileContentProvider(stdheaderDirPath);
+                new MyFileContentProvider("stdheaders");
         IIndex index = null;
         int options = ILanguage.OPTION_IS_SOURCE_UNIT;
         IParserLogService log = new DefaultLogService();
+
+        System.out.println("  getting ast translation unit");
 
         IASTTranslationUnit translationUnit = language
                 .getASTTranslationUnit(reader, scanInfo, fileCreator,

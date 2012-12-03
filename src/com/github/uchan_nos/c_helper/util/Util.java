@@ -3,6 +3,7 @@ package com.github.uchan_nos.c_helper.util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
@@ -31,15 +32,15 @@ import com.github.uchan_nos.c_helper.analysis.CFG;
  */
 public class Util {
     /**
-     * ファイル内容をすべて読み込み、文字列として返す.
-     * @param file 読み込むファイル
+     * 入力ストリームの内容をすべて読み込み、文字列として返す.
+     * @param inputStream 読み込むコンテンツ
      * @param charsetName ファイルのエンコーディング
-     * @return ファイルの内容
+     * @return 入力ストリームの内容
      * @throws IOException
      */
-    public static String readFileAll(File file, String charsetName) throws IOException {
+    public static String readInputStreamAll(InputStream inputStream, String charsetName) throws IOException {
         BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(file), charsetName));
+                new InputStreamReader(inputStream, charsetName));
         StringBuilder sb = new StringBuilder();
         int c;
         while ((c = reader.read()) != -1) {
@@ -47,6 +48,28 @@ public class Util {
         }
         reader.close();
         return sb.toString();
+    }
+
+    /**
+     * 入力ストリームの内容をすべて読み込み、文字列として返す.
+     * ファイルはUTF-8でエンコーディングされていると仮定する.
+     * @param inputStream 読み込むコンテンツ
+     * @return 入力ストリームの内容
+     * @throws IOException
+     */
+    public static String readInputStreamAll(InputStream inputStream) throws IOException {
+        return readInputStreamAll(inputStream, "UTF-8");
+    }
+
+    /**
+     * ファイル内容をすべて読み込み、文字列として返す.
+     * @param file 読み込むファイル
+     * @param charsetName ファイルのエンコーディング
+     * @return ファイルの内容
+     * @throws IOException
+     */
+    public static String readFileAll(File file, String charsetName) throws IOException {
+        return readInputStreamAll(new FileInputStream(file), charsetName);
     }
 
     /**
