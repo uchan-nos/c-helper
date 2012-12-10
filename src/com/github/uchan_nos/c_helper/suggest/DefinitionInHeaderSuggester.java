@@ -53,7 +53,7 @@ public class DefinitionInHeaderSuggester extends Suggester {
 
     private static boolean isSimpleFunctionPrototypeDeclaration(IASTSimpleDeclaration sd) {
         IASTDeclarator[] declarators = sd.getDeclarators();
-        if (declarators.length >= 2) {
+        if (declarators.length >= 2 || declarators.length <= 0) {
             return false;
         }
 
