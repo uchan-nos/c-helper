@@ -11,6 +11,10 @@ import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
 import org.eclipse.cdt.internal.core.parser.SavedFilesProvider;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
@@ -33,7 +37,8 @@ public class MyFileContentProvider extends InternalFileContentProvider {
     @Override
     public InternalFileContent getContentForInclusion(String originalFilePathString,
             IMacroDictionary macroDictionary) {
-        logger.finest("MyFileContentProvider#getCOntentForInclusion");
+        logger.finest("MyFileContentProvider#getCOntentForInclusion("
+            + originalFilePathString + ", " + macroDictionary + ")");
 
         logger.finest("  splitting file name: " + originalFilePathString);
         // split file path
@@ -50,26 +55,33 @@ public class MyFileContentProvider extends InternalFileContentProvider {
             logger.finest("  opening stream for " + constructedFilePathString);
             inputStream = FileLoader.getInstance().openStream(
                     constructedFilePathString);
-            logger.finest("  input stream was successfully opened");
-            return (InternalFileContent) FileContent.create(
-                    constructedFilePathString,
-                    Util.readInputStreamAll(inputStream).toCharArray());
+            if (inputStream != null) {
+                logger.finest("  input stream was successfully opened");
+                return (InternalFileContent) FileContent.create(
+                        constructedFilePathString,
+                        Util.readInputStreamAll(inputStream).toCharArray());
+            }
         } catch (IOException e) {
-            logger.finest("  failed to open input stream");
+            logger.finest("  failed to open input stream: " + e);
             inputStream = null;
         }
 
         if (inputStream == null) {
             try {
                 logger.finest("  opening stream for " + originalFilePathString);
-                inputStream = FileLoader.getInstance().openStream(
-                        originalFilePathString);
+                IWorkspace ws = ResourcesPlugin.getWorkspace();
+                IFile originalFile = ws.getRoot().getFile(new Path(originalFilePathString));
+                inputStream = originalFile.getContents();
                 logger.finest("  input stream was successfully opened");
-            return (InternalFileContent) FileContent.create(
-                    originalFilePathString,
-                    Util.readInputStreamAll(inputStream).toCharArray());
+                return (InternalFileContent) FileContent.create(
+                        originalFilePathString,
+                        Util.readInputStreamAll(inputStream).toCharArray());
+
             } catch (IOException e) {
-                logger.finest("  failed to open input stream");
+                logger.finest("failed to open input stream: " + e);
+                inputStream = null;
+            } catch (CoreException e) {
+                logger.finest("failed to open input stream: " + e);
                 inputStream = null;
             }
         }

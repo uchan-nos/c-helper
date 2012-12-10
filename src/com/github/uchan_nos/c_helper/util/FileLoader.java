@@ -43,6 +43,9 @@ public class FileLoader {
             logger.finest("  loading file from Activator default bundle");
 
             URL fileURL = Activator.getDefault().getBundle().getEntry(path);
+            if (fileURL == null) {
+                return null;
+            }
 
             try {
                 URI fileURI = FileLocator.resolve(fileURL).toURI();
