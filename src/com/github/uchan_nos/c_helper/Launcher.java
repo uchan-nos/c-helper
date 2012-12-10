@@ -3,6 +3,9 @@ package com.github.uchan_nos.c_helper;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.eclipse.jface.text.Document;
 
 import org.apache.commons.cli.Option;
@@ -21,10 +24,15 @@ public class Launcher {
      * @param args
      */
     public static void main(String[] args) {
+        Logger logger = Activator.getLogger();
+        logger.setLevel(Level.INFO);
+
         // コマンドラインオプションの定義
         Options options = new Options();
         options
-            .addOption("s", "suggester", true, "A suggester to be executed");
+            .addOption("s", "suggester", true, "A suggester to be executed")
+            .addOption("v", false, "Output verbose log message")
+            ;
 
         try {
             CommandLineParser parser = new PosixParser();
@@ -36,6 +44,11 @@ public class Launcher {
                 switch (option.getId()) {
                 case 's':
                     opt.suggester = option.getValue();
+                    break;
+                case 'v':
+                    Level level = Level.ALL;
+                    logger.setLevel(level);
+                    Util.GetConsoleHandler(logger).setLevel(level);
                     break;
                 }
             }
@@ -55,5 +68,4 @@ public class Launcher {
             e.printStackTrace();
         }
     }
-
 }

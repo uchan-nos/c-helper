@@ -1,6 +1,8 @@
 package com.github.uchan_nos.c_helper.analysis;
 
 import java.util.HashMap;
+
+import java.util.logging.Logger;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -15,11 +17,15 @@ import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.cdt.core.parser.ScannerInfo;
 import org.eclipse.core.runtime.CoreException;
 
+import com.github.uchan_nos.c_helper.Activator;
+
 /**
  * C言語パーサ.
  * @author uchan
  */
 public class Parser {
+    private final Logger logger = Activator.getLogger();
+
     private String filePath;
     private String sourceCode;
 
@@ -40,7 +46,7 @@ public class Parser {
      * @throws CoreException
      */
     public IASTTranslationUnit parse() throws CoreException {
-        System.out.println("Parser#parse()");
+        logger.finest("Parser#parse()");
 
         ILanguage language = GCCLanguage.getDefault();
 
@@ -51,7 +57,7 @@ public class Parser {
 
         String stdheaderDirPath = "";
 
-        System.out.println("  setting include search path: " + stdheaderDirPath);
+        logger.finest("  setting include search path: " + stdheaderDirPath);
 
         /*
          * includeSearchPathに指定したディレクトリにヘッダファイル名を付加したパス名が
@@ -60,7 +66,7 @@ public class Parser {
         String[] includeSearchPath = new String[] { stdheaderDirPath };
         IScannerInfo scanInfo = new ScannerInfo(macroDefinitions, includeSearchPath);
 
-        System.out.println("  creating include file content provider");
+        logger.finest("  creating include file content provider");
 
         IncludeFileContentProvider fileCreator =
                 //IncludeFileContentProvider.getSavedFilesProvider();
@@ -71,7 +77,7 @@ public class Parser {
         int options = ILanguage.OPTION_IS_SOURCE_UNIT;
         IParserLogService log = new DefaultLogService();
 
-        System.out.println("  getting ast translation unit");
+        logger.finest("  getting ast translation unit");
 
         IASTTranslationUnit translationUnit = language
                 .getASTTranslationUnit(reader, scanInfo, fileCreator,

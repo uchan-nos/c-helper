@@ -1,8 +1,19 @@
 package com.github.uchan_nos.c_helper;
 
+import java.util.Hashtable;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.eclipse.jface.resource.ImageDescriptor;
+
+import org.eclipse.osgi.service.debug.DebugOptions;
+import org.eclipse.osgi.service.debug.DebugOptionsListener;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+
 import org.osgi.framework.BundleContext;
+
+import com.github.uchan_nos.c_helper.util.Util;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -14,6 +25,9 @@ public class Activator extends AbstractUIPlugin {
 
     // The shared instance
     private static Activator plugin;
+
+    // デバッグモードフラグ
+    private boolean debug = false;
 
     /**
      * The constructor
@@ -31,6 +45,27 @@ public class Activator extends AbstractUIPlugin {
     public void start(BundleContext context) throws Exception {
         super.start(context);
         plugin = this;
+
+        // -debugオプションに対応する
+        Hashtable<String, String> properties = new Hashtable<String, String>(4);
+        properties.put(DebugOptions.LISTENER_SYMBOLICNAME, PLUGIN_ID);
+
+        context.registerService(
+                DebugOptionsListener.class,
+                new DebugOptionsListener() {
+                    @Override
+                    public void optionsChanged(DebugOptions options) {
+                        Activator.this.debug = options.getBooleanOption(PLUGIN_ID + "/debug", false);
+
+                        // このプラグインのデバッグフラグが明示的に指定されていたら、
+                        // ロガーを詳細レベルに設定する
+                        Logger logger = Activator.getLogger();
+                        Level level = Activator.this.debug ? Level.ALL : Level.INFO;
+                        logger.setLevel(level);
+                        Util.GetConsoleHandler(logger).setLevel(level);
+                    }
+                },
+                properties);
     }
 
     /*
@@ -64,5 +99,19 @@ public class Activator extends AbstractUIPlugin {
      */
     public static ImageDescriptor getImageDescriptor(String path) {
         return imageDescriptorFromPlugin(PLUGIN_ID, path);
+    }
+
+    /**
+     * プラグインのデフォルトロガーを返す.
+     */
+    public static Logger getLogger() {
+        return Logger.getLogger(PLUGIN_ID);
+    }
+
+    /**
+     * デバッグモードかどうかを返す.
+     */
+    public boolean isDebugMode() {
+        return debug;
     }
 }
