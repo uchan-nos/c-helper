@@ -14,6 +14,10 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -505,5 +509,22 @@ public class Util {
             }
         }
         return node;
+    }
+
+    /**
+     * ロガーに登録されたコンソールハンドラを返す.
+     * 登録されてなければ、新規作成したハンドラを登録してから返す.
+     */
+    public static ConsoleHandler GetConsoleHandler(Logger logger) {
+        for (Handler handler : logger.getHandlers()) {
+            if (handler instanceof ConsoleHandler) {
+                return (ConsoleHandler) handler;
+            }
+        }
+
+        ConsoleHandler consoleHandler = new ConsoleHandler();
+        logger.addHandler(consoleHandler);
+
+        return consoleHandler;
     }
 }
