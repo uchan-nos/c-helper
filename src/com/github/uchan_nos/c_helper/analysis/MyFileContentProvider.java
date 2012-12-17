@@ -83,6 +83,9 @@ public class MyFileContentProvider extends InternalFileContentProvider {
             } catch (CoreException e) {
                 logger.finest("failed to open input stream: " + e);
                 inputStream = null;
+            } catch (IllegalStateException e) {
+                logger.finest("failed to open input stream: " + e);
+                inputStream = null;
             }
         }
 
