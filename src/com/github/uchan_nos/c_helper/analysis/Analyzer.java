@@ -70,7 +70,8 @@ public class Analyzer {
                         new PrintfParameterSuggester(),
                         new MemoryLeakSuggester(),
                         new CompareCharStringSuggester(),
-                        new DefinitionInHeaderSuggester()
+                        new DefinitionInHeaderSuggester(),
+                        new HidingIdentifierSuggester()
                 };
             } else {
                 String suggesterName = "com.github.uchan_nos.c_helper.suggest." + opt.suggester;
