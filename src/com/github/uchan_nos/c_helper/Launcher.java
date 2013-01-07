@@ -16,6 +16,7 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.commons.cli.ParseException;
 
 import com.github.uchan_nos.c_helper.analysis.Analyzer;
+import com.github.uchan_nos.c_helper.analysis.FileInfo;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class Launcher {
@@ -60,7 +61,7 @@ public class Launcher {
                 String fileContent = Util.readFileAll(inputFile, "UTF-8");
                 Analyzer analyzer =
                         new Analyzer();
-                analyzer.analyze(inputFilename, new Document(fileContent), opt);
+                analyzer.analyze(new FileInfo(inputFilename, false), new Document(fileContent), opt);
             } catch (IOException e) {
                 e.printStackTrace();
             }

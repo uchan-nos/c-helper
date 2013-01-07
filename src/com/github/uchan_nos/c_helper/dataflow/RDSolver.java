@@ -22,6 +22,7 @@ import com.github.uchan_nos.c_helper.analysis.AssignExpression;
 import com.github.uchan_nos.c_helper.analysis.CFG;
 import com.github.uchan_nos.c_helper.analysis.CFGCreator;
 import com.github.uchan_nos.c_helper.analysis.DummyAssignExpression;
+import com.github.uchan_nos.c_helper.analysis.FileInfo;
 import com.github.uchan_nos.c_helper.analysis.IGraph;
 import com.github.uchan_nos.c_helper.analysis.Parser;
 
@@ -267,7 +268,7 @@ public class RDSolver extends GenKillForwardSolver<CFG.Vertex, AssignExpression>
             try {
                 String fileContent = Util.readFileAll(inputFile, "UTF-8");
                 IASTTranslationUnit translationUnit =
-                        new Parser(inputFilename, fileContent).parse();
+                        new Parser(new FileInfo(inputFilename, false), fileContent).parse();
                 Map<String, CFG> procToCFG =
                         new CFGCreator(translationUnit).create();
                 for (Entry<String, CFG> entry : procToCFG.entrySet()) {

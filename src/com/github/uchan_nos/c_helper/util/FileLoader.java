@@ -12,7 +12,13 @@ import java.net.URL;
 
 import java.util.logging.Logger;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.ResourcesPlugin;
+
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 
 import com.github.uchan_nos.c_helper.Activator;
@@ -32,7 +38,7 @@ public class FileLoader {
         PLUGIN_DIRECTORY = System.getenv("PLUGIN_DIR");
     }
 
-    public InputStream openStream(String path) throws FileNotFoundException, IOException {
+    public InputStream openStreamForEmbeddedFile(String path) throws FileNotFoundException, IOException {
         logger.finest("path=" + path + ", PLUGIN_DIRECTORY=" + PLUGIN_DIRECTORY);
 
         if (PLUGIN_DIRECTORY != null) {
@@ -62,6 +68,18 @@ public class FileLoader {
             return new FileInputStream(new File(path));
         }
 
+    }
+
+    public InputStream openStreamForUserFile(String path, boolean pathIsOfWorkspace)
+        throws FileNotFoundException, IOException, CoreException {
+        if (pathIsOfWorkspace) {
+            IWorkspace ws = ResourcesPlugin.getWorkspace();
+            IFile originalFile = ws.getRoot().getFile(new Path(path));
+            InputStream inputStream = originalFile.getContents();
+            return inputStream;
+        } else {
+            return new FileInputStream(new File(path));
+        }
     }
 
     public File load(String path) {
