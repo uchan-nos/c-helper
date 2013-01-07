@@ -86,12 +86,16 @@ public class HidingIdentifierSuggester extends Suggester {
                 definitions.addAll(visitor.getDefinitions());
             } else if (declaration instanceof IASTSimpleDeclaration) {
                 IASTSimpleDeclaration sd = (IASTSimpleDeclaration) declaration;
-                for (IASTDeclarator declarator : sd.getDeclarators()) {
-                    definitions.add(new Definition(
-                                tuGlobalScope, declarator));
-                }
+                addAllDeclarators(sd, tuGlobalScope, definitions);
             }
             return PROCESS_ABORT;
+        }
+
+        public static void addAllDeclarators(IASTSimpleDeclaration sd,
+                IScope currentScope, Collection<Definition> definitions) {
+            for (IASTDeclarator declarator : sd.getDeclarators()) {
+                definitions.add(new Definition(currentScope, declarator));
+            }
         }
     }
 
@@ -100,6 +104,42 @@ public class HidingIdentifierSuggester extends Suggester {
         private Collection<Definition> definitions = new ArrayList<Definition>();
         public Collection<Definition> getDefinitions() {
             return definitions;
+        }
+
+        private IScope currentScope = null;
+        @Override public int visit(IASTStatement statement) {
+            if (statement instanceof IASTCompoundStatement) {
+                IASTCompoundStatement cs = (IASTCompoundStatement) statement;
+                currentScope = cs.getScope();
+                for (IASTStatement s : cs.getStatements()) {
+                    s.accept(this);
+                }
+            } else if (statement instanceof IASTDeclarationStatement) {
+                IASTDeclarationStatement ds = (IASTDeclarationStatement) statement;
+                ds.getDeclaration().accept(this);
+            }
+            return PROCESS_ABORT;
+        }
+
+        @Override public int leave(IASTStatement statement) {
+            if (statement instanceof IASTCompoundStatement) {
+                IASTCompoundStatement cs = (IASTCompoundStatement) statement;
+                try {
+                    currentScope = cs.getScope().getParent();
+                } catch (DOMException e) {
+                    logger.info("Cannot get parent scope");
+                    currentScope = null;
+                }
+            }
+            return PROCESS_ABORT;
+        }
+
+        @Override public int visit(IASTDeclaration declaration) {
+            if (declaration instanceof IASTSimpleDeclaration) {
+                IASTSimpleDeclaration sd = (IASTSimpleDeclaration) declaration;
+                DefinitionVisitor.addAllDeclarators(sd, currentScope, definitions);
+            }
+            return PROCESS_ABORT;
         }
     }
 
