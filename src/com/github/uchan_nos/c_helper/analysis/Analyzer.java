@@ -45,7 +45,7 @@ public class Analyzer {
 
             if (editorInput instanceof IFileEditorInput) {
                 fileToAnalyze = ((IFileEditorInput) editorInput).getFile();
-                analyze(fileToAnalyze.getFullPath().toString(), documentToAnalyze, opt);
+                analyze(new FileInfo(fileToAnalyze.getFullPath().toString(), true), documentToAnalyze, opt);
             } else {
                 throw new RuntimeException("editor input isn't IFileEditorInput");
             }
@@ -55,7 +55,7 @@ public class Analyzer {
         }
     }
 
-    public void analyze(String filePath, IDocument source, RunOption opt) {
+    public void analyze(FileInfo fileInfo, IDocument source, RunOption opt) {
         try {
             Suggester[] suggesters;
             if (opt.suggester == null) {
@@ -133,7 +133,7 @@ public class Analyzer {
                     "ポインタ変数のサイズを " + analysisEnvironment.POINTER_BYTE + " バイトと仮定しています。");
 
             IASTTranslationUnit translationUnit =
-                    new Parser(filePath, source.get()).parse();
+                    new Parser(fileInfo, source.get()).parse();
             Map<String, CFG> procToCFG =
                     new CFGCreator(translationUnit).create();
             Map<String, RD<CFG.Vertex>> procToRD =
@@ -146,7 +146,7 @@ public class Analyzer {
             }
 
             SuggesterInput input = new SuggesterInput(
-                    filePath, source, translationUnit, procToCFG, procToRD,
+                    fileInfo.getPath(), source, translationUnit, procToCFG, procToRD,
                     analysisEnvironment);
             ArrayList<Suggestion> suggestions = new ArrayList<Suggestion>();
 

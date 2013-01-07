@@ -26,7 +26,7 @@ import com.github.uchan_nos.c_helper.Activator;
 public class Parser {
     private final Logger logger = Activator.getLogger();
 
-    private String filePath;
+    private FileInfo fileInfo;
     private String sourceCode;
 
     /**
@@ -35,8 +35,8 @@ public class Parser {
      * @param filePath ソースコードを含んでいるファイルへのパス
      * @param sourceCode ソースコード
      */
-    public Parser(String filePath, String sourceCode) {
-        this.filePath = filePath;
+    public Parser(FileInfo fileInfo, String sourceCode) {
+        this.fileInfo = fileInfo;
         this.sourceCode = sourceCode;
     }
 
@@ -50,7 +50,7 @@ public class Parser {
 
         ILanguage language = GCCLanguage.getDefault();
 
-        FileContent reader = FileContent.create(filePath, sourceCode.toCharArray());
+        FileContent reader = FileContent.create(fileInfo.getPath(), sourceCode.toCharArray());
 
         Map<String, String> macroDefinitions = new HashMap<String, String>();
         macroDefinitions.put("__STDC__", "100");
@@ -72,7 +72,7 @@ public class Parser {
                 //IncludeFileContentProvider.getSavedFilesProvider();
                 //IncludeFileContentProvider.getEmptyFilesProvider();
                 //new MyFileContentProvider(stdheaderDirPath);
-                new MyFileContentProvider("stdheaders");
+                new MyFileContentProvider("stdheaders", fileInfo);
         IIndex index = null;
         int options = ILanguage.OPTION_IS_SOURCE_UNIT;
         IParserLogService log = new DefaultLogService();
