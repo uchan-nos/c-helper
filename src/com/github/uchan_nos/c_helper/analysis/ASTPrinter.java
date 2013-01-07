@@ -103,7 +103,7 @@ public class ASTPrinter {
             try {
                 String fileContent = Util.readFileAll(inputFile, "UTF-8");
                 IASTTranslationUnit translationUnit =
-                        new Parser(inputFilename, fileContent).parse();
+                        new Parser(new FileInfo(inputFilename, false), fileContent).parse();
                 System.out.println("digraph AST {\n");
 
                 int declCount = 0;

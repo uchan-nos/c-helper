@@ -51,7 +51,7 @@ public class CFGCreator {
             try {
                 String fileContent = Util.readFileAll(inputFile, "UTF-8");
                 IASTTranslationUnit translationUnit =
-                        new Parser(inputFilename, fileContent).parse();
+                        new Parser(new FileInfo(inputFilename, false), fileContent).parse();
                 Map<String, CFG> procToCFG =
                         new CFGCreator(translationUnit).create();
                 String dot =

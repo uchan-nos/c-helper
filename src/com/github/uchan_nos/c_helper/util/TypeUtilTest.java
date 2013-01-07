@@ -8,6 +8,7 @@ import org.eclipse.cdt.core.dom.ast.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.github.uchan_nos.c_helper.analysis.FileInfo;
 import com.github.uchan_nos.c_helper.analysis.Parser;
 
 public class TypeUtilTest {
@@ -27,7 +28,7 @@ public class TypeUtilTest {
 
     @Before
     public void setUp() throws Exception {
-        tu = new Parser("dummy", source).parse();
+        tu = new Parser(new FileInfo("dummy", false), source).parse();
         declarationsInFile = new ArrayList<IASTDeclaration>();
         for (IASTDeclaration decl : tu.getDeclarations()) {
             if (decl.isPartOfTranslationUnitFile()) {

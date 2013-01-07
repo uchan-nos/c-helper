@@ -10,6 +10,7 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import com.github.uchan_nos.c_helper.analysis.FileInfo;
 import com.github.uchan_nos.c_helper.analysis.Parser;
 
 import com.github.uchan_nos.c_helper.pointer.ASTPathFinder;
@@ -29,7 +30,7 @@ public class ASTPathFinderTest {
             "  p = q = malloc(30);\n" +
             "}\n";
 
-        IASTTranslationUnit tu = new Parser("", src).parseOrNull();
+        IASTTranslationUnit tu = new Parser(new FileInfo("", false), src).parseOrNull();
         List<IASTDeclaration> decls = extractPartOfTUDeclarations(tu.getDeclarations());
 
         List<List<IASTNode>> pathToMalloc = null;

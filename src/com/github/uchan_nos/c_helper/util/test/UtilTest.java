@@ -14,6 +14,7 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.github.uchan_nos.c_helper.analysis.FileInfo;
 import com.github.uchan_nos.c_helper.analysis.Parser;
 
 import com.github.uchan_nos.c_helper.util.Util;
@@ -36,7 +37,7 @@ public class UtilTest {
 
         try {
             IASTTranslationUnit translationUnit =
-                    new Parser("dummy", source).parse();
+                    new Parser(new FileInfo("dummy", false), source).parse();
 
             ArrayList<IASTFunctionDefinition> functionDefinitions =
                 new ArrayList<IASTFunctionDefinition>();
