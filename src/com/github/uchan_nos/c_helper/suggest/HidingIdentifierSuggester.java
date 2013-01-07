@@ -2,8 +2,12 @@ package com.github.uchan_nos.c_helper.suggest;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 
 import java.util.logging.Logger;
+
+import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.core.dom.ast.DOMException;
@@ -159,6 +163,30 @@ public class HidingIdentifierSuggester extends Suggester {
         for (Definition d : visitor.getDefinitions()) {
             System.out.println("  " + String.valueOf(d.declarator.getName().getSimpleID())
                     + " at " + d.declarator.getFileLocation().getStartingLineNumber());
+        }
+
+        // 識別子をキーとして、デクラレータをまとめる
+        HashMap<String, List<Definition>> definitionMap = new HashMap<String, List<Definition>>();
+        for (Definition d : visitor.getDefinitions()) {
+            String idString = String.valueOf(d.declarator.getName().getSimpleID());
+            if (!definitionMap.containsKey(idString)) {
+                definitionMap.put(idString, new ArrayList<Definition>());
+            }
+            definitionMap.get(idString).add(d);
+        }
+
+        // 重複している識別子を探す
+        for (Map.Entry<String, List<Definition>> e : definitionMap.entrySet()) {
+            if (e.getValue().size() >= 2) {
+                Definition topDefinition = e.getValue().get(0);
+                String idString = String.valueOf(topDefinition.declarator.getName().getSimpleID());
+                for (int i = 1; i < e.getValue().size(); ++i) {
+                    suggestionAppender.append(e.getValue().get(i).declarator,
+                            StringResource.get("識別子%sが重複している",
+                                idString),
+                            null);
+                }
+            }
         }
 
         /*
