@@ -5,9 +5,6 @@ import java.util.Collection;
 
 import org.eclipse.cdt.core.dom.ast.*;
 
-import org.eclipse.cdt.core.index.IIndexFileSet;
-
-import org.eclipse.jface.text.BadLocationException;
 
 import com.github.uchan_nos.c_helper.resource.StringResource;
 
@@ -24,9 +21,14 @@ public class DefinitionInHeaderSuggester extends Suggester {
                 if (decl instanceof IASTSimpleDeclaration) {
                     IASTSimpleDeclaration sd = (IASTSimpleDeclaration) decl;
                     IASTDeclSpecifier spec = sd.getDeclSpecifier();
+
+                    // 関数プロトタイプ宣言ではなく、
+                    // typedef, extern, staticなどがなく、
+                    // デクラレータが存在する。
+                    // （変数定義を伴わない構造体宣言はデクラレータがない）
                     if ((!isSimpleFunctionPrototypeDeclaration(sd)
-                            && spec.getStorageClass() != IASTDeclSpecifier.sc_extern
-                            && spec.getStorageClass() != IASTDeclSpecifier.sc_static)) {
+                            && spec.getStorageClass() == IASTDeclSpecifier.sc_unspecified
+                            && sd.getDeclarators().length > 0)) {
                         suggestions.add(new Suggestion(
                             decl.getContainingFilename(), decl.getFileLocation().getStartingLineNumber(), -1,
                             decl.getFileLocation().getNodeOffset(), decl.getFileLocation().getNodeLength(),
