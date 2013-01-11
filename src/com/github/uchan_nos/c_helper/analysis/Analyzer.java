@@ -163,6 +163,13 @@ public class Analyzer {
             Collections.sort(suggestions, new Comparator<Suggestion>() {
                 @Override
                 public int compare(Suggestion o1, Suggestion o2) {
+                    if (o1 == null && o2 == null) {
+                        return 0;
+                    } else if (o1 == null && o2 != null) {
+                        return 1;
+                    } else if (o1 != null && o2 == null) {
+                        return -1;
+                    }
                     int lineDiff = o1.getLineNumber() - o2.getLineNumber();
                     if (lineDiff != 0) {
                         return lineDiff;
