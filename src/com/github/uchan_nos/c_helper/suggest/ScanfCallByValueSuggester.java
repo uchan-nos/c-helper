@@ -102,7 +102,7 @@ public class ScanfCallByValueSuggester extends Suggester {
             for (int i = 0; i < specs.length; ++i) {
                 IASTExpression arg = args[i + startingIndexOfFormatArgument];
                 IType type = TypeUtil.removeQualifiers(arg.getExpressionType());
-                if (!(type instanceof IPointerType)) {
+                if (!(TypeUtil.resolveOuterTypedef(type) instanceof IPointerType)) {
                     String suggest = null;
                     if (arg instanceof IASTIdExpression) {
                         IASTName argName = ((IASTIdExpression) arg).getName();
