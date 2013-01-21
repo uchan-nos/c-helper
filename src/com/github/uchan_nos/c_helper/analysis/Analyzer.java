@@ -71,7 +71,8 @@ public class Analyzer {
                         new MemoryLeakSuggester(),
                         new CompareCharStringSuggester(),
                         new DefinitionInHeaderSuggester(),
-                        new HidingIdentifierSuggester()
+                        new HidingIdentifierSuggester(),
+                        new ScanfCallByValueSuggester()
                 };
             } else {
                 String suggesterName = "com.github.uchan_nos.c_helper.suggest." + opt.suggester;
