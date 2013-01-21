@@ -89,4 +89,16 @@ public class TypeUtil {
         }
         return null;
     }
+
+    /**
+     * 指定された型がtypedef型の場合、本当の型を解決して返す.
+     * 一番外側がtypedefでなくなるまで解決する.
+     * すなわち、戻り値がIPointerTypeであり、かつ指し示す先がtypedef型である場合などがある.
+     */
+    public static IType resolveOuterTypedef(IType type) {
+        while (type instanceof ITypedef) {
+            type = ((ITypedef) type).getType();
+        }
+        return type;
+    }
 }
