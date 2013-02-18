@@ -10,6 +10,9 @@ Eclipseの入手からC-Helperをインストールするまでの手順を説�
 Eclipse は公式サイトや有志の手によって、様々なパッケージが提供されています。
 ここでは、初学者にとって最も手軽と思われる All in One Eclipse の導入方法を説明します。
 
+All in One Eclipse は Windows 向けしか配布されていませんので、
+他の OS をお使いの人は Eclipse の公式サイトなどから、対応している Eclipse をダウンロードしてください。
+
 1. ダウンロード  
 All in One Eclipse は MergeDoc プロジェクトが配布しているパッケージで、
 その名の通り便利なプラグインが最初から同梱されています。
