@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="com.github.uchan_nos.c_helper.feature"
-      label="c-helper.feature"
+      label="C-Helper"
       version="1.0.0.qualifier">
 
    <description>
