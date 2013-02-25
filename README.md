@@ -38,18 +38,21 @@ pleiades-e4.2-cpp-32bit-jre\_20121123.zip のようなファイルがダウン�
 これを適当なディレクトリに解凍します。
 
 ### C-Helper の準備
-C-Helper は Eclipse のプラグインであり、現状で JAR ファイルの形で配布されています。
+C-Helper は Eclipse のプラグインです。
+更新サイトからインストールできます。
 
-1. ダウンロード  
-[uchan\_nos/c-helper/plugins](https://github.com/uchan-nos/c-helper/tree/master/plugins)
-から JAR ファイルをダウンロードできます。
-com.github.uchan\_nos.c\_helper\_1.0.0.201302181105.jar のようなファイル名をクリックすると
-Raw, History のようなボタンがあります。
-Raw をクリックすればファイルをダウンロードできます。
+更新サイトによるプラグインのインストール方法は、他の Eclipse プラグインと共通です。
+手順は [Eclipseのプラグイン追加インストール方法 - ID-Blogger | Infinity Dimensions](http://www.infinity-dimensions.com/blog/archives/eclipse-plugin-install.html) に画像つきで詳しく載っています。
 
-2. インストール  
-ダウンロードしたファイルを Eclipse の dropins ディレクトリに配置します。
-All in One Eclipse ならば pleiades/eclipse/dropins ディレクトリに先ほどの JAR ファイルを入れます。
+C-Helper のインストールで固有の情報は以下2つです。
+
+- 「リポジトリーの追加」で指定するロケーションは以下です。
+「名前」は任意で構いません。
+
+        https://github.com/uchan-nos/c-helper/raw/master/site
+
+- _Static Analyzers_ > _C-Helper_ をインストールしてください
+
 以上で C-Helper の準備は完了です。
 
 ### 使用方法
