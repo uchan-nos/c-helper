@@ -1,10 +1,19 @@
 package com.github.uchan_nos.c_helper.questionnaire;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import org.eclipse.jface.dialogs.Dialog;
+
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
+
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 
 import com.github.uchan_nos.c_helper.Activator;
 
@@ -30,14 +39,40 @@ public class QuestionnaireDialog extends Dialog {
         // OK, キャンセルボタンを除く、画面全体のレイアウト
         DialogArea dialogArea = createMainDialogArea(parent);
 
-        // 選択式質問エリア
-        DialogArea selectiveQuestionArea = createSelectiveQuestionArea(dialogArea.composite());
-        Question[] questions = createQuestions();
-        createSelectiveQuestionWidgets(selectiveQuestionArea.composite(), questions);
+        StringBuilder sb = new StringBuilder();
 
-        // 自由記述質問エリア
-        DialogArea freeFormArea = createFreeFormArea(dialogArea.composite());
-        createFreeFormQuestionWidgets(freeFormArea.composite());
+        Link label = new Link(dialogArea.composite(), SWT.NONE);
+        sb.append("以下の質問に答え、\n");
+        sb.append("Twitter: <a href=\"https://twitter.com/uchan_nos\">@uchan_nos</a>\n");
+        sb.append("Github: <a href=\"https://github.com/uchan-nos\">uchan-nos</a>\n");
+        sb.append("E-mail: uchan0@gmail.com\n");
+        sb.append("のいずれかにお知らせください。\n");
+        sb.append("今後の研究に活用させていただきます。");
+        label.setText(sb.toString());
+
+        label.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                try {
+                    PlatformUI.getWorkbench().getBrowserSupport().getExternalBrowser().openURL(new URL(e.text));
+                } catch (PartInitException e1) {
+                    e1.printStackTrace();
+                } catch (MalformedURLException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
+
+        sb = new StringBuilder();
+        Text questionText = new Text(dialogArea.composite(), SWT.MULTI);
+        questionText.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+        sb.append("質問1:\n");
+        sb.append("質問2:\n");
+        sb.append("その他ご意見・ご感想:\n");
+
+        questionText.setText(sb.toString());
+        questionText.setFocus();
 
         return parent;
     }
@@ -48,52 +83,5 @@ public class QuestionnaireDialog extends Dialog {
         l.numColumns = 1;
         c.setLayout(l);
         return new DialogArea(c, l);
-    }
-
-    private DialogArea createSelectiveQuestionArea(Composite parent) {
-        Composite c = new Composite(parent, SWT.NONE);
-        GridLayout l = new GridLayout();
-        l.numColumns = 2;
-        l.makeColumnsEqualWidth = false;
-        c.setLayout(l);
-        return new DialogArea(c, l);
-    }
-
-    private DialogArea createFreeFormArea(Composite parent) {
-        Composite c = new Composite(parent, SWT.NONE);
-        GridLayout l = new GridLayout();
-        l.numColumns = 1;
-        c.setLayout(l);
-        c.setLayoutData(new GridData(GridData.FILL_BOTH));
-        return new DialogArea(c, l);
-    }
-
-    private Question[] createQuestions() {
-        return new Question[] {
-                new Question("質問1", "選択してください", "option1-1", "option1-2"),
-                new Question("質問2", "選択してください", "option2-1", "option2-2"),
-                new Question("質問3", "選択してください", "option3-1", "option3-2"),
-        };
-    }
-
-    private void createSelectiveQuestionWidgets(Composite container, Question[] questions) {
-        for (int i = 0; i < questions.length; ++i) {
-            Label label = new Label(container, SWT.LEFT);
-            label.setText(questions[i].getQuestion());
-
-            Combo combo = new Combo(container, SWT.READ_ONLY | SWT.RIGHT);
-            combo.setItems(questions[i].getOptions());
-            combo.select(0);
-        }
-    }
-
-    private void createFreeFormQuestionWidgets(Composite container) {
-        Label label1 = new Label(container, SWT.LEFT);
-        label1.setText("C-Helperを使ってみた感想を教えてください");
-
-        Text comment = new Text(container, SWT.MULTI | SWT.CENTER);
-        comment.setLayoutData(new GridData(GridData.FILL_BOTH));
-        comment.setText("感想");
-        comment.selectAll();
     }
 }
