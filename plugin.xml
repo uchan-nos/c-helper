@@ -13,12 +13,21 @@
             categoryId="com.github.uchan_nos.c_helper.commands.category"
             id="com.github.uchan_nos.c_helper.commands.analysisCommand">
       </command>
+      <command
+            categoryId="com.github.uchan_nos.c_helper.commands.category"
+            id="com.github.uchan_nos.c_helper.commands.showQuestionnaire"
+            name="Show Questionnaire">
+      </command>
    </extension>
    <extension
          point="org.eclipse.ui.handlers">
       <handler
             commandId="com.github.uchan_nos.c_helper.commands.analysisCommand"
             class="com.github.uchan_nos.c_helper.handlers.AnalysisHandler">
+      </handler>
+      <handler
+            class="com.github.uchan_nos.c_helper.handlers.QuestionnaireHandler"
+            commandId="com.github.uchan_nos.c_helper.commands.showQuestionnaire">
       </handler>
    </extension>
    <extension
@@ -43,6 +52,13 @@
                   id="com.github.uchan_nos.c_helper.menus.analysisCommand"
                   label="Analyze"
                   mnemonic="A">
+            </command>
+            <command
+                  commandId="com.github.uchan_nos.c_helper.commands.showQuestionnaire"
+                  id="com.github.uchan_nos.c_helper.menus.showQuestionnaire"
+                  label="Show Questionnaire"
+                  mnemonic="S"
+                  style="push">
             </command>
          </menu>
       </menuContribution>
