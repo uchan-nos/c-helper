@@ -19,8 +19,6 @@ public class QuestionnaireDialog extends Dialog {
 
     public QuestionnaireDialog(Shell parentShell) {
         super(parentShell);
-        // ダイアログをリサイズ可能にする
-        setShellStyle(getShellStyle() | SWT.RESIZE);
     }
 
     @Override
