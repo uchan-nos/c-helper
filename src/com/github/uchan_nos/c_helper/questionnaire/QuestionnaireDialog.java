@@ -8,8 +8,6 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
 import org.eclipse.ui.PartInitException;
@@ -35,19 +33,19 @@ public class QuestionnaireDialog extends Dialog {
     }
 
     @Override
-    protected Control createDialogArea(Composite parent) {
-        // OK, キャンセルボタンを除く、画面全体のレイアウト
-        DialogArea dialogArea = createMainDialogArea(parent);
+    protected void createButtonsForButtonBar(Composite parent) {
+        createButton(parent, OK, "CLOSE", true);
+    }
 
+    @Override
+    protected Control createDialogArea(Composite parent) {
         StringBuilder sb = new StringBuilder();
 
-        Link label = new Link(dialogArea.composite(), SWT.NONE);
-        sb.append("以下の質問に答え、\n");
-        sb.append("Twitter: <a href=\"https://twitter.com/uchan_nos\">@uchan_nos</a>\n");
-        sb.append("Github: <a href=\"https://github.com/uchan-nos\">uchan-nos</a>\n");
-        sb.append("E-mail: uchan0@gmail.com\n");
-        sb.append("のいずれかにお知らせください。\n");
-        sb.append("今後の研究に活用させていただきます。");
+        Link label = new Link(parent, SWT.NONE);
+        sb.append("C-Helperを使って頂きありがとうございます！\n");
+        sb.append("C-Helperについてのアンケートにご協力をお願いします。\n");
+        sb.append("今後の研究に活用させていただきます。\n");
+        sb.append("アンケートは<a href=\"https://docs.google.com/forms/d/1bdGMk4v-gFTAPq7C6s--pkpHi-5227vU4bZO1pjZ8hQ/viewform\">アンケートフォーム</a>から。");
         label.setText(sb.toString());
 
         label.addSelectionListener(new SelectionAdapter() {
@@ -63,25 +61,6 @@ public class QuestionnaireDialog extends Dialog {
             }
         });
 
-        sb = new StringBuilder();
-        Text questionText = new Text(dialogArea.composite(), SWT.MULTI);
-        questionText.setLayoutData(new GridData(GridData.FILL_BOTH));
-
-        sb.append("質問1:\n");
-        sb.append("質問2:\n");
-        sb.append("その他ご意見・ご感想:\n");
-
-        questionText.setText(sb.toString());
-        questionText.setFocus();
-
         return parent;
-    }
-
-    private DialogArea createMainDialogArea(Composite parent) {
-        Composite c = parent;
-        GridLayout l = new GridLayout();
-        l.numColumns = 1;
-        c.setLayout(l);
-        return new DialogArea(c, l);
     }
 }
