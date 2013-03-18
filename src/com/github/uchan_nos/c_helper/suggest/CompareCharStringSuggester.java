@@ -149,7 +149,7 @@ public class CompareCharStringSuggester extends Suggester {
         return new Suggestion(
                 inputSource,
                 location,
-                StringResource.get("文字と文字列は==では比較できない"),
+                StringResource.get("文字と文字列は比較できない"),
                 StringResource.get(suggestion));
     }
 }
