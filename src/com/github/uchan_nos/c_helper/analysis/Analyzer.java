@@ -12,8 +12,9 @@ import java.util.Map.Entry;
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
@@ -180,14 +181,23 @@ public class Analyzer {
                 }
             });
 
+            Collection<IMarker> showingMarkers = Activator.getDefault().getShowingMarkers();
+            // 前回表示したマーカーを削除
+            for (IMarker m : showingMarkers) {
+                m.delete();
+            }
+            showingMarkers.clear();
+
             // サジェストを表示
             if (fileToAnalyze != null) {
-                fileToAnalyze.deleteMarkers(Activator.PLUGIN_ID + ".suggestionmarker", false, IResource.DEPTH_ZERO);
-
                 for (Suggestion suggestion : suggestions) {
-                    IMarker marker = fileToAnalyze.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
+                    // サジェストするファイルを取得
+                    IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(suggestion.getFilePath()));
+
+                    // suggestionの内容を元にマーカーを生成
+                    IMarker marker = file.createMarker(Activator.PLUGIN_ID + ".suggestionmarker");
+                    showingMarkers.add(marker);
                     marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
-                    marker.setAttribute(IMarker.LOCATION, suggestion.getFilePath());
                     if (suggestion.getOffset() >= 0 && suggestion.getLength() >= 0) {
                         marker.setAttribute(IMarker.CHAR_START, suggestion.getOffset());
                         marker.setAttribute(IMarker.CHAR_END, suggestion.getOffset() + suggestion.getLength());
