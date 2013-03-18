@@ -1,10 +1,13 @@
 package com.github.uchan_nos.c_helper;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Hashtable;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.resource.ImageDescriptor;
 
 import org.eclipse.osgi.service.debug.DebugOptions;
@@ -28,6 +31,9 @@ public class Activator extends AbstractUIPlugin {
 
     // デバッグモードフラグ
     private boolean debug = false;
+
+    // 現在表示中のマーカー一覧
+    private Collection<IMarker> showingMarkers = new ArrayList<IMarker>();
 
     /**
      * The constructor
@@ -113,5 +119,12 @@ public class Activator extends AbstractUIPlugin {
      */
     public boolean isDebugMode() {
         return debug;
+    }
+
+    /**
+     * 現在表示中のマーカー一覧を返す.
+     */
+    public Collection<IMarker> getShowingMarkers() {
+        return showingMarkers;
     }
 }
