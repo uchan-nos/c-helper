@@ -94,7 +94,8 @@ public class UndeclaredFunctionSuggester extends Suggester {
                             }
 
                             suggestions.add(new Suggestion(input.getSource(), fce.getFunctionNameExpression(),
-                                    StringResource.get("宣言されていない関数名"),
+                                    StringResource.get("%sは宣言されていない関数名",
+                                        String.valueOf(functionName.getSimpleID())),
                                     suggestionString));
 
                         }
