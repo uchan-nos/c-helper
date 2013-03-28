@@ -73,7 +73,8 @@ public class Analyzer {
                         new CompareCharStringSuggester(),
                         new DefinitionInHeaderSuggester(),
                         new HidingIdentifierSuggester(),
-                        new ScanfCallByValueSuggester()
+                        new ScanfCallByValueSuggester(),
+                        new UndeclaredFunctionSuggester()
                 };
             } else {
                 String suggesterName = "com.github.uchan_nos.c_helper.suggest." + opt.suggester;

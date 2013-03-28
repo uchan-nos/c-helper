@@ -3,23 +3,19 @@ package com.github.uchan_nos.c_helper.suggest;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 
 import java.util.logging.Logger;
 
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.*;
-import org.eclipse.cdt.core.dom.ast.DOMException;
 
 import org.eclipse.jface.text.BadLocationException;
 
 import com.github.uchan_nos.c_helper.Activator;
 
 import com.github.uchan_nos.c_helper.resource.StringResource;
-
-import com.github.uchan_nos.c_helper.util.ASTFilter;
-import com.github.uchan_nos.c_helper.util.DoNothingASTVisitor;
 
 public class HidingIdentifierSuggester extends Suggester {
     private static final Logger logger = Activator.getLogger();
@@ -49,101 +45,149 @@ public class HidingIdentifierSuggester extends Suggester {
 
     private SuggestionAppender suggestionAppender = null;
 
-    // デクラレータを探す述語
-    private final ASTFilter.Predicate declaratorPredicate = new ASTFilter.Predicate() {
-        @Override public boolean pass(IASTNode node) {
-            return node instanceof IASTDeclarator;
-        }
-    };
+    // プログラムの構造に従った宣言の一覧
+    private static class DeclarationTree {
+        // この木が対応するプログラムのスコープ
+        private IScope scope;
 
-    private static class Definition {
-        public final IScope scope;
-        public final IASTDeclarator declarator;
+        // この木のルートにある宣言の一覧
+        private Map<String, Collection<IASTDeclarator>> definitions = new HashMap<String, Collection<IASTDeclarator>>();
 
-        public Definition(IScope scope, IASTDeclarator declarator) {
+        // 親木
+        private DeclarationTree supertree;
+
+        // 部分木（直下にあるサブスコープに対応）
+        private Collection<DeclarationTree> subtrees = new ArrayList<DeclarationTree>();
+
+        /**
+         * 変数定義木を生成する.
+         * @param scope 木の根に相当するスコープ
+         */
+        public DeclarationTree(IScope scope, DeclarationTree supertree) {
             this.scope = scope;
-            this.declarator = declarator;
+            this.supertree = supertree;
+        }
+
+        public IScope getScope() {
+            return scope;
+        }
+
+        public DeclarationTree getSuperTree() {
+            return supertree;
+        }
+
+        // このスコープに含まれる宣言の一覧を返す.
+        public Map<String, Collection<IASTDeclarator>> getDefinitions() {
+            return definitions;
+        }
+        public void addDefinition(IASTDeclarator declarator) {
+            String simpleID = String.valueOf(declarator.getName().getSimpleID());
+
+            if (!definitions.containsKey(simpleID)) {
+                definitions.put(simpleID, new ArrayList<IASTDeclarator>());
+            }
+
+            definitions.get(simpleID).add(declarator);
+        }
+
+        // 部分木を返す.
+        public Collection<DeclarationTree> getSubTrees() {
+            return subtrees;
+        }
+        public void addSubTree(DeclarationTree subtree) {
+            subtrees.add(subtree);
         }
     }
 
-    // 変数定義を抽出するビジタ
-    private static class DefinitionVisitor extends DoNothingASTVisitor {
-        private Collection<Definition> definitions = new ArrayList<Definition>();
-        public Collection<Definition> getDefinitions() {
-            return definitions;
-        }
+    private static class DefinitionExtractor {
+        public static DeclarationTree extract(IASTTranslationUnit tu) {
+            // プログラムのルートに対応する木を生成（親を持たない）
+            DeclarationTree tree = new DeclarationTree(tu.getScope(), null);
 
-        private IScope tuGlobalScope = null;
-        @Override public int visit(IASTTranslationUnit tu) {
             for (IASTDeclaration declaration : tu.getDeclarations()) {
-                declaration.accept(this);
+                if (declaration instanceof IASTFunctionDefinition) {
+                    // 関数定義のボディーに含まれる変数定義の木構造を取得
+                    IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
+                    DeclarationTree subtree = extract((IASTCompoundStatement) fd.getBody(), tree);
+
+                    // 取得した木構造を部分木として追加
+                    tree.addSubTree(subtree);
+                } else if (declaration instanceof IASTSimpleDeclaration) {
+                    // グローバル領域の宣言は、そのままtreeに追加
+                    addAllDefinitions(tree, (IASTSimpleDeclaration) declaration);
+                }
             }
-            tuGlobalScope = tu.getScope();
-            return PROCESS_ABORT;
+
+            return tree;
         }
 
-        @Override public int visit(IASTDeclaration declaration) {
-            if (declaration instanceof IASTFunctionDefinition) {
-                IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
-                DefinitionInCSVisitor visitor = new DefinitionInCSVisitor();
-                fd.getBody().accept(visitor);
-                definitions.addAll(visitor.getDefinitions());
-            } else if (declaration instanceof IASTSimpleDeclaration) {
-                IASTSimpleDeclaration sd = (IASTSimpleDeclaration) declaration;
-                addAllDeclarators(sd, tuGlobalScope, definitions);
+        // 複文中の変数定義の木構造を抜き出して返す
+        private static DeclarationTree extract(IASTCompoundStatement cs, DeclarationTree supertree) {
+            DeclarationTree tree = new DeclarationTree(cs.getScope(), supertree);
+
+            for (IASTStatement statement : cs.getStatements()) {
+                if (statement instanceof IASTDeclarationStatement) {
+                    // 変数定義を見つけた
+                    IASTDeclarationStatement ds = (IASTDeclarationStatement) statement;
+                    IASTDeclaration declaration = ds.getDeclaration();
+                    if (declaration instanceof IASTSimpleDeclaration) {
+                        addAllDefinitions(tree, (IASTSimpleDeclaration) declaration);
+                    }
+                } else if (statement instanceof IASTCompoundStatement) {
+                    // 複文を見つけた
+                    DeclarationTree subtree = extract((IASTCompoundStatement) statement, tree);
+
+                    // 複文の変数定義を部分木として追加
+                    tree.addSubTree(subtree);
+                }
             }
-            return PROCESS_ABORT;
+
+            return tree;
         }
 
-        public static void addAllDeclarators(IASTSimpleDeclaration sd,
-                IScope currentScope, Collection<Definition> definitions) {
+        // sdに含まれるすべての定義をtreeに追加する
+        private static void addAllDefinitions(DeclarationTree tree, IASTSimpleDeclaration sd) {
             for (IASTDeclarator declarator : sd.getDeclarators()) {
-                definitions.add(new Definition(currentScope, declarator));
+                tree.addDefinition(declarator);
             }
         }
     }
 
-    // 複文において変数定義を抽出するビジタ
-    private static class DefinitionInCSVisitor extends DoNothingASTVisitor {
-        private Collection<Definition> definitions = new ArrayList<Definition>();
-        public Collection<Definition> getDefinitions() {
-            return definitions;
+    private static class DuplicatedIdentifierFinder {
+        public static Collection<IASTDeclarator> find(DeclarationTree tree) {
+            Collection<IASTDeclarator> duplicatedDefinitions = new HashSet<IASTDeclarator>();
+            find(tree, duplicatedDefinitions);
+            return duplicatedDefinitions;
         }
 
-        private IScope currentScope = null;
-        @Override public int visit(IASTStatement statement) {
-            if (statement instanceof IASTCompoundStatement) {
-                IASTCompoundStatement cs = (IASTCompoundStatement) statement;
-                currentScope = cs.getScope();
-                for (IASTStatement s : cs.getStatements()) {
-                    s.accept(this);
-                }
-            } else if (statement instanceof IASTDeclarationStatement) {
-                IASTDeclarationStatement ds = (IASTDeclarationStatement) statement;
-                ds.getDeclaration().accept(this);
-            }
-            return PROCESS_ABORT;
-        }
+        private static void find(DeclarationTree tree, Collection<IASTDeclarator> duplicatedDefinitions) {
+            // この階層にある識別子のうち、重複しているものを探す
+            for (Map.Entry<String, Collection<IASTDeclarator>> e : tree.getDefinitions().entrySet()) {
+                // key of e = simple id, value of e = declarators
 
-        @Override public int leave(IASTStatement statement) {
-            if (statement instanceof IASTCompoundStatement) {
-                IASTCompoundStatement cs = (IASTCompoundStatement) statement;
-                try {
-                    currentScope = cs.getScope().getParent();
-                } catch (DOMException e) {
-                    logger.info("Cannot get parent scope");
-                    currentScope = null;
+                if (e.getValue().size() >= 2) {
+                    // 識別子が重複している
+                    duplicatedDefinitions.addAll(e.getValue());
+                } else if (e.getValue().size() == 1) {
+                    // 親スコープで同じ識別子があるかをチェックする
+                    DeclarationTree supertree = tree.getSuperTree();
+                    while (supertree != null) {
+                        Collection<IASTDeclarator> decls =
+                                supertree.getDefinitions().get(e.getKey());
+                        if (decls != null && decls.size() >= 1) {
+                            // supertreeにe.getKey()と等しい識別子を持つ宣言があった
+                            duplicatedDefinitions.addAll(e.getValue());
+                            duplicatedDefinitions.addAll(decls);
+                        }
+                        supertree = supertree.getSuperTree();
+                    }
                 }
             }
-            return PROCESS_ABORT;
-        }
 
-        @Override public int visit(IASTDeclaration declaration) {
-            if (declaration instanceof IASTSimpleDeclaration) {
-                IASTSimpleDeclaration sd = (IASTSimpleDeclaration) declaration;
-                DefinitionVisitor.addAllDeclarators(sd, currentScope, definitions);
+            // 下の階層を再帰的に調べる
+            for (DeclarationTree subtree : tree.getSubTrees()) {
+                find(subtree, duplicatedDefinitions);
             }
-            return PROCESS_ABORT;
         }
     }
 
@@ -154,106 +198,18 @@ public class HidingIdentifierSuggester extends Suggester {
 
         suggestionAppender = new SuggestionAppender(suggestions, input);
 
-        System.out.println("visiting");
+        // 変数宣言、関数宣言を抜き出す
+        DeclarationTree definitionTree = DefinitionExtractor.extract(input.getAst());
+        Collection<IASTDeclarator> duplicatedDefinitions = DuplicatedIdentifierFinder.find(definitionTree);
 
-        DefinitionVisitor visitor = new DefinitionVisitor();
-        input.getAst().accept(visitor);
-
-        System.out.println("definitions are:");
-        for (Definition d : visitor.getDefinitions()) {
-            System.out.println("  " + String.valueOf(d.declarator.getName().getSimpleID())
-                    + " at " + d.declarator.getFileLocation().getStartingLineNumber());
+        for (IASTDeclarator decl : duplicatedDefinitions) {
+            suggestionAppender.append(decl,
+                    StringResource.get("識別子%sが重複している",
+                        String.valueOf(decl.getName().getSimpleID())),
+                    null);
         }
-
-        // 識別子をキーとして、デクラレータをまとめる
-        HashMap<String, List<Definition>> definitionMap = new HashMap<String, List<Definition>>();
-        for (Definition d : visitor.getDefinitions()) {
-            String idString = String.valueOf(d.declarator.getName().getSimpleID());
-            if (!definitionMap.containsKey(idString)) {
-                definitionMap.put(idString, new ArrayList<Definition>());
-            }
-            definitionMap.get(idString).add(d);
-        }
-
-        // 重複している識別子を探す
-        for (Map.Entry<String, List<Definition>> e : definitionMap.entrySet()) {
-            if (e.getValue().size() >= 2) {
-                Definition topDefinition = e.getValue().get(0);
-                String idString = String.valueOf(topDefinition.declarator.getName().getSimpleID());
-                for (int i = 1; i < e.getValue().size(); ++i) {
-                    suggestionAppender.append(e.getValue().get(i).declarator,
-                            StringResource.get("識別子%sが重複している",
-                                idString),
-                            null);
-                }
-            }
-        }
-
-        /*
-        // 複文を抽出
-        Collection<IASTNode> compoundStatements =
-            new ASTFilter(input.getAst()).filter(new ASTFilter.Predicate() {
-                @Override public boolean pass(IASTNode node) {
-                    return node instanceof IASTCompoundStatement;
-                }});
-
-        // すべての複文を調べる
-        for (IASTNode node : compoundStatements) {
-            IASTCompoundStatement cs = (IASTCompoundStatement) node;
-            check(cs);
-        }
-        */
 
         return suggestions;
     }
 
-    /**
-     * 指定された複文直下の宣言について、名前の衝突をチェックする.
-     */
-    private void check(IASTCompoundStatement stmt) {
-        try {
-            Collection<IASTNode> declarators =
-                new ASTFilter(stmt).filter(declaratorPredicate);
-            IScope parentScope = stmt.getScope().getParent();
-
-            for (IASTNode declarator : declarators) {
-                IASTDeclarator decl = (IASTDeclarator) declarator;
-                IASTName id = decl.getName();
-                String idString = String.valueOf(id.getSimpleID());
-                IBinding[] hiddenBindings = getHiddenBindings(parentScope, id);
-                if (hiddenBindings != null) {
-                    suggestionAppender.append(decl,
-                            StringResource.get("識別子%sが重複している",
-                                idString),
-                            null);
-                }
-            }
-        } catch (DOMException e) {
-            logger.info(e.toString());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 指定された名前により隠されているバインディングを返す.
-     * @return nameがparentScope以上のスコープに存在していれば、そのバインディング
-     */
-    private IBinding[] getHiddenBindings(IScope parentScope, IASTName name) {
-        String nameString = String.valueOf(name.getLookupKey());
-
-        try {
-            while (parentScope != null) {
-                IBinding[] foundBindings = parentScope.find(nameString);
-                if (foundBindings != null && foundBindings.length > 0) {
-                    return foundBindings;
-                }
-                parentScope = parentScope.getParent();
-            }
-        } catch (DOMException e) {
-            logger.info(e.toString());
-            e.printStackTrace();
-        }
-
-        return null;
-    }
 }
