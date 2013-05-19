@@ -50,7 +50,7 @@ public class MyFileContentProvider extends InternalFileContentProvider {
 
         // まず標準ライブラリのディレクトリから読み込んでみる
         IPath constructedFilePath = new Path(this.stdHeaderDir).append(filename);
-        String constructedFilePathString = constructedFilePath.toOSString();
+        String constructedFilePathString = constructedFilePath.toString();
         logger.finest("  constructedFilePath: " + constructedFilePathString);
 
         //File file = FileLoader.getInstance().load(stdPath.toOSString());
