@@ -132,10 +132,10 @@ public class IndentationSuggester extends Suggester {
             public int visit(IASTStatement statement) {
                 IASTFileLocation location = statement.getFileLocation();
 
-                suggestions.addAll(createSuggestionIfIndentIsWrong(
-                        location.getNodeOffset()));
-
                 if (statement instanceof IASTCompoundStatement) {
+                    suggestions.addAll(createSuggestionIfIndentIsWrong(
+                            location.getNodeOffset()));
+
                     ++nestDepth;
                     for (IASTStatement sub : ((IASTCompoundStatement) statement).getStatements()) {
                         sub.accept(this);
@@ -145,7 +145,19 @@ public class IndentationSuggester extends Suggester {
                     suggestions.addAll(createSuggestionIfIndentIsWrong(
                             location.getNodeOffset() + location.getNodeLength() - 1));
 
+                } else if (statement.getParent() instanceof IASTIfStatement
+                		|| statement.getParent() instanceof IASTForStatement
+                		|| statement.getParent() instanceof IASTWhileStatement
+                		|| statement.getParent() instanceof IASTDoStatement
+                		) {
+                	++nestDepth;
+                    suggestions.addAll(createSuggestionIfIndentIsWrong(
+                            location.getNodeOffset()));
+                	--nestDepth;
                 } else {
+                    suggestions.addAll(createSuggestionIfIndentIsWrong(
+                            location.getNodeOffset()));
+
                     for (IASTNode sub : statement.getChildren()) {
                         if (sub instanceof IASTStatement) {
                             sub.accept(this);
