@@ -182,15 +182,16 @@ public class Analyzer {
                 }
             });
 
-            Collection<IMarker> showingMarkers = Activator.getDefault().getShowingMarkers();
-            // 前回表示したマーカーを削除
-            for (IMarker m : showingMarkers) {
-                m.delete();
-            }
-            showingMarkers.clear();
-
             // サジェストを表示
             if (fileToAnalyze != null) {
+
+	            // 前回表示したマーカーを削除
+	            Collection<IMarker> showingMarkers = Activator.getDefault().getShowingMarkers();
+	            for (IMarker m : showingMarkers) {
+	                m.delete();
+	            }
+	            showingMarkers.clear();
+	
                 for (Suggestion suggestion : suggestions) {
                     // サジェストするファイルを取得
                     IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(suggestion.getFilePath()));
