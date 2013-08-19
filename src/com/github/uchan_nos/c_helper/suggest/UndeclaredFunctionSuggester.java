@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.eclipse.cdt.core.dom.ast.*;
 import org.eclipse.cdt.internal.core.dom.parser.c.ICInternalFunction;
@@ -17,6 +18,7 @@ import org.eclipse.core.runtime.CoreException;
 
 import org.eclipse.jface.text.BadLocationException;
 
+import com.github.uchan_nos.c_helper.Activator;
 import com.github.uchan_nos.c_helper.analysis.FileInfo;
 import com.github.uchan_nos.c_helper.analysis.Parser;
 import com.github.uchan_nos.c_helper.resource.StringResource;
@@ -111,6 +113,7 @@ public class UndeclaredFunctionSuggester extends Suggester {
     }
 
     private static class StdHeaderParser implements Util.Function<IASTTranslationUnit, String> {
+    	private final Logger logger = Activator.getLogger();
         /**
          * 指定された標準ヘッダをパースする.
          * @param headerName 標準ヘッダ名（"stdio", "stdlib"など）
@@ -128,11 +131,11 @@ public class UndeclaredFunctionSuggester extends Suggester {
                 IASTTranslationUnit tu = parser.parse();
                 return tu;
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                logger.info(e.getMessage());
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.warning(e.getMessage());
             } catch (CoreException e) {
-                e.printStackTrace();
+                logger.warning(e.getMessage());
             }
             return null;
         }
