@@ -74,7 +74,8 @@ public class Analyzer {
                         new DefinitionInHeaderSuggester(),
                         new HidingIdentifierSuggester(),
                         new ScanfCallByValueSuggester(),
-                        new UndeclaredFunctionSuggester()
+                        new UndeclaredFunctionSuggester(),
+                        new FreadBufferSizeSuggester()
                 };
             } else {
                 String suggesterName = "com.github.uchan_nos.c_helper.suggest." + opt.suggester;

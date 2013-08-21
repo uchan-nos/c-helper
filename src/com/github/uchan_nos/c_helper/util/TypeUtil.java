@@ -2,6 +2,8 @@ package com.github.uchan_nos.c_helper.util;
 
 import org.eclipse.cdt.core.dom.ast.*;
 
+import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
+
 /**
  * IType 向け便利関数群.
  * @author uchan
@@ -100,5 +102,44 @@ public class TypeUtil {
             type = ((ITypedef) type).getType();
         }
         return type;
+    }
+
+    /**
+     * 与えられた型のバイト数を返す.
+     * @param type バイト数を計算する型
+     * @param assumptions 計算の前提となる基本型のビット数情報
+     * @return typeのバイト数
+     */
+    public static int bytesOfType(IType type, AnalysisEnvironment assumptions) {
+        if (type instanceof IBasicType) {
+            IBasicType t = (IBasicType) type;
+            int bits = 0;
+            switch (t.getKind()) {
+            case eInt:
+                if (t.isShort()) {
+                    bits = assumptions.SHORT_BIT;
+                } else if (t.isLong()) {
+                    bits = assumptions.LONG_BIT;
+                } else if (t.isLongLong()) {
+                    bits = assumptions.LONG_LONG_BIT;
+                } else {
+                    bits = assumptions.INT_BIT;
+                }
+                return bits / assumptions.CHAR_BIT;
+            case eChar:
+                return 1;
+            default:
+                // TODO: assumptions に float や double を加える
+                throw new RuntimeException("not supported basic type");
+            }
+        } else if (type instanceof ICompositeType) {
+            ICompositeType t = (ICompositeType) type;
+            int bytes = 0;
+            for (IField field : t.getFields()) {
+                bytes += bytesOfType(field.getType(), assumptions);
+            }
+            return bytes;
+        }
+        throw new RuntimeException("not supported type: " + type.toString());
     }
 }
