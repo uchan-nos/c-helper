@@ -5,7 +5,7 @@ import org.eclipse.cdt.core.dom.ast.*;
 import com.github.uchan_nos.c_helper.analysis.AnalysisEnvironment;
 
 /**
- * IType 向け便利関数群.
+ * 型関係の便利関数群.
  * @author uchan
  */
 public class TypeUtil {
@@ -141,5 +141,48 @@ public class TypeUtil {
             return bytes;
         }
         throw new RuntimeException("not supported type: " + type.toString());
+    }
+
+    /**
+     * 与えられた型のバイト数を返す.
+     * @param spec バイト数を計算する型が使用された宣言指定子
+     * @param assumptions 計算の前提となる基本型のビット数情報
+     * @return specで使用されている型のバイト数
+     */
+    public static int bytesOfType(IASTDeclSpecifier spec, AnalysisEnvironment assumptions) {
+        if (spec instanceof IASTSimpleDeclSpecifier) {
+            int bits = 0;
+            IASTSimpleDeclSpecifier sds = (IASTSimpleDeclSpecifier) spec;
+            switch (sds.getType()) {
+            case IASTSimpleDeclSpecifier.t_unspecified:
+            case IASTSimpleDeclSpecifier.t_int:
+                if (sds.isShort()) {
+                    bits = assumptions.SHORT_BIT;
+                } else if (sds.isLong()) {
+                    bits = assumptions.LONG_BIT;
+                } else if (sds.isLongLong()) {
+                    bits = assumptions.LONG_LONG_BIT;
+                } else {
+                    bits = assumptions.INT_BIT;
+                }
+                return bits / assumptions.CHAR_BIT;
+            case IASTSimpleDeclSpecifier.t_char:
+                return 1;
+            default:
+                // TODO: assumptions に float や double を加える
+                throw new RuntimeException("not supported basic type");
+            }
+        } else if (spec instanceof IASTCompositeTypeSpecifier) {
+            IASTCompositeTypeSpecifier cts = (IASTCompositeTypeSpecifier) spec;
+            int bytes = 0;
+            for (IASTDeclaration decl : cts.getMembers()) {
+                if (decl instanceof IASTSimpleDeclaration) {
+                    IASTSimpleDeclaration sd = (IASTSimpleDeclaration) decl;
+                    bytes += bytesOfType(sd.getDeclSpecifier(), assumptions);
+                }
+            }
+            return bytes;
+        }
+        throw new RuntimeException("not supported declaration specifier: " + spec.toString());
     }
 }

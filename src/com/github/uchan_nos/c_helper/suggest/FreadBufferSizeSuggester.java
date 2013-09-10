@@ -9,10 +9,24 @@ import org.eclipse.jface.text.BadLocationException;
 import com.github.uchan_nos.c_helper.analysis.CFG;
 import com.github.uchan_nos.c_helper.resource.StringResource;
 import com.github.uchan_nos.c_helper.util.ASTFilter;
+import com.github.uchan_nos.c_helper.util.ConstantValueCalculator;
 import com.github.uchan_nos.c_helper.util.TypeUtil;
 import com.github.uchan_nos.c_helper.util.Util;
 
 public class FreadBufferSizeSuggester extends Suggester {
+
+    private static boolean isFreadCallExpression(IASTNode node) {
+        if (node instanceof IASTFunctionCallExpression) {
+            IASTFunctionCallExpression fce = (IASTFunctionCallExpression)node;
+            if (fce.getFunctionNameExpression() instanceof IASTIdExpression) {
+                String funcname = ((IASTIdExpression)fce.getFunctionNameExpression()).getName().toString();
+                if (funcname.equals("fread")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     @Override
     public Collection<Suggestion> suggest(SuggesterInput input, AssumptionManager assumptionManager) {
@@ -20,6 +34,8 @@ public class FreadBufferSizeSuggester extends Suggester {
 
         for (String proc : input.getProcToCFG().keySet()) {
             CFG cfg = input.getProcToCFG().get(proc);
+            ConstantValueCalculator calc = new ConstantValueCalculator(
+                    input.getProcToRD().get(proc), input.getAnalysisEnvironment());
 
             for (CFG.Vertex v : cfg.getVertices()) {
                 if (v.getASTNode() == null) {
@@ -33,16 +49,7 @@ public class FreadBufferSizeSuggester extends Suggester {
                         filter.filter(new ASTFilter.Predicate() {
                             @Override
                             public boolean pass(IASTNode node) {
-                                if (node instanceof IASTFunctionCallExpression) {
-                                    IASTFunctionCallExpression fce = (IASTFunctionCallExpression)node;
-                                    if (fce.getFunctionNameExpression() instanceof IASTIdExpression) {
-                                        String funcname = ((IASTIdExpression)fce.getFunctionNameExpression()).getName().toString();
-                                        if (funcname.equals("fread")) {
-                                            return true;
-                                        }
-                                    }
-                                }
-                                return false;
+                                return isFreadCallExpression(node);
                             }
                         });
 
@@ -79,6 +86,8 @@ public class FreadBufferSizeSuggester extends Suggester {
                     }
                     IArrayType readBufferType = (IArrayType) ((IVariable)readBufferBinding).getType();
 
+                    // 配列定義の型名、要素数式に名前をつける
+                    // readBufferElementType array_name[ readBufferSize ];
                     IType readBufferElementType = readBufferType.getType();
                     IASTExpression readBufferSize = null;
                     try {
@@ -87,36 +96,53 @@ public class FreadBufferSizeSuggester extends Suggester {
                         continue;
                     }
 
-                    // 読み込み先バッファのバイト数を計算
-                    if (!(readBufferSize instanceof IASTLiteralExpression)
-                            || ((IASTLiteralExpression)readBufferSize).getKind() != IASTLiteralExpression.lk_integer_constant) {
+                    // 読み込み先配列の要素数を計算（定数でなければcontinue）
+                    int readBufferSizeValue = 0;
+                    try {
+                        readBufferSizeValue = calc.toInteger(readBufferSize, v);
+                    } catch (Exception e1) {
                         continue;
                     }
-                    int readBufferSizeValue = Integer.parseInt(String.valueOf(((IASTLiteralExpression)readBufferSize).getValue()));
+                    // 読み込み先配列の要素サイズを計算
                     int readBufferElementBytes = TypeUtil.bytesOfType(readBufferElementType, input.getAnalysisEnvironment());
 
+                    // freadの引数（要素サイズ、要素数）を計算（定数でなければcontinue）
                     IASTExpression readSize = arguments[1];
                     IASTExpression readNum = arguments[2];
-                    if (!(readSize instanceof IASTLiteralExpression)
-                            || ((IASTLiteralExpression)readSize).getKind() != IASTLiteralExpression.lk_integer_constant) {
-                        continue;
-                    }
-                    if (!(readNum instanceof IASTLiteralExpression)
-                            || ((IASTLiteralExpression)readNum).getKind() != IASTLiteralExpression.lk_integer_constant) {
+                    int readSizeValue = 0;
+                    int readNumValue = 0;
+                    try {
+                        readSizeValue = calc.toInteger(readSize, v);
+                        readNumValue = calc.toInteger(readNum, v);
+                    } catch (Exception e1) {
                         continue;
                     }
 
-                    int readSizeValue = Integer.parseInt(String.valueOf(((IASTLiteralExpression)readSize).getValue()));
-                    int readNumValue = Integer.parseInt(String.valueOf(((IASTLiteralExpression)readNum).getValue()));
-                    if (readBufferElementBytes != readSizeValue || readBufferSizeValue != readNumValue) {
-                        try {
+                    try {
+                        if (readBufferElementBytes != readSizeValue || readBufferSizeValue != readNumValue) {
+                            if (readBufferElementBytes * readBufferSizeValue < readSizeValue * readNumValue) {
+                                // overflow
+                                suggestions.add(new Suggestion(
+                                        input.getSource(), readBuffer,
+                                        StringResource.get("バッファからデータがあふれる可能性がある"),
+                                        StringResource.get("第2引数には sizeof(%s) を、第3引数には%dを指定する", readBufferElementType.toString(), readBufferSizeValue)));
+                                // TODO: 使った仮定を表示する仕組み
+                            } else {
+                                suggestions.add(new Suggestion(
+                                        input.getSource(), readBuffer,
+                                        StringResource.get("バッファの大きさと fread の引数が整合していない"),
+                                        StringResource.get("第2引数には%dを、第3引数には%dを指定する", readBufferElementBytes, readBufferSizeValue)));
+                            }
+                        } else if ((readSize instanceof IASTLiteralExpression)
+                            && ((IASTLiteralExpression)readSize).getKind() == IASTLiteralExpression.lk_integer_constant
+                            && !(TypeUtil.isIBasicType(readBufferElementType, IBasicType.Kind.eChar) && readSizeValue == 1)) {
                             suggestions.add(new Suggestion(
-                                    input.getSource(), readBuffer,
-                                    StringResource.get("バッファの大きさと fread の引数が整合していない"),
-                                    StringResource.get("第2引数には%dを、第3引数には%dを指定する", readBufferElementBytes, readBufferSizeValue)));
-                        } catch (BadLocationException e) {
-                            e.printStackTrace();
+                                    input.getSource(), readSize,
+                                    StringResource.get("要素のサイズを固定値で指定している"),
+                                    StringResource.get("sizeof(%s) を使う", readBufferElementType.toString())));
                         }
+                    } catch (BadLocationException e) {
+                        e.printStackTrace();
                     }
                 }
             }
