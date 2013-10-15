@@ -22,7 +22,7 @@ All in One Eclipse は MergeDoc プロジェクトが配布しているパッケ
 その名の通り便利なプラグインが最初から同梱されています。
 日本語化もされています。
 
-    ダウンロードは [Pleiades - Eclipse プラグイン日本語化プラグイン](mergedoc.sourceforge.jp) からできます。
+    ダウンロードは [Pleiades - Eclipse プラグイン日本語化プラグイン](http://mergedoc.sourceforge.jp) からできます。
 この文書の執筆時は "Eclipse 4.2 Juno Pleiades All in One" が最新でした。
 最新版をダウンロードしましょう。
 
