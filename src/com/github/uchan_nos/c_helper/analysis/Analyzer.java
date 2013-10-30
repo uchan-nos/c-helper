@@ -195,6 +195,9 @@ public class Analyzer {
 	
                 for (Suggestion suggestion : suggestions) {
                     // サジェストするファイルを取得
+                    if (suggestion == null) {
+                        continue;
+                    }
                     IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(suggestion.getFilePath()));
 
                     // suggestionの内容を元にマーカーを生成
