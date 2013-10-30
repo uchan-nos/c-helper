@@ -127,13 +127,20 @@ public class Util {
      * 指定された名前の到達定義を取得する.
      */
     public static Set<AssignExpression> getAssigns(AssignExpression[] assigns, BitSet rd, IASTName name) {
+        return getAssigns(assigns, rd, name.resolveBinding());
+    }
+
+    /**
+     * 指定された変数の到達定義を取得する.
+     */
+    public static Set<AssignExpression> getAssigns(AssignExpression[] assigns, BitSet rd, IBinding var) {
         Set<AssignExpression> result = new HashSet<AssignExpression>();
         for (AssignExpression ae : assigns) {
             if (rd.get(ae.getId())) {
                 IASTNode lhs = ae.getLHS();
                 IASTName nameOfLhs = Util.getName(lhs);
 
-                if (name.resolveBinding().equals(nameOfLhs.resolveBinding())) {
+                if (var.equals(nameOfLhs.resolveBinding())) {
                     result.add(ae);
                 }
             }
