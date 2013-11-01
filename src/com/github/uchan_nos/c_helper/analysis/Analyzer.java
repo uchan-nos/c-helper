@@ -159,7 +159,11 @@ public class Analyzer {
             for (Suggester suggester : suggesters) {
                 Collection<Suggestion> s = suggester.suggest(input, assumptionManager);
                 if (s != null && s.size() > 0) {
-                    suggestions.addAll(s);
+                    for (Suggestion suggestion : s) {
+                        if (suggestion != null) {
+                            suggestions.add(suggestion);
+                        }
+                    }
                 }
             }
 
@@ -195,9 +199,6 @@ public class Analyzer {
 	
                 for (Suggestion suggestion : suggestions) {
                     // サジェストするファイルを取得
-                    if (suggestion == null) {
-                        continue;
-                    }
                     IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(suggestion.getFilePath()));
 
                     // suggestionの内容を元にマーカーを生成
