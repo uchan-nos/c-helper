@@ -92,8 +92,17 @@ public class CastSuppressingErrorSuggester extends Suggester {
             }
 
             if (suggestion.length() == 0 && message.length() == 0) {
-                suggestion = StringResource.get(
-                        "整数からポインタ型へのキャストは危険。");
+                IBasicType opt = (IBasicType) operandType;
+                if (opt.getKind() == IBasicType.Kind.eChar
+                        || opt.getKind() == IBasicType.Kind.eInt) {
+                    if (castExpression.getOperand().getRawSignature().equals("0")
+                            || castExpression.getRawSignature().equals("NULL")) {
+                        // 整数リテラル0からポインタへのキャスト、NULLマクロの使用は例外として認める。
+                    } else {
+                        suggestion = StringResource.get(
+                                "整数からポインタ型へのキャストは危険。");
+                    }
+                }
             }
 
             if (suggestion.length() > 0) {
