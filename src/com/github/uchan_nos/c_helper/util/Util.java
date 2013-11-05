@@ -113,7 +113,15 @@ public class Util {
                 } else {
                     IASTNode n1 = o1.getASTNode();
                     IASTNode n2 = o2.getASTNode();
-                    return n1.getFileLocation().getNodeOffset() - n2.getFileLocation().getNodeOffset();
+                    IASTFileLocation l1 = n1.getFileLocation();
+                    IASTFileLocation l2 = n2.getFileLocation();
+                    if (l1.getNodeOffset() != l2.getNodeOffset()) {
+                        return l1.getNodeOffset() - l2.getNodeOffset();
+                    } else if (l1.getNodeLength() != l2.getNodeLength()) {
+                        return l1.getNodeLength() - l2.getNodeLength();
+                    } else {
+                        return -1;
+                    }
                 }
             }
         }
