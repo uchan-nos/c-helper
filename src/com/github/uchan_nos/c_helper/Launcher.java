@@ -33,6 +33,7 @@ public class Launcher {
         options
             .addOption("s", "suggester", true, "A suggester to be executed")
             .addOption("v", false, "Output verbose log message")
+            .addOption("l", "log-level", true, "Set Log Level")
             ;
 
         try {
@@ -46,10 +47,17 @@ public class Launcher {
                 case 's':
                     opt.suggester = option.getValue();
                     break;
-                case 'v':
-                    Level level = Level.ALL;
-                    logger.setLevel(level);
-                    Util.GetConsoleHandler(logger).setLevel(level);
+                case 'v': {
+                        Level level = Level.ALL;
+                        logger.setLevel(level);
+                        Util.GetConsoleHandler(logger).setLevel(level);
+                    }
+                    break;
+                case 'l': {
+                        String val = option.getValue();
+                        Level level = Level.parse(val);
+                        logger.setLevel(level);
+                    }
                     break;
                 }
             }
