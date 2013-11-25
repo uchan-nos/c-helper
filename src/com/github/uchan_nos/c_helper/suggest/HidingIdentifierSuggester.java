@@ -1,6 +1,7 @@
 package com.github.uchan_nos.c_helper.suggest;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,7 +16,9 @@ import org.eclipse.jface.text.BadLocationException;
 
 import com.github.uchan_nos.c_helper.Activator;
 
+import com.github.uchan_nos.c_helper.analysis.MyFileContentProvider;
 import com.github.uchan_nos.c_helper.resource.StringResource;
+import com.github.uchan_nos.c_helper.util.Util;
 
 public class HidingIdentifierSuggester extends Suggester {
     private static final Logger logger = Activator.getLogger();
@@ -35,7 +38,14 @@ public class HidingIdentifierSuggester extends Suggester {
 
         public void append(IASTNode node, String message, String suggestion) {
             try {
-                this.suggestions.add(new Suggestion(input.getSource(), node, message, suggestion));
+                if (node.isPartOfTranslationUnitFile()) {
+                    this.suggestions.add(new Suggestion(input.getSource(), node, message, suggestion));
+                } else {
+                    this.suggestions.add(new Suggestion(node.getContainingFilename(),
+                            node.getFileLocation().getStartingLineNumber() - 1, -1,
+                            node.getFileLocation().getNodeOffset(), node.getFileLocation().getNodeLength(),
+                            message, suggestion));
+                }
             } catch (BadLocationException e) {
                 logger.info(e.toString());
                 e.printStackTrace();
@@ -113,7 +123,7 @@ public class HidingIdentifierSuggester extends Suggester {
                     // 取得した木構造を部分木として追加
                     tree.addSubTree(subtree);
                 } else if (declaration instanceof IASTSimpleDeclaration) {
-                    // グローバル領域の宣言は、そのままtreeに追加
+                    // グローバル領域の宣言はそのままtreeに追加
                     addAllDefinitions(tree, (IASTSimpleDeclaration) declaration);
                 }
             }
@@ -147,8 +157,11 @@ public class HidingIdentifierSuggester extends Suggester {
 
         // sdに含まれるすべての定義をtreeに追加する
         private static void addAllDefinitions(DeclarationTree tree, IASTSimpleDeclaration sd) {
-            for (IASTDeclarator declarator : sd.getDeclarators()) {
-                tree.addDefinition(declarator);
+            final int storageClass = sd.getDeclSpecifier().getStorageClass();
+            if (!Util.contains(storageClass, IASTDeclSpecifier.sc_extern, IASTDeclSpecifier.sc_typedef)) {
+                for (IASTDeclarator declarator : sd.getDeclarators()) {
+                    tree.addDefinition(declarator);
+                }
             }
         }
     }
