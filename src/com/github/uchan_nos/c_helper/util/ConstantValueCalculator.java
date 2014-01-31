@@ -98,3 +98,11 @@ public class ConstantValueCalculator {
         throw new Exception("Can't calculate the value of '" + typeid.getRawSignature() + "'");
     }
 }
+
+/*
+単位計算みたいな仕組みで、定数値算出に用いた仮定を求める機能が必要。
+例えば
+int a[10];
+のとき sizeof(a) の計算には INT_BIT を用いるが、
+sizeof(a) / sizeof(a[0]) の計算には（最終的には）仮定を用いない。
+*/

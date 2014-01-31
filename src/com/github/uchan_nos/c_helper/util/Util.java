@@ -113,7 +113,15 @@ public class Util {
                 } else {
                     IASTNode n1 = o1.getASTNode();
                     IASTNode n2 = o2.getASTNode();
-                    return n1.getFileLocation().getNodeOffset() - n2.getFileLocation().getNodeOffset();
+                    IASTFileLocation l1 = n1.getFileLocation();
+                    IASTFileLocation l2 = n2.getFileLocation();
+                    if (l1.getNodeOffset() != l2.getNodeOffset()) {
+                        return l1.getNodeOffset() - l2.getNodeOffset();
+                    } else if (l1.getNodeLength() != l2.getNodeLength()) {
+                        return l1.getNodeLength() - l2.getNodeLength();
+                    } else {
+                        return -1;
+                    }
                 }
             }
         }
@@ -127,13 +135,20 @@ public class Util {
      * 指定された名前の到達定義を取得する.
      */
     public static Set<AssignExpression> getAssigns(AssignExpression[] assigns, BitSet rd, IASTName name) {
+        return getAssigns(assigns, rd, name.resolveBinding());
+    }
+
+    /**
+     * 指定された変数の到達定義を取得する.
+     */
+    public static Set<AssignExpression> getAssigns(AssignExpression[] assigns, BitSet rd, IBinding var) {
         Set<AssignExpression> result = new HashSet<AssignExpression>();
         for (AssignExpression ae : assigns) {
             if (rd.get(ae.getId())) {
                 IASTNode lhs = ae.getLHS();
                 IASTName nameOfLhs = Util.getName(lhs);
 
-                if (name.resolveBinding().equals(nameOfLhs.resolveBinding())) {
+                if (var.equals(nameOfLhs.resolveBinding())) {
                     result.add(ae);
                 }
             }

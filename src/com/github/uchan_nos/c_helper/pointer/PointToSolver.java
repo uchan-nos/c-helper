@@ -74,7 +74,8 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
     }
 
     private Set<MemoryStatus> analyze(IASTNode ast, Set<MemoryStatus> entry) {
-        if (!(ast instanceof IASTExpressionStatement)) {
+        if (!(ast instanceof IASTExpressionStatement
+                || ast instanceof IASTDeclarationStatement)) {
             return entry;
         }
 
@@ -112,6 +113,13 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                     IASTBinaryExpression be = (IASTBinaryExpression) node;
                     return be.getOperand2() instanceof IASTIdExpression ||
                         be.getOperand2().getRawSignature().equals("NULL");
+                } else if (node instanceof IASTDeclarator) {
+                    IASTDeclarator decl = (IASTDeclarator) node;
+                    if (decl.getInitializer() instanceof IASTEqualsInitializer) {
+                        IASTEqualsInitializer ei = (IASTEqualsInitializer) decl.getInitializer();
+                        return ei.getInitializerClause() instanceof IASTIdExpression ||
+                                ei.getInitializerClause().getRawSignature().equals("NULL");
+                    }
                 }
                 return false;
             }
@@ -201,6 +209,19 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
                     }
                 }
 
+            } else if (node instanceof IASTEqualsInitializer
+                    && node.getParent() instanceof IASTDeclarator) {
+                // pathToMallocの後ろから二番目の要素が変数定義の初期化の場合
+                IASTEqualsInitializer ei = (IASTEqualsInitializer) node;
+                IASTDeclarator decl = (IASTDeclarator) ei.getParent();
+                IASTName lhsName = decl.getName();
+                IBinding lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+
+                if (lhsBinding instanceof IVariable) {
+                    // hoge = malloc()
+                    Set<MemoryStatus> intermediateStatus = evalAssignMallocToVariable(decl, afterMallocStatusSet);
+                    return intermediateStatus;
+                }
             }
         }
 
@@ -236,44 +257,84 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
         return result;
     }
+    
+    // p = malloc(...)
+    private Set<MemoryStatus> evalAssignMallocToVariable(
+            IVariable lhs, Set<MallocEvalElement> entry) {
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+        // 普通の変数への代入
+        for (MallocEvalElement elem : entry) {
+            MemoryStatus newStatus = new MemoryStatus(elem.afterStatus);
 
-    // p = malloc(..)
+            unrefIfPointingToHeapAddress(lhs, newStatus);
+
+            if (elem.allocatedAddress == InvalidAddress.NULL) {
+                newStatus.variableManager().put(new Variable(
+                            lhs,
+                            Variable.States.NULL,
+                            null));
+            } else {
+                if (elem.allocatedAddress instanceof HeapAddress) {
+                    MemoryBlock b = newStatus.memoryManager().find(
+                            ((HeapAddress) elem.allocatedAddress).memoryBlockId());
+                    b.ref();
+                }
+                newStatus.variableManager().put(new Variable(
+                            lhs,
+                            Variable.States.POINTING,
+                            elem.allocatedAddress));
+            }
+
+            result.add(newStatus);
+        }
+        return result;
+    }
+
+    // p = malloc(...)
     private Set<MemoryStatus> evalAssignMallocToVariable(
             IASTBinaryExpression assignNode, Set<MallocEvalElement> entry) {
-        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
-
         if (assignNode.getOperand1() instanceof IASTIdExpression) {
             IBinding lhsBinding = Util.getName(assignNode.getOperand1()).resolveBinding();
 
             if (lhsBinding instanceof IVariable) {
                 // 普通の変数への代入
                 IVariable lhs = (IVariable) lhsBinding;
-
-                for (MallocEvalElement elem : entry) {
-                    MemoryStatus newStatus = new MemoryStatus(elem.afterStatus);
-
-                    unrefIfPointingToHeapAddress(lhs, newStatus);
-
-                    if (elem.allocatedAddress == InvalidAddress.NULL) {
-                        newStatus.variableManager().put(new Variable(
-                                    lhs,
-                                    Variable.States.NULL,
-                                    null));
-                    } else {
-                        if (elem.allocatedAddress instanceof HeapAddress) {
-                            MemoryBlock b = newStatus.memoryManager().find(
-                                    ((HeapAddress) elem.allocatedAddress).memoryBlockId());
-                            b.ref();
-                        }
-                        newStatus.variableManager().put(new Variable(
-                                    lhs,
-                                    Variable.States.POINTING,
-                                    elem.allocatedAddress));
-                    }
-
-                    result.add(newStatus);
-                }
+                return evalAssignMallocToVariable(lhs, entry);
             }
+        }
+        return new HashSet<MemoryStatus>();
+    }
+
+    // T *p = malloc(..);
+    private Set<MemoryStatus> evalAssignMallocToVariable(
+            IASTDeclarator assignNode, Set<MallocEvalElement> entry) {
+        IBinding lhsBinding = assignNode.getName().resolveBinding();
+
+        if (lhsBinding instanceof IVariable) {
+            // 普通の変数への代入
+            IVariable lhs = (IVariable) lhsBinding;
+            return evalAssignMallocToVariable(lhs, entry);
+        }
+        return new HashSet<MemoryStatus>();
+    }
+
+    // p = q
+    private Set<MemoryStatus> evalAssignVariableToVariable(
+            IVariable lhs, IVariable rhs, Set<MemoryStatus> entry) {
+        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
+        for (MemoryStatus status : entry) {
+            MemoryStatus newStatus = new MemoryStatus(status);
+            VariableManager vm = newStatus.variableManager();
+
+            unrefIfPointingToHeapAddress(lhs, newStatus);
+            refIfPointingToHeapAddress(rhs, newStatus);
+
+            newStatus.variableManager().put(new Variable(
+                        lhs,
+                        vm.get(rhs).status(),
+                        vm.get(rhs).value()));
+
+            result.add(newStatus);
         }
         return result;
     }
@@ -281,61 +342,52 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
     // p = q
     private Set<MemoryStatus> evalAssignVariableToVariable(
             IASTBinaryExpression assignNode, IVariable rhs, Set<MemoryStatus> entry) {
-        Set<MemoryStatus> result = new HashSet<MemoryStatus>();
-
         if (assignNode.getOperand1() instanceof IASTIdExpression) {
             IBinding lhsBinding = Util.getName(assignNode.getOperand1()).resolveBinding();
 
             if (lhsBinding instanceof IVariable) {
                 // 普通の変数への代入
                 IVariable lhs = (IVariable) lhsBinding;
-
-                for (MemoryStatus status : entry) {
-                    MemoryStatus newStatus = new MemoryStatus(status);
-                    VariableManager vm = newStatus.variableManager();
-
-                    unrefIfPointingToHeapAddress(lhs, newStatus);
-                    refIfPointingToHeapAddress(rhs, newStatus);
-
-                    newStatus.variableManager().put(new Variable(
-                                (IVariable) lhsBinding,
-                                vm.get(rhs).status(),
-                                vm.get(rhs).value()));
-
-                    result.add(newStatus);
-                }
+                return evalAssignVariableToVariable(lhs, rhs, entry);
             }
         }
 
-        return result;
+        return new HashSet<MemoryStatus>();
+    }
+
+    // p = q
+    private Set<MemoryStatus> evalAssignVariableToVariable(
+            IASTDeclarator assignNode, IVariable rhs, Set<MemoryStatus> entry) {
+        IBinding lhsBinding = assignNode.getName().resolveBinding();
+
+        if (lhsBinding instanceof IVariable) {
+            // 普通の変数への代入
+            IVariable lhs = (IVariable) lhsBinding;
+            return evalAssignVariableToVariable(lhs, rhs, entry);
+        }
+
+        return new HashSet<MemoryStatus>();
     }
 
     // p = NULL
     private Set<MemoryStatus> evalAssignNullToVariable(
-            IASTBinaryExpression assignNode, Set<MemoryStatus> entry) {
+            IVariable lhs, Set<MemoryStatus> entry) {
         Set<MemoryStatus> result = new HashSet<MemoryStatus>();
 
-        if (assignNode.getOperand1() instanceof IASTIdExpression) {
-            IBinding lhsBinding = Util.getName(assignNode.getOperand1()).resolveBinding();
+        // 普通の変数への代入
+        for (MemoryStatus elem : entry) {
+            MemoryStatus newStatus = new MemoryStatus(elem);
 
-            if (lhsBinding instanceof IVariable) {
-                // 普通の変数への代入
-                IVariable lhs = (IVariable) lhsBinding;
+            unrefIfPointingToHeapAddress(lhs, newStatus);
 
-                for (MemoryStatus elem : entry) {
-                    MemoryStatus newStatus = new MemoryStatus(elem);
+            newStatus.variableManager().put(new Variable(
+                        lhs,
+                        Variable.States.NULL,
+                        null));
 
-                    unrefIfPointingToHeapAddress(lhs, newStatus);
-
-                    newStatus.variableManager().put(new Variable(
-                                lhs,
-                                Variable.States.NULL,
-                                null));
-
-                    result.add(newStatus);
-                }
-            }
+            result.add(newStatus);
         }
+
         return result;
     }
 
@@ -559,25 +611,43 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
         IASTNode node = it.previous();
 
         // pathToVariableAssignの一番後ろの要素は識別子でなければならない
-        assert node instanceof IASTBinaryExpression
+        assert (node instanceof IASTBinaryExpression
             && (((IASTBinaryExpression) node).getOperand2() instanceof IASTIdExpression
-                    || ((IASTBinaryExpression) node).getOperand2().getRawSignature().equals("NULL"));
+                    || ((IASTBinaryExpression) node).getOperand2().getRawSignature().equals("NULL")))
+            || (node instanceof IASTDeclarator
+            && ((IASTDeclarator) node).getInitializer() instanceof IASTEqualsInitializer
+            && (((IASTEqualsInitializer) ((IASTDeclarator) node).getInitializer()).getInitializerClause() instanceof IASTIdExpression
+                    || ((IASTEqualsInitializer) ((IASTDeclarator) node).getInitializer()).getInitializerClause().getRawSignature().equals("NULL")));
 
-        IASTBinaryExpression be = (IASTBinaryExpression) node;
-        IASTName lhsName = Util.getName(be.getOperand1());
+        IASTExpression rhs = null;
+        IASTName lhsName = null;
+        if (node instanceof IASTBinaryExpression) {
+            IASTBinaryExpression be = (IASTBinaryExpression) node;
+            lhsName = Util.getName(be.getOperand1());
+            rhs = be.getOperand2();
+        } else if (node instanceof IASTDeclarator) {
+            IASTDeclarator decl = (IASTDeclarator) node;
+            lhsName = decl.getName();
+            if (decl.getInitializer() instanceof IASTEqualsInitializer) {
+                IASTEqualsInitializer ei = (IASTEqualsInitializer) decl.getInitializer();
+                if (ei.getInitializerClause() instanceof IASTExpression) {
+                    rhs = (IASTExpression) ei.getInitializerClause();
+                }
+            }
+        }
         IBinding lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
 
         if (lhsBinding instanceof IVariable) {
-            IASTName rhsName = Util.getName(be.getOperand2());
+            IASTName rhsName = Util.getName(rhs);
             IBinding rhsBinding = rhsName == null ? null : rhsName.resolveBinding();
             Set<MemoryStatus> intermediateStatus = null;
 
-            if (be.getOperand2().getRawSignature().equals("NULL")) {
+            if (rhs.getRawSignature().equals("NULL")) {
                 // hoge = NULL
-                intermediateStatus = evalAssignNullToVariable(be, entry);
+                intermediateStatus = evalAssignNullToVariable((IVariable) lhsBinding, entry);
             } else if (rhsBinding instanceof IVariable) {
                 // hoge = variable
-                intermediateStatus = evalAssignVariableToVariable(be, (IVariable) rhsBinding, entry);
+                intermediateStatus = evalAssignVariableToVariable((IVariable) lhsBinding, (IVariable) rhsBinding, entry);
             } else {
                 System.out.println("Not supported syntax: the most right expression is not a ID expression");
                 return entry;
@@ -585,31 +655,35 @@ public class PointToSolver extends ForwardSolver<CFG.Vertex, MemoryStatus> {
 
             // a = b = .. = foo
             // という形なら=の続く限り解析し、最終的な状態を全体の状態とする
-            rhsBinding = lhsBinding;
-            while (it.hasPrevious() && rhsBinding != null) {
-                node = it.previous();
-                if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
-                    be = (IASTBinaryExpression) node;
-                    lhsName = Util.getName(be.getOperand1());
-                    lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
-
-                    // hoge = foo
-                    intermediateStatus = evalAssignVariableToVariable(
-                            be, (IVariable) rhsBinding, intermediateStatus);
-
-                    rhsBinding = lhsBinding instanceof IVariable ? (IVariable) lhsBinding : null;
-                } else {
-                    break;
+            if (node instanceof IASTBinaryExpression) {
+                rhsBinding = lhsBinding;
+                while (it.hasPrevious() && rhsBinding != null) {
+                    node = it.previous();
+                    if (Util.isIASTBinaryExpression(node, IASTBinaryExpression.op_assign)) {
+                        IASTBinaryExpression be = (IASTBinaryExpression) node;
+                        lhsName = Util.getName(be.getOperand1());
+                        lhsBinding = lhsName == null ? null : lhsName.resolveBinding();
+    
+                        // hoge = foo
+                        intermediateStatus = evalAssignVariableToVariable(
+                                be, (IVariable) rhsBinding, intermediateStatus);
+    
+                        rhsBinding = lhsBinding instanceof IVariable ? (IVariable) lhsBinding : null;
+                    } else {
+                        break;
+                    }
                 }
+                if (node == pathToVariableAssign.get(0)) {
+                    // 最後までトラバースできた場合
+                    return intermediateStatus;
+                } else {
+                    System.out.println("Not supported syntax");
+                    return intermediateStatus;
+                }
+            } else if (node instanceof IASTDeclarator) {
+                return intermediateStatus;
             }
 
-            if (node == pathToVariableAssign.get(0)) {
-                // 最後までトラバースできた場合
-                return intermediateStatus;
-            } else {
-                System.out.println("Not supported syntax");
-                return intermediateStatus;
-            }
         }
 
         return entry;

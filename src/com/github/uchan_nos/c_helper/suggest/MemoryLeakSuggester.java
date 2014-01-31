@@ -4,13 +4,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 
 import org.eclipse.jface.text.BadLocationException;
+import org.osgi.service.log.LogEntry;
 
+import com.github.uchan_nos.c_helper.Activator;
 import com.github.uchan_nos.c_helper.analysis.CFG;
 
 import com.github.uchan_nos.c_helper.dataflow.EntryExitPair;
@@ -31,6 +34,8 @@ import com.github.uchan_nos.c_helper.util.Util;
  */
 public class MemoryLeakSuggester extends Suggester {
 
+    private Logger logger = Activator.getLogger();
+
     @Override
     public Collection<Suggestion> suggest(SuggesterInput input, AssumptionManager assumptionManager) {
         ArrayList<Suggestion> suggestions = new ArrayList<Suggestion>();
@@ -44,9 +49,11 @@ public class MemoryLeakSuggester extends Suggester {
                 PointToSolver.Result<CFG.Vertex, MemoryStatus> result = solver.solve();
                 Set<MemoryProblem> problems = solver.problems();
 
+                StringBuilder resultMessage = new StringBuilder();
+
                 for (CFG.Vertex v : Util.sort(result.analysisValue.keySet())) {
                     EntryExitPair<MemoryStatus> memoryStatuses = result.analysisValue.get(v);
-                    System.out.println(v.label() + ": exit");
+                    resultMessage.append(v.label() + ": exit\n");
 
                     // 関数から抜ける頂点かどうか
                     boolean leavingNode = v.equals(cfg.exitVertex())
@@ -54,7 +61,7 @@ public class MemoryLeakSuggester extends Suggester {
 
                     int memoryLeakFound = 0;
                     for (MemoryStatus memoryStatus : memoryStatuses.exit()) {
-                        System.out.println("  " + memoryStatus);
+                        resultMessage.append("  " + memoryStatus + "\n");
 
                         for (MemoryBlock b : memoryStatus.memoryManager().memoryBlocks()) {
                             if (b.allocated() && (leavingNode || b.refCount() == 0)) {
@@ -131,6 +138,8 @@ public class MemoryLeakSuggester extends Suggester {
 
                     //System.out.println();
                 }
+
+                logger.fine(resultMessage.toString());
             }
         } catch (BadLocationException e) {
             e.printStackTrace();

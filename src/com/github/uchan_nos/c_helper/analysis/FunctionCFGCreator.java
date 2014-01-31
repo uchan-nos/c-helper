@@ -185,7 +185,7 @@ public class FunctionCFGCreator {
         final String conditionExpressionSignature =
                 Util.getRawSignature(stmt.getConditionExpression());
         final String iterationExpressionSignature =
-                Util.getRawSignature(stmt.getInitializerStatement());
+                Util.getRawSignature(stmt.getIterationExpression());
         CFG.Vertex entryVertex = new CFG.Vertex(
                 "for (" + initializationStatementSignature + " " +
                 //stmt.getConditionExpression().getRawSignature() + "; " +

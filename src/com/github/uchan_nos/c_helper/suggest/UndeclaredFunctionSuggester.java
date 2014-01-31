@@ -84,7 +84,7 @@ public class UndeclaredFunctionSuggester extends Suggester {
                     IBinding b = functionName.resolveBinding();
                     if (b instanceof ICInternalFunction) {
                         ICInternalFunction f = (ICInternalFunction) b;
-                        if (f.getDeclarations().length == 0) {
+                        if (f.getDeclarations() == null || f.getDeclarations().length == 0) {
                             // 宣言が見つからない
 
                             String suggestionString = null;

@@ -159,7 +159,11 @@ public class Analyzer {
             for (Suggester suggester : suggesters) {
                 Collection<Suggestion> s = suggester.suggest(input, assumptionManager);
                 if (s != null && s.size() > 0) {
-                    suggestions.addAll(s);
+                    for (Suggestion suggestion : s) {
+                        if (suggestion != null) {
+                            suggestions.add(suggestion);
+                        }
+                    }
                 }
             }
 
